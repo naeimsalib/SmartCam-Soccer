@@ -154,7 +154,7 @@ const Calendar = () => {
         <Container maxWidth="sm">
           <Grid container spacing={4} justifyContent="center">
             {/* Booking Form */}
-            <Box>
+            <Grid item xs={12}>
               <Paper elevation={3} sx={{ p: 4, borderRadius: 4 }}>
                 <Typography variant="h5" align="center" mb={3} fontWeight={500}>
                   Book a Field
@@ -230,10 +230,10 @@ const Calendar = () => {
                   </Button>
                 </Stack>
               </Paper>
-            </Box>
+            </Grid>
 
             {/* Upcoming Appointments */}
-            <Box mt={4}>
+            <Grid item xs={12} mt={4}>
               <Paper elevation={3} sx={{ p: 4, borderRadius: 4 }}>
                 <Typography variant="h5" align="center" mb={3} fontWeight={500}>
                   Upcoming Appointments
@@ -291,7 +291,7 @@ const Calendar = () => {
                   </Stack>
                 )}
               </Paper>
-            </Box>
+            </Grid>
           </Grid>
         </Container>
       </Box>
