@@ -5,6 +5,8 @@ import time
 import datetime
 from supabase import create_client, Client
 from dotenv import load_dotenv
+import threading
+import queue
 
 # Camera index (change to 1 or 2 if needed)
 CAMERA_INDEX = 0
@@ -12,7 +14,7 @@ CAMERA_INDEX = 0
 # Load environment variables
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
 
 # User info
 USER_EMAIL = "naeimsalib@yahoo.com"
@@ -20,6 +22,28 @@ USER_ID = "05669d2f-1db4-4f35-8e00-7c3845199361"
 
 # Connect to Supabase
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+upload_queue = queue.Queue()
+
+def upload_worker():
+    while True:
+        user_id, filename = upload_queue.get()
+        if filename is None:
+            break  # Sentinel to stop the thread
+        storage_path = upload_video_to_supabase(filename, user_id, filename)
+        if storage_path:
+            if insert_video_reference(user_id, filename, storage_path):
+                # Delete local file after successful upload and DB insert
+                try:
+                    os.remove(filename)
+                    print(f"Deleted local file: {filename}")
+                except Exception as e:
+                    print(f"Failed to delete local file {filename}: {e}")
+        upload_queue.task_done()
+
+# Start the upload worker thread before the main loop
+worker_thread = threading.Thread(target=upload_worker, daemon=True)
+worker_thread.start()
 
 # Helper: Get upcoming appointments for this user
 def get_upcoming_appointments():
@@ -95,6 +119,34 @@ def zoom_on_ball(frame, ball):
     zoomed = cv2.resize(crop, (w, h), interpolation=cv2.INTER_LINEAR)
     return zoomed
 
+# Add this helper function after remove_completed_booking
+def upload_video_to_supabase(local_path, user_id, filename):
+    storage_path = f"{user_id}/{filename}"
+    try:
+        with open(local_path, "rb") as f:
+            res = supabase.storage.from_("videos").upload(storage_path, f, {"content-type": "video/mp4"})
+        print(f"Uploaded {filename} to Supabase storage at {storage_path}")
+        return storage_path
+    except Exception as e:
+        print(f"Failed to upload video: {e}")
+        return None
+
+# Add this helper to insert a reference in the videos table
+def insert_video_reference(user_id, filename, storage_path):
+    try:
+        now = datetime.datetime.now().isoformat()
+        res = supabase.table("videos").insert({
+            "user_id": user_id,
+            "filename": filename,
+            "storage_path": storage_path,
+            "created_at": now
+        }).execute()
+        print(f"Inserted video reference for {filename} in DB.")
+        return True
+    except Exception as e:
+        print(f"Failed to insert video reference: {e}")
+        return False
+
 # Main loop
 def main():
     print("Starting soccer recorder...")
@@ -106,6 +158,7 @@ def main():
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     last_status = None
     fps = 10.0
+    prev_appt_id = None
 
     while True:
         ret, frame = cap.read()
@@ -119,9 +172,42 @@ def main():
         cv2.putText(frame, now.strftime("%Y-%m-%d %H:%M:%S"), (10, 30), 
                     cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2)
 
+        # Refresh appointments every 10 seconds or when not recording
+        if not recording or int(time.time()) % 10 == 0:
+            appointments = get_upcoming_appointments()
+
+        # Get the current appointment (if any)
+        appt = get_current_appointment(appointments)
+        appt_id = appt["id"] if appt else None
+
+        # If the appointment has changed (including to None), end the previous recording
+        if recording and (appt_id != prev_appt_id):
+            print(f"[{now}] Appointment changed or ended, stopping recording.")
+            recording = False
+            if out:
+                out.release()
+                out = None
+            # Queue the video for upload and DB reference
+            if current_appt:
+                filename = f"recording_{current_appt['date']}_{current_appt['start_time'].replace(':','')}_{USER_ID}.mp4"
+                upload_queue.put((USER_ID, filename))
+                remove_completed_booking(current_appt)
+            current_appt = None
+            last_status = 'waiting'
+
+        # If there is a new appointment and not recording, start a new recording
+        if appt and (appt_id != prev_appt_id):
+            print(f"[{now}] Starting recording for appointment: {appt['date']} {appt['start_time']} to {appt['end_time']}")
+            filename = f"recording_{appt['date']}_{appt['start_time'].replace(':','')}_{USER_ID}.mp4"
+            out = cv2.VideoWriter(filename, fourcc, fps, (frame.shape[1], frame.shape[0]))
+            recording = True
+            current_appt = appt
+            last_status = 'recording'
+
+        prev_appt_id = appt_id
+
         # Only run tracking and zooming if we're recording
         if recording:
-            # Ball detection and zoom
             ball = detect_ball(frame)
             if ball:
                 # Uncomment to enable zooming
@@ -134,38 +220,6 @@ def main():
             # Show "Standby" status when not recording
             cv2.putText(frame, "Standby Mode", (10, 70), 
                        cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2)
-
-        # Refresh appointments every 10 seconds or when not recording
-        if not recording or int(time.time()) % 10 == 0:
-            appointments = get_upcoming_appointments()
-
-        # Check if current recording should end
-        if recording and should_end_recording(current_appt):
-            print(f"[{now}] Current booking ended, stopping recording.")
-            recording = False
-            if out:
-                out.release()
-                out = None
-            # Remove the completed booking from database
-            if current_appt:
-                remove_completed_booking(current_appt)
-            current_appt = None
-            last_status = 'waiting'
-
-        # Check for new appointment to start
-        appt = get_current_appointment(appointments)
-        if appt and not recording:
-            print(f"[{now}] Starting recording for appointment: {appt['date']} {appt['start_time']} to {appt['end_time']}")
-            filename = f"recording_{appt['date']}_{appt['start_time'].replace(':','')}_{USER_ID}.mp4"
-            out = cv2.VideoWriter(filename, fourcc, fps, (frame.shape[1], frame.shape[0]))
-            recording = True
-            current_appt = appt
-            last_status = 'recording'
-        elif not appt and not recording:
-            # Only print waiting message if status changed
-            if last_status != 'waiting':
-                print(f"[{now}] Waiting for the next appointment...")
-                last_status = 'waiting'
 
         # If recording, write frame
         if recording and out:
@@ -183,6 +237,9 @@ def main():
     if out:
         out.release()
     cv2.destroyAllWindows()
+    # Stop the upload worker gracefully
+    upload_queue.put((None, None))
+    worker_thread.join()
 
 if __name__ == "__main__":
     main() 
