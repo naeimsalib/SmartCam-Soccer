@@ -15,10 +15,8 @@ CAMERA_INDEX = 0
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-
-# User info
-USER_EMAIL = "naeimsalib@yahoo.com"
-USER_ID = "05669d2f-1db4-4f35-8e00-7c3845199361"
+USER_EMAIL = os.getenv("USER_EMAIL")
+USER_ID = os.getenv("USER_ID")
 
 # Connect to Supabase
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
