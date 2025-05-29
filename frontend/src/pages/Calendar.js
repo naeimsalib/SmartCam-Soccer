@@ -1,26 +1,33 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState, useEffect } from "react";
-import { Box, Paper, Typography, Button, TextField, CircularProgress, } from "@mui/material";
+import { Box, Paper, Typography, Button, TextField, CircularProgress, Container, Grid, Card, CardContent, CardActions, IconButton, Stack, InputAdornment, } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs from "dayjs";
 import { supabase } from "../supabaseClient";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 const generateTimeOptions = () => {
     const times = [];
     for (let hour = 0; hour < 24; hour++) {
         for (let min = 0; min < 60; min += 5) {
-            const label = `${hour.toString().padStart(2, "0")}:${min
+            const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+            const ampm = hour < 12 ? "AM" : "PM";
+            const label = `${hour12.toString().padStart(2, "0")}:${min
+                .toString()
+                .padStart(2, "0")} ${ampm}`;
+            const value = `${hour.toString().padStart(2, "0")}:${min
                 .toString()
                 .padStart(2, "0")}`;
-            times.push(label);
+            times.push({ label, value });
         }
     }
     return times;
 };
 const timeOptions = generateTimeOptions();
 const Calendar = () => {
-    console.log("Calendar component rendered");
     const [selectedDate, setSelectedDate] = useState(dayjs());
     const [startTime, setStartTime] = useState("");
     const [endTime, setEndTime] = useState("");
@@ -44,7 +51,6 @@ const Calendar = () => {
         fetchUpcoming();
     }, [booking]);
     useEffect(() => {
-        // Fetch user id from Supabase Auth
         const fetchUserId = async () => {
             const { data: { session }, } = await supabase.auth.getSession();
             setUserId(session?.user?.id || null);
@@ -61,7 +67,6 @@ const Calendar = () => {
         setBooking(true);
         const dateStr = selectedDate.format("YYYY-MM-DD");
         if (editId) {
-            // Update existing booking
             await supabase
                 .from("bookings")
                 .update({
@@ -74,7 +79,6 @@ const Calendar = () => {
             setEditId(null);
         }
         else {
-            // Insert new booking
             await supabase.from("bookings").insert({
                 date: dateStr,
                 start_time: startTime,
@@ -97,35 +101,40 @@ const Calendar = () => {
         setEndTime(row.end_time);
         setEditId(row.id);
     };
+    function formatTime12(time24) {
+        const [hourStr, minStr] = time24.split(":");
+        let hour = parseInt(hourStr, 10);
+        const min = minStr;
+        const ampm = hour < 12 ? "AM" : "PM";
+        hour = hour % 12 === 0 ? 12 : hour % 12;
+        return `${hour.toString().padStart(2, "0")}:${min} ${ampm}`;
+    }
     return (_jsx(LocalizationProvider, { dateAdapter: AdapterDayjs, children: _jsx(Box, { sx: {
                 minHeight: "100vh",
                 width: "100vw",
                 display: "flex",
+                flexDirection: "column",
                 alignItems: "center",
-                justifyContent: "center",
                 background: "linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%)",
-            }, children: _jsxs(Paper, { elevation: 3, sx: { p: 5, minWidth: 350, maxWidth: 400 }, children: [_jsx(Typography, { variant: "h5", align: "center", mb: 3, fontWeight: 500, children: "Book a Field" }), _jsxs(Box, { sx: { display: "flex", flexDirection: "column", gap: 2 }, children: [_jsx(DatePicker, { label: "Date", value: selectedDate, onChange: setSelectedDate, disablePast: true, sx: { mb: 2 }, slotProps: {
-                                    textField: {
-                                        id: "date-picker",
-                                        inputProps: { id: "date-picker" },
-                                    },
-                                } }), _jsx(TextField, { id: "start-time", name: "start-time", label: "Start Time", value: startTime, onChange: (e) => setStartTime(e.target.value), fullWidth: true, type: "time", inputProps: {
-                                    id: "start-time",
-                                    step: 300, // 5 min steps
-                                    "aria-label": "Enter start time",
-                                } }), _jsx(TextField, { id: "end-time", name: "end-time", label: "End Time", value: endTime, onChange: (e) => setEndTime(e.target.value), fullWidth: true, type: "time", inputProps: {
-                                    id: "end-time",
-                                    step: 300, // 5 min steps
-                                    "aria-label": "Enter end time",
-                                } }), _jsx(Button, { variant: "contained", color: "primary", fullWidth: true, disabled: !selectedDate ||
-                                    !startTime ||
-                                    !endTime ||
-                                    startTime >= endTime ||
-                                    booking, onClick: handleBook, sx: { mt: 2 }, id: "book-button", name: "book-button", children: booking ? "Booking..." : "BOOK FIELD" })] }), _jsxs(Box, { sx: { mt: 4 }, children: [_jsx(Typography, { variant: "h6", mb: 1, children: "Upcoming Appointments" }), loading ? (_jsx(CircularProgress, { sx: { my: 2 } })) : upcoming.length === 0 ? (_jsx(Typography, { color: "text.secondary", children: "No upcoming bookings." })) : (upcoming.map((row, idx) => (_jsxs(Box, { sx: {
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "space-between",
-                                    mb: 1,
-                                }, children: [_jsxs(Typography, { children: [row.date, " \u2014 ", row.start_time, " to ", row.end_time] }), _jsxs(Box, { children: [_jsx(Button, { size: "small", color: "primary", onClick: () => handleEdit(row), sx: { mr: 1 }, children: "Edit" }), _jsx(Button, { size: "small", color: "error", onClick: () => handleDelete(row.id), children: "Delete" })] })] }, row.id))))] })] }) }) }));
+                py: 4,
+                mt: 10,
+            }, children: _jsx(Container, { maxWidth: "sm", children: _jsxs(Grid, { container: true, spacing: 4, justifyContent: "center", children: [_jsx(Box, { children: _jsxs(Paper, { elevation: 3, sx: { p: 4, borderRadius: 4 }, children: [_jsx(Typography, { variant: "h5", align: "center", mb: 3, fontWeight: 500, children: "Book a Field" }), _jsxs(Stack, { spacing: 3, children: [_jsx(DatePicker, { label: "Date", value: selectedDate, onChange: setSelectedDate, disablePast: true, slotProps: {
+                                                    textField: {
+                                                        fullWidth: true,
+                                                        variant: "outlined",
+                                                    },
+                                                } }), _jsx(TextField, { label: "Start Time", type: "time", value: startTime, onChange: (e) => setStartTime(e.target.value), fullWidth: true, variant: "outlined", InputLabelProps: { shrink: true }, inputProps: { step: 300 }, InputProps: {
+                                                    startAdornment: (_jsx(InputAdornment, { position: "start", children: _jsx(AccessTimeIcon, { sx: { color: "text.secondary" } }) })),
+                                                }, helperText: "Enter time in 12-hour format (e.g., 01:30 PM)" }), _jsx(TextField, { label: "End Time", type: "time", value: endTime, onChange: (e) => setEndTime(e.target.value), fullWidth: true, variant: "outlined", InputLabelProps: { shrink: true }, inputProps: { step: 300 }, InputProps: {
+                                                    startAdornment: (_jsx(InputAdornment, { position: "start", children: _jsx(AccessTimeIcon, { sx: { color: "text.secondary" } }) })),
+                                                }, helperText: "Enter time in 12-hour format (e.g., 03:45 PM)" }), _jsx(Button, { variant: "contained", color: "primary", fullWidth: true, disabled: !selectedDate ||
+                                                    !startTime ||
+                                                    !endTime ||
+                                                    startTime >= endTime ||
+                                                    booking, onClick: handleBook, sx: { mt: 2, py: 1.5, fontWeight: 600, fontSize: 18 }, children: booking
+                                                    ? "Booking..."
+                                                    : editId
+                                                        ? "Update Booking"
+                                                        : "Book Field" })] })] }) }), _jsx(Box, { mt: 4, children: _jsxs(Paper, { elevation: 3, sx: { p: 4, borderRadius: 4 }, children: [_jsx(Typography, { variant: "h5", align: "center", mb: 3, fontWeight: 500, children: "Upcoming Appointments" }), loading ? (_jsx(Box, { display: "flex", justifyContent: "center", my: 4, children: _jsx(CircularProgress, {}) })) : upcoming.length === 0 ? (_jsx(Typography, { color: "text.secondary", align: "center", children: "No upcoming bookings." })) : (_jsx(Stack, { spacing: 2, children: upcoming.map((row) => (_jsxs(Card, { elevation: 2, sx: { borderRadius: 3, background: "#f7fafc" }, children: [_jsxs(CardContent, { children: [_jsx(Typography, { variant: "subtitle1", fontWeight: 600, gutterBottom: true, children: dayjs(row.date).format("MMMM D, YYYY") }), _jsxs(Box, { display: "flex", alignItems: "center", gap: 1, children: [_jsx(AccessTimeIcon, { color: "primary", fontSize: "small" }), _jsxs(Typography, { fontWeight: 500, children: [formatTime12(row.start_time), " -", " ", formatTime12(row.end_time)] })] })] }), _jsxs(CardActions, { children: [_jsx(IconButton, { size: "small", color: "primary", onClick: () => handleEdit(row), children: _jsx(EditIcon, {}) }), _jsx(IconButton, { size: "small", color: "error", onClick: () => handleDelete(row.id), children: _jsx(DeleteIcon, {}) })] })] }, row.id))) }))] }) })] }) }) }) }));
 };
 export default Calendar;

@@ -7,21 +7,37 @@ import {
   TextField,
   MenuItem,
   CircularProgress,
+  Container,
+  Grid,
+  Card,
+  CardContent,
+  CardActions,
+  IconButton,
+  Stack,
+  InputAdornment,
 } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import dayjs, { Dayjs } from "dayjs";
 import { supabase } from "../supabaseClient";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
 
 const generateTimeOptions = () => {
   const times = [];
   for (let hour = 0; hour < 24; hour++) {
     for (let min = 0; min < 60; min += 5) {
-      const label = `${hour.toString().padStart(2, "0")}:${min
+      const hour12 = hour % 12 === 0 ? 12 : hour % 12;
+      const ampm = hour < 12 ? "AM" : "PM";
+      const label = `${hour12.toString().padStart(2, "0")}:${min
+        .toString()
+        .padStart(2, "0")} ${ampm}`;
+      const value = `${hour.toString().padStart(2, "0")}:${min
         .toString()
         .padStart(2, "0")}`;
-      times.push(label);
+      times.push({ label, value });
     }
   }
   return times;
@@ -30,7 +46,6 @@ const generateTimeOptions = () => {
 const timeOptions = generateTimeOptions();
 
 const Calendar = () => {
-  console.log("Calendar component rendered");
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(dayjs());
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
@@ -56,7 +71,6 @@ const Calendar = () => {
   }, [booking]);
 
   useEffect(() => {
-    // Fetch user id from Supabase Auth
     const fetchUserId = async () => {
       const {
         data: { session },
@@ -78,7 +92,6 @@ const Calendar = () => {
     setBooking(true);
     const dateStr = selectedDate.format("YYYY-MM-DD");
     if (editId) {
-      // Update existing booking
       await supabase
         .from("bookings")
         .update({
@@ -90,7 +103,6 @@ const Calendar = () => {
         .eq("id", editId);
       setEditId(null);
     } else {
-      // Insert new booking
       await supabase.from("bookings").insert({
         date: dateStr,
         start_time: startTime,
@@ -116,6 +128,15 @@ const Calendar = () => {
     setEditId(row.id);
   };
 
+  function formatTime12(time24: string) {
+    const [hourStr, minStr] = time24.split(":");
+    let hour = parseInt(hourStr, 10);
+    const min = minStr;
+    const ampm = hour < 12 ? "AM" : "PM";
+    hour = hour % 12 === 0 ? 12 : hour % 12;
+    return `${hour.toString().padStart(2, "0")}:${min} ${ampm}`;
+  }
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box
@@ -123,122 +144,156 @@ const Calendar = () => {
           minHeight: "100vh",
           width: "100vw",
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
           background: "linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%)",
+          py: 4,
+          mt: 10,
         }}
       >
-        <Paper elevation={3} sx={{ p: 5, minWidth: 350, maxWidth: 400 }}>
-          <Typography variant="h5" align="center" mb={3} fontWeight={500}>
-            Book a Field
-          </Typography>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <DatePicker
-              label="Date"
-              value={selectedDate}
-              onChange={setSelectedDate}
-              disablePast
-              sx={{ mb: 2 }}
-              slotProps={{
-                textField: {
-                  id: "date-picker",
-                  inputProps: { id: "date-picker" },
-                },
-              }}
-            />
-            <TextField
-              id="start-time"
-              name="start-time"
-              label="Start Time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              fullWidth
-              type="time"
-              inputProps={{
-                id: "start-time",
-                step: 300, // 5 min steps
-                "aria-label": "Enter start time",
-              }}
-            ></TextField>
-            <TextField
-              id="end-time"
-              name="end-time"
-              label="End Time"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              fullWidth
-              type="time"
-              inputProps={{
-                id: "end-time",
-                step: 300, // 5 min steps
-                "aria-label": "Enter end time",
-              }}
-            ></TextField>
-            <Button
-              variant="contained"
-              color="primary"
-              fullWidth
-              disabled={
-                !selectedDate ||
-                !startTime ||
-                !endTime ||
-                startTime >= endTime ||
-                booking
-              }
-              onClick={handleBook}
-              sx={{ mt: 2 }}
-              id="book-button"
-              name="book-button"
-            >
-              {booking ? "Booking..." : "BOOK FIELD"}
-            </Button>
-          </Box>
-          <Box sx={{ mt: 4 }}>
-            <Typography variant="h6" mb={1}>
-              Upcoming Appointments
-            </Typography>
-            {loading ? (
-              <CircularProgress sx={{ my: 2 }} />
-            ) : upcoming.length === 0 ? (
-              <Typography color="text.secondary">
-                No upcoming bookings.
-              </Typography>
-            ) : (
-              upcoming.map((row, idx) => (
-                <Box
-                  key={row.id}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    mb: 1,
-                  }}
-                >
-                  <Typography>
-                    {row.date} — {row.start_time} to {row.end_time}
-                  </Typography>
-                  <Box>
-                    <Button
-                      size="small"
-                      color="primary"
-                      onClick={() => handleEdit(row)}
-                      sx={{ mr: 1 }}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      size="small"
-                      color="error"
-                      onClick={() => handleDelete(row.id)}
-                    >
-                      Delete
-                    </Button>
+        <Container maxWidth="sm">
+          <Grid container spacing={4} justifyContent="center">
+            {/* Booking Form */}
+            <Box>
+              <Paper elevation={3} sx={{ p: 4, borderRadius: 4 }}>
+                <Typography variant="h5" align="center" mb={3} fontWeight={500}>
+                  Book a Field
+                </Typography>
+                <Stack spacing={3}>
+                  <DatePicker
+                    label="Date"
+                    value={selectedDate}
+                    onChange={setSelectedDate}
+                    disablePast
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                        variant: "outlined",
+                      },
+                    }}
+                  />
+                  <TextField
+                    label="Start Time"
+                    type="time"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    fullWidth
+                    variant="outlined"
+                    InputLabelProps={{ shrink: true }}
+                    inputProps={{ step: 300 }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <AccessTimeIcon sx={{ color: "text.secondary" }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    helperText="Enter time in 12-hour format (e.g., 01:30 PM)"
+                  />
+                  <TextField
+                    label="End Time"
+                    type="time"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    fullWidth
+                    variant="outlined"
+                    InputLabelProps={{ shrink: true }}
+                    inputProps={{ step: 300 }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <AccessTimeIcon sx={{ color: "text.secondary" }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    helperText="Enter time in 12-hour format (e.g., 03:45 PM)"
+                  />
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    fullWidth
+                    disabled={
+                      !selectedDate ||
+                      !startTime ||
+                      !endTime ||
+                      startTime >= endTime ||
+                      booking
+                    }
+                    onClick={handleBook}
+                    sx={{ mt: 2, py: 1.5, fontWeight: 600, fontSize: 18 }}
+                  >
+                    {booking
+                      ? "Booking..."
+                      : editId
+                      ? "Update Booking"
+                      : "Book Field"}
+                  </Button>
+                </Stack>
+              </Paper>
+            </Box>
+
+            {/* Upcoming Appointments */}
+            <Box mt={4}>
+              <Paper elevation={3} sx={{ p: 4, borderRadius: 4 }}>
+                <Typography variant="h5" align="center" mb={3} fontWeight={500}>
+                  Upcoming Appointments
+                </Typography>
+                {loading ? (
+                  <Box display="flex" justifyContent="center" my={4}>
+                    <CircularProgress />
                   </Box>
-                </Box>
-              ))
-            )}
-          </Box>
-        </Paper>
+                ) : upcoming.length === 0 ? (
+                  <Typography color="text.secondary" align="center">
+                    No upcoming bookings.
+                  </Typography>
+                ) : (
+                  <Stack spacing={2}>
+                    {upcoming.map((row) => (
+                      <Card
+                        key={row.id}
+                        elevation={2}
+                        sx={{ borderRadius: 3, background: "#f7fafc" }}
+                      >
+                        <CardContent>
+                          <Typography
+                            variant="subtitle1"
+                            fontWeight={600}
+                            gutterBottom
+                          >
+                            {dayjs(row.date).format("MMMM D, YYYY")}
+                          </Typography>
+                          <Box display="flex" alignItems="center" gap={1}>
+                            <AccessTimeIcon color="primary" fontSize="small" />
+                            <Typography fontWeight={500}>
+                              {formatTime12(row.start_time)} -{" "}
+                              {formatTime12(row.end_time)}
+                            </Typography>
+                          </Box>
+                        </CardContent>
+                        <CardActions>
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            onClick={() => handleEdit(row)}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleDelete(row.id)}
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </CardActions>
+                      </Card>
+                    ))}
+                  </Stack>
+                )}
+              </Paper>
+            </Box>
+          </Grid>
+        </Container>
       </Box>
     </LocalizationProvider>
   );
