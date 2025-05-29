@@ -45,6 +45,28 @@ def get_current_appointment(appointments):
             return appt
     return None
 
+# Helper: Check if current recording should end
+def should_end_recording(current_appt):
+    if not current_appt:
+        return True
+    
+    now = datetime.datetime.now()
+    appt_date = current_appt["date"]
+    end = current_appt["end_time"]
+    end_dt = datetime.datetime.strptime(f"{appt_date} {end}", "%Y-%m-%d %H:%M")
+    
+    return now >= end_dt
+
+# Helper: Remove completed booking from database
+def remove_completed_booking(booking):
+    try:
+        response = supabase.table("bookings").delete().eq("id", booking["id"]).execute()
+        print(f"[{datetime.datetime.now()}] Successfully removed completed booking from database.")
+        return True
+    except Exception as e:
+        print(f"[{datetime.datetime.now()}] Error removing booking from database: {e}")
+        return False
+
 # Helper: Ball detection (simple color-based for demo)
 def detect_ball(frame):
     # Convert to HSV and threshold for orange/yellow ball (adjust as needed)
@@ -90,18 +112,47 @@ def main():
         if not ret:
             print("Camera error.")
             break
+
         now = datetime.datetime.now()
+        
         # Overlay date/time
-        cv2.putText(frame, now.strftime("%Y-%m-%d %H:%M:%S"), (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2)
-        # Ball detection and zoom
-        ball = detect_ball(frame)
-        if ball:
-            # frame = zoom_on_ball(frame, ball)  # Zooming temporarily disabled
-            cv2.circle(frame, (ball[0], ball[1]), ball[2], (0,0,255), 2)
+        cv2.putText(frame, now.strftime("%Y-%m-%d %H:%M:%S"), (10, 30), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2)
+
+        # Only run tracking and zooming if we're recording
+        if recording:
+            # Ball detection and zoom
+            ball = detect_ball(frame)
+            if ball:
+                # Uncomment to enable zooming
+                # frame = zoom_on_ball(frame, ball)
+                cv2.circle(frame, (ball[0], ball[1]), ball[2], (0,0,255), 2)
+                # Add tracking status
+                cv2.putText(frame, "Tracking Active", (10, 70), 
+                           cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2)
+        else:
+            # Show "Standby" status when not recording
+            cv2.putText(frame, "Standby Mode", (10, 70), 
+                       cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 2)
+
         # Refresh appointments every 10 seconds or when not recording
         if not recording or int(time.time()) % 10 == 0:
             appointments = get_upcoming_appointments()
-        # Check for appointment
+
+        # Check if current recording should end
+        if recording and should_end_recording(current_appt):
+            print(f"[{now}] Current booking ended, stopping recording.")
+            recording = False
+            if out:
+                out.release()
+                out = None
+            # Remove the completed booking from database
+            if current_appt:
+                remove_completed_booking(current_appt)
+            current_appt = None
+            last_status = 'waiting'
+
+        # Check for new appointment to start
         appt = get_current_appointment(appointments)
         if appt and not recording:
             print(f"[{now}] Starting recording for appointment: {appt['date']} {appt['start_time']} to {appt['end_time']}")
@@ -110,27 +161,24 @@ def main():
             recording = True
             current_appt = appt
             last_status = 'recording'
-        elif not appt and recording:
-            print(f"[{now}] Appointment ended, stopping recording.")
-            recording = False
-            if out:
-                out.release()
-                out = None
-            current_appt = None
-            last_status = 'waiting'
         elif not appt and not recording:
             # Only print waiting message if status changed
             if last_status != 'waiting':
                 print(f"[{now}] Waiting for the next appointment...")
                 last_status = 'waiting'
+
         # If recording, write frame
         if recording and out:
             out.write(frame)
-        # Show preview (optional, comment out if running headless)
+
+        # Show preview
         cv2.imshow('Soccer Recorder', frame)
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
-        time.sleep(0.01)
+
+        time.sleep(0.01)  # Small delay to prevent high CPU usage
+
+    # Cleanup
     cap.release()
     if out:
         out.release()
