@@ -33,6 +33,7 @@ interface UserSettings {
   logo_path: string | null;
   sponsor_logo1_path: string | null;
   sponsor_logo2_path: string | null;
+  sponsor_logo3_path: string | null;
 }
 
 const SettingsPage: React.FC = () => {
@@ -45,6 +46,7 @@ const SettingsPage: React.FC = () => {
     logo?: string;
     sponsor_logo1?: string;
     sponsor_logo2?: string;
+    sponsor_logo3?: string;
   }>({});
 
   useEffect(() => {
@@ -69,7 +71,7 @@ const SettingsPage: React.FC = () => {
 
       if (data?.intro_video_path) {
         const { data: introData } = await supabase.storage
-          .from('user_media')
+          .from('usermedia')
           .createSignedUrl(data.intro_video_path, 3600);
         if (introData?.signedUrl) {
           setPreviewUrl((prev) => ({ ...prev, intro: introData.signedUrl }));
@@ -78,17 +80,21 @@ const SettingsPage: React.FC = () => {
 
       if (data?.logo_path) {
         const { data: logoData } = await supabase.storage
-          .from('user_media')
+          .from('usermedia')
           .createSignedUrl(data.logo_path, 3600);
         if (logoData?.signedUrl) {
           setPreviewUrl((prev) => ({ ...prev, logo: logoData.signedUrl }));
         }
       }
 
-      for (const key of ['sponsor_logo1_path', 'sponsor_logo2_path'] as const) {
+      for (const key of [
+        'sponsor_logo1_path',
+        'sponsor_logo2_path',
+        'sponsor_logo3_path',
+      ] as const) {
         if (data?.[key]) {
           const { data: signedData } = await supabase.storage
-            .from('user_media')
+            .from('usermedia')
             .createSignedUrl(data[key], 3600);
           if (signedData?.signedUrl) {
             setPreviewUrl((prev) => ({
@@ -123,17 +129,33 @@ const SettingsPage: React.FC = () => {
       const filePath = `${user.id}/${type}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('user_media')
+        .from('usermedia')
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
 
+      const { data: existing, error: existingError } = await supabase
+        .from('user_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+
+      if (existingError && existingError.code !== 'PGRST116')
+        throw existingError;
+
+      const updatePayload = {
+        user_id: user.id,
+        intro_video_path: existing?.intro_video_path ?? null,
+        logo_path: existing?.logo_path ?? null,
+        sponsor_logo1_path: existing?.sponsor_logo1_path ?? null,
+        sponsor_logo2_path: existing?.sponsor_logo2_path ?? null,
+        sponsor_logo3_path: existing?.sponsor_logo3_path ?? null,
+        [type]: filePath,
+      };
+
       const { error: updateError } = await supabase
         .from('user_settings')
-        .upsert({
-          user_id: user.id,
-          [`${type}`]: filePath,
-        });
+        .upsert(updatePayload, { onConflict: 'user_id' });
 
       if (updateError) throw updateError;
 
@@ -161,19 +183,14 @@ const SettingsPage: React.FC = () => {
       const currentPath = settings?.[type];
       if (currentPath) {
         const { error: deleteError } = await supabase.storage
-          .from('user_media')
+          .from('usermedia')
           .remove([currentPath]);
-
         if (deleteError) throw deleteError;
       }
 
       const { error: updateError } = await supabase
         .from('user_settings')
-        .upsert({
-          user_id: user.id,
-          [type]: null,
-        });
-
+        .upsert({ user_id: user.id, [type]: null }, { onConflict: 'user_id' });
       if (updateError) throw updateError;
 
       setSuccess(`${type.replace('_', ' ')} removed successfully`);
@@ -204,6 +221,12 @@ const SettingsPage: React.FC = () => {
                 controls={type === 'intro_video_path'}
                 src={preview}
                 sx={{ height: 200, objectFit: 'contain' }}
+                onError={() =>
+                  console.error(
+                    `❌ Failed to load preview for: ${type}`,
+                    preview
+                  )
+                }
               />
               <CardContent>
                 <Button
@@ -268,6 +291,11 @@ const SettingsPage: React.FC = () => {
           'Sponsor Logo 2',
           'sponsor_logo2_path',
           previewUrl.sponsor_logo2
+        )}
+        {renderUploader(
+          'Sponsor Logo 3',
+          'sponsor_logo3_path',
+          previewUrl.sponsor_logo3
         )}
       </Grid>
 
