@@ -1,11 +1,11 @@
-import React from "react";
-import AppBar from "@mui/material/AppBar";
-import Toolbar from "@mui/material/Toolbar";
-import Typography from "@mui/material/Typography";
-import Button from "@mui/material/Button";
-import Box from "@mui/material/Box";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { supabase } from "../supabaseClient";
+import React from 'react';
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
 
 type NavigationProps = {
   isAuthenticated: boolean;
@@ -22,18 +22,18 @@ const Navigation = ({
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setIsAuthenticated(false);
-    navigate("/login");
+    navigate('/login');
   };
 
   return (
     <AppBar position="fixed" color="primary" sx={{ mb: 4 }}>
-      <Toolbar sx={{ justifyContent: "space-between" }}>
+      <Toolbar sx={{ justifyContent: 'space-between' }}>
         <Typography
           variant="h6"
           component={Link}
-          to={isAuthenticated ? "/dashboard" : "/"}
+          to={isAuthenticated ? '/dashboard' : '/'}
           color="inherit"
-          sx={{ textDecoration: "none", fontWeight: 600 }}
+          sx={{ textDecoration: 'none', fontWeight: 600 }}
         >
           SmartCam Soccer
         </Typography>
@@ -64,12 +64,27 @@ const Navigation = ({
                   fontWeight: 500,
                   mr: 1,
                   border:
-                    location.pathname === "/recordings"
-                      ? "1px solid #fff"
-                      : "none",
+                    location.pathname === '/recordings'
+                      ? '1px solid #fff'
+                      : 'none',
                 }}
               >
                 RECORDINGS
+              </Button>
+              <Button
+                color="inherit"
+                component={Link}
+                to="/settings"
+                sx={{
+                  fontWeight: 500,
+                  mr: 1,
+                  border:
+                    location.pathname === '/settings'
+                      ? '1px solid #fff'
+                      : 'none',
+                }}
+              >
+                SETTINGS
               </Button>
             </>
           )}
@@ -80,7 +95,7 @@ const Navigation = ({
             sx={{
               fontWeight: 500,
               border:
-                location.pathname === "/about" ? "1px solid #fff" : "none",
+                location.pathname === '/about' ? '1px solid #fff' : 'none',
               mr: 1,
             }}
           >
@@ -102,7 +117,7 @@ const Navigation = ({
               sx={{
                 fontWeight: 500,
                 border:
-                  location.pathname === "/login" ? "1px solid #fff" : "none",
+                  location.pathname === '/login' ? '1px solid #fff' : 'none',
               }}
             >
               LOGIN

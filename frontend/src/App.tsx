@@ -1,18 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
-} from "react-router-dom";
-import LandingPage from "./pages/LandingPage";
-import AboutPage from "./pages/AboutPage";
-import LoginPage from "./pages/LoginPage";
-import Dashboard from "./pages/Dashboard";
-import Calendar from "./pages/Calendar";
-import Recordings from "./pages/Recordings";
-import Navigation from "./components/Navigation";
-import { supabase } from "./supabaseClient";
+} from 'react-router-dom';
+import LandingPage from './pages/LandingPage';
+import AboutPage from './pages/AboutPage';
+import LoginPage from './pages/LoginPage';
+import Dashboard from './pages/Dashboard';
+import Calendar from './pages/Calendar';
+import Recordings from './pages/Recordings';
+import Navigation from './components/Navigation';
+import SettingsPage from './pages/SettingsPage';
+import { supabase } from './supabaseClient';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -69,6 +70,12 @@ function App() {
         <Route
           path="/recordings"
           element={isAuthenticated ? <Recordings /> : <Navigate to="/login" />}
+        />
+        <Route
+          path="/settings"
+          element={
+            isAuthenticated ? <SettingsPage /> : <Navigate to="/login" />
+          }
         />
       </Routes>
     </Router>
