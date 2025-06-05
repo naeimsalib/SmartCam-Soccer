@@ -128,7 +128,7 @@ def prepend_intro(intro_path, main_path, output_path):
         # Encode main video with significant slowdown to achieve real-time speed
         subprocess.run([
             "ffmpeg", "-i", main_path,
-            "-vf", "setpts=1.9*PTS",  # Slow down video significantly
+            "-vf", "setpts=1.8*PTS",  # Slow down video significantly
             "-af", "atempo=0.4",  # Slow down audio to match
             "-c:v", "libx264", "-preset", "medium", "-crf", "23",
             "-c:a", "aac", "-b:a", "128k",
