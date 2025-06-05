@@ -7,6 +7,11 @@
 *.flv
 *.webm
 
+# User assets directory and contents
+user_assets/
+user_assets/*
+user_assets/**/*
+
 # Temporary files
 temp_processing/
 *.tmp
@@ -14,7 +19,6 @@ temp_processing/
 *~
 
 # User assets
-user_assets/
 *.png
 *.jpg
 *.jpeg

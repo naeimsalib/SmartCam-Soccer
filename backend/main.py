@@ -133,34 +133,70 @@ def prepend_intro(intro_path, main_path, output_path):
             "-y", temp_main
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
-        # Create a file list for FFmpeg with absolute paths
-        list_file = os.path.join(temp_dir, "list.txt")
-        abs_intro = os.path.abspath(temp_intro)
-        abs_main = os.path.abspath(temp_main)
-        
-        # Write the list file with proper line endings
-        with open(list_file, "w", newline='\n') as f:
-            f.write(f"file '{abs_intro}'\n")
-            f.write(f"file '{abs_main}'\n")
-        
-        # Merge the videos using the concat demuxer with proper frame rate handling
-        subprocess.run([
-            "ffmpeg", "-f", "concat", "-safe", "0",
-            "-i", list_file,
-            "-c:v", "libx264", "-preset", "medium", "-crf", "23",
-            "-c:a", "aac", "-b:a", "128k",
-            "-vsync", "vfr",  # Variable frame rate
-            "-r", str(frame_rate),
-            "-filter_complex", "[0:v]setpts=PTS-STARTPTS[v]",  # Preserve original timestamps
-            "-map", "[v]",
-            "-map", "0:a",
-            "-y", output_path
-        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        # Try merging with a simpler approach first
+        try:
+            subprocess.run([
+                "ffmpeg",
+                "-i", temp_intro,
+                "-i", temp_main,
+                "-filter_complex", "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1[outv][outa]",
+                "-map", "[outv]",
+                "-map", "[outa]",
+                "-c:v", "libx264",
+                "-preset", "medium",
+                "-crf", "23",
+                "-c:a", "aac",
+                "-b:a", "128k",
+                "-y", output_path
+            ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        except subprocess.CalledProcessError:
+            log("First merge attempt failed, trying alternative method...", LogLevel.WARNING)
+            # If first attempt fails, try with more explicit stream handling
+            try:
+                # Create a temporary file for the merged video
+                temp_merged = os.path.join(temp_dir, "temp_merged.mp4")
+                
+                # First merge the videos without audio
+                subprocess.run([
+                    "ffmpeg",
+                    "-i", temp_intro,
+                    "-i", temp_main,
+                    "-filter_complex", "[0:v][1:v]concat=n=2:v=1[outv]",
+                    "-map", "[outv]",
+                    "-c:v", "libx264",
+                    "-preset", "medium",
+                    "-crf", "23",
+                    "-an",  # No audio
+                    "-y", temp_merged
+                ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                
+                # Then add audio streams
+                subprocess.run([
+                    "ffmpeg",
+                    "-i", temp_merged,
+                    "-i", temp_intro,
+                    "-i", temp_main,
+                    "-filter_complex", "[1:a][2:a]concat=n=2:v=0:a=1[outa]",
+                    "-map", "0:v",
+                    "-map", "[outa]",
+                    "-c:v", "copy",
+                    "-c:a", "aac",
+                    "-b:a", "128k",
+                    "-y", output_path
+                ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                
+                # Clean up temporary merged file
+                if os.path.exists(temp_merged):
+                    os.remove(temp_merged)
+                    
+            except subprocess.CalledProcessError as e:
+                log(f"Second merge attempt failed: {str(e)}", LogLevel.ERROR)
+                raise
         
         # Cleanup temporary files
         try:
             # Remove individual files first
-            for file in [temp_intro, temp_main, list_file]:
+            for file in [temp_intro, temp_main]:
                 if os.path.exists(file):
                     os.remove(file)
                     # Also try to remove any associated macOS hidden files
@@ -391,7 +427,7 @@ def main():
         
         # Set up video writer with explicit frame rate
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        fps = 24  # Lower frame rate for more natural playback
+        fps = 30  # Back to original frame rate
         out, recording = None, False
         appointments = []
         active_appt_id = None
