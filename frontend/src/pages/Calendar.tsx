@@ -15,6 +15,10 @@ import {
   IconButton,
   Stack,
   InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -54,6 +58,8 @@ const Calendar = () => {
   const [loading, setLoading] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
+  const [quickBookOpen, setQuickBookOpen] = useState(false);
+  const [quickBookDuration, setQuickBookDuration] = useState("60");
 
   useEffect(() => {
     setLoading(true);
@@ -137,6 +143,27 @@ const Calendar = () => {
     return `${hour.toString().padStart(2, "0")}:${min} ${ampm}`;
   }
 
+  const handleQuickBook = async () => {
+    if (!selectedDate || !userId) return;
+    setBooking(true);
+    const dateStr = selectedDate.format("YYYY-MM-DD");
+    const now = dayjs();
+    const startTimeStr = now.format("HH:mm");
+    const endTimeStr = now
+      .add(parseInt(quickBookDuration), "minutes")
+      .format("HH:mm");
+
+    await supabase.from("bookings").insert({
+      date: dateStr,
+      start_time: startTimeStr,
+      end_time: endTimeStr,
+      user_id: userId,
+    });
+
+    setBooking(false);
+    setQuickBookOpen(false);
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box
@@ -153,6 +180,54 @@ const Calendar = () => {
       >
         <Container maxWidth="sm">
           <Grid container spacing={4} justifyContent="center">
+            {/* Quick Book Button */}
+            <Grid item xs={12}>
+              <Button
+                variant="contained"
+                color="secondary"
+                fullWidth
+                onClick={() => setQuickBookOpen(true)}
+                sx={{ py: 2, fontWeight: 600, fontSize: 18 }}
+              >
+                Quick Book Now
+              </Button>
+            </Grid>
+
+            {/* Quick Book Dialog */}
+            <Dialog
+              open={quickBookOpen}
+              onClose={() => setQuickBookOpen(false)}
+            >
+              <DialogTitle>Quick Book</DialogTitle>
+              <DialogContent>
+                <Stack spacing={3} sx={{ mt: 2 }}>
+                  <TextField
+                    select
+                    label="Duration"
+                    value={quickBookDuration}
+                    onChange={(e) => setQuickBookDuration(e.target.value)}
+                    fullWidth
+                  >
+                    <MenuItem value="1">1 minute</MenuItem>
+                    <MenuItem value="30">30 minutes</MenuItem>
+                    <MenuItem value="60">1 hour</MenuItem>
+                    <MenuItem value="90">1.5 hours</MenuItem>
+                    <MenuItem value="120">2 hours</MenuItem>
+                  </TextField>
+                </Stack>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setQuickBookOpen(false)}>Cancel</Button>
+                <Button
+                  onClick={handleQuickBook}
+                  variant="contained"
+                  disabled={booking}
+                >
+                  {booking ? "Booking..." : "Book Now"}
+                </Button>
+              </DialogActions>
+            </Dialog>
+
             {/* Booking Form */}
             <Grid item xs={12}>
               <Paper elevation={3} sx={{ p: 4, borderRadius: 4 }}>

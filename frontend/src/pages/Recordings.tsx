@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Divider,
 } from "@mui/material";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -21,12 +22,72 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { supabase } from "../supabaseClient";
 import Tooltip from "@mui/material/Tooltip";
 
+interface VideoFile {
+  name: string;
+  fullPath: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+}
+
 const Recordings = () => {
-  const [videos, setVideos] = useState<any[]>([]);
+  const [videos, setVideos] = useState<VideoFile[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [playUrl, setPlayUrl] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+
+  const parseVideoFilename = (filename: string): VideoFile | null => {
+    try {
+      // Extract date and time from filename (format: recording_YYYYMMDD_HHMM_userid.mp4)
+      const match = filename.match(/recording_(\d{8})_(\d{4})_/);
+      if (!match) return null;
+
+      const [, dateStr, timeStr] = match;
+      const year = dateStr.substring(0, 4);
+      const month = dateStr.substring(4, 6);
+      const day = dateStr.substring(6, 8);
+      const hour = timeStr.substring(0, 2);
+      const minute = timeStr.substring(2, 4);
+
+      // Parse the date and time
+      const date = new Date(`${year}-${month}-${day}T${hour}:${minute}:00`);
+
+      // Calculate end time (1 minute after start time)
+      const endDate = new Date(date.getTime() + 60 * 1000);
+
+      // Format the date and times
+      const formattedDate = date.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+
+      const formattedStartTime = date.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+
+      const formattedEndTime = endDate.toLocaleTimeString("en-US", {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      });
+
+      return {
+        name: filename,
+        fullPath: filename,
+        date: formattedDate,
+        startTime: formattedStartTime,
+        endTime: formattedEndTime,
+      };
+    } catch (error) {
+      console.error("Error parsing video filename:", error);
+      return null;
+    }
+  };
 
   useEffect(() => {
     const fetchUserIdAndVideos = async () => {
@@ -50,14 +111,17 @@ const Recordings = () => {
           console.error("Error fetching videos:", error);
         }
 
-        let mp4Files: any[] = [];
+        let mp4Files: VideoFile[] = [];
         if (data) {
           for (const item of data) {
             if (item.name.endsWith(".mp4")) {
-              mp4Files.push({
-                name: item.name,
-                fullPath: uid + "/" + item.name,
-              });
+              const parsedVideo = parseVideoFilename(item.name);
+              if (parsedVideo) {
+                mp4Files.push({
+                  ...parsedVideo,
+                  fullPath: uid + "/" + item.name,
+                });
+              }
             } else if (item.metadata && item.metadata.type === "folder") {
               const { data: subData, error: subError } = await supabase.storage
                 .from("videos")
@@ -66,18 +130,55 @@ const Recordings = () => {
                 console.error("Error fetching subfolder videos:", subError);
               }
               if (subData) {
-                mp4Files = mp4Files.concat(
-                  subData
-                    .filter((file) => file.name.endsWith(".mp4"))
-                    .map((file) => ({
-                      name: file.name,
-                      fullPath: uid + "/" + item.name + "/" + file.name,
-                    }))
-                );
+                const subVideos = subData
+                  .filter((file) => file.name.endsWith(".mp4"))
+                  .map((file) => {
+                    const parsedVideo = parseVideoFilename(file.name);
+                    return parsedVideo
+                      ? {
+                          ...parsedVideo,
+                          fullPath: uid + "/" + item.name + "/" + file.name,
+                        }
+                      : null;
+                  })
+                  .filter((video): video is VideoFile => video !== null);
+                mp4Files = mp4Files.concat(subVideos);
               }
             }
           }
         }
+        // Sort videos by date (oldest first)
+        mp4Files.sort((a, b) => {
+          // Extract date and time from the filename for accurate sorting
+          const matchA = a.name.match(/recording_(\d{8})_(\d{4})_/);
+          const matchB = b.name.match(/recording_(\d{8})_(\d{4})_/);
+
+          if (!matchA || !matchB) return 0;
+
+          const [, dateStrA, timeStrA] = matchA;
+          const [, dateStrB, timeStrB] = matchB;
+
+          const dateA = new Date(
+            `${dateStrA.substring(0, 4)}-${dateStrA.substring(
+              4,
+              6
+            )}-${dateStrA.substring(6, 8)}T${timeStrA.substring(
+              0,
+              2
+            )}:${timeStrA.substring(2, 4)}:00`
+          );
+          const dateB = new Date(
+            `${dateStrB.substring(0, 4)}-${dateStrB.substring(
+              4,
+              6
+            )}-${dateStrB.substring(6, 8)}T${timeStrB.substring(
+              0,
+              2
+            )}:${timeStrB.substring(2, 4)}:00`
+          );
+
+          return dateA.getTime() - dateB.getTime(); // Oldest first
+        });
         console.log("MP4 files found:", mp4Files);
         setVideos(mp4Files);
       }
@@ -144,6 +245,16 @@ const Recordings = () => {
     }
   };
 
+  // Group videos by date
+  const groupedVideos = videos.reduce((groups, video) => {
+    const date = video.date;
+    if (!groups[date]) {
+      groups[date] = [];
+    }
+    groups[date].push(video);
+    return groups;
+  }, {} as Record<string, VideoFile[]>);
+
   return (
     <Box
       sx={{
@@ -173,81 +284,101 @@ const Recordings = () => {
         </Typography>
       ) : (
         <Grid container spacing={3} justifyContent="center" maxWidth="md">
-          {videos.map((file) => (
-            <Grid item xs={12} sm={6} md={4} key={file.fullPath}>
-              <Card
-                elevation={4}
-                sx={{
-                  borderRadius: 3,
-                  p: 2,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  background: "#f7fafc",
-                }}
-              >
-                <CardContent sx={{ width: "100%" }}>
-                  <Tooltip title={file.name} placement="top" arrow>
-                    <Typography
-                      variant="subtitle1"
-                      fontWeight={600}
-                      noWrap={false}
-                      gutterBottom
-                      sx={{
-                        wordBreak: "break-all",
-                        maxWidth: "100%",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        display: "block",
-                      }}
-                    >
-                      {file.name}
-                    </Typography>
-                  </Tooltip>
-                  <Typography
-                    color="info.main"
-                    variant="body2"
-                    align="center"
+          {Object.entries(groupedVideos).map(([date, dateVideos]) => (
+            <React.Fragment key={date}>
+              <Grid item xs={12}>
+                <Typography
+                  variant="h6"
+                  sx={{
+                    mt: 4,
+                    mb: 2,
+                    color: "primary.main",
+                    fontWeight: 500,
+                  }}
+                >
+                  {date}
+                </Typography>
+                <Divider sx={{ mb: 3 }} />
+              </Grid>
+              {dateVideos.map((file) => (
+                <Grid item xs={12} sm={6} md={4} key={file.fullPath}>
+                  <Card
+                    elevation={4}
                     sx={{
-                      mt: 1,
+                      borderRadius: 3,
+                      p: 2,
                       display: "flex",
+                      flexDirection: "column",
                       alignItems: "center",
-                      justifyContent: "center",
-                      gap: 1,
+                      background: "#f7fafc",
                     }}
                   >
-                    <InfoOutlinedIcon
-                      fontSize="small"
-                      sx={{ verticalAlign: "middle" }}
-                    />
-                    Video preview is disabled for privacy. Click below to
-                    download your recording.
-                  </Typography>
-                </CardContent>
-                <CardActions sx={{ justifyContent: "center", width: "100%" }}>
-                  <IconButton
-                    color="primary"
-                    onClick={async () => {
-                      await handlePlay(file.fullPath);
-                    }}
-                  >
-                    <PlayArrowIcon />
-                  </IconButton>
-                  <IconButton
-                    color="error"
-                    onClick={() => handleDelete(file.fullPath)}
-                  >
-                    <DeleteIcon />
-                  </IconButton>
-                  <IconButton
-                    color="primary"
-                    onClick={() => handleDownload(file)}
-                  >
-                    <Button size="small">Download</Button>
-                  </IconButton>
-                </CardActions>
-              </Card>
-            </Grid>
+                    <CardContent sx={{ width: "100%" }}>
+                      <Tooltip title={file.name} placement="top" arrow>
+                        <Typography
+                          variant="subtitle1"
+                          fontWeight={600}
+                          noWrap={false}
+                          gutterBottom
+                          sx={{
+                            wordBreak: "break-all",
+                            maxWidth: "100%",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            display: "block",
+                          }}
+                        >
+                          {`${file.startTime} - ${file.endTime}`}
+                        </Typography>
+                      </Tooltip>
+                      <Typography
+                        color="info.main"
+                        variant="body2"
+                        align="center"
+                        sx={{
+                          mt: 1,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 1,
+                        }}
+                      >
+                        <InfoOutlinedIcon
+                          fontSize="small"
+                          sx={{ verticalAlign: "middle" }}
+                        />
+                        Video preview is disabled for privacy. Click below to
+                        download your recording.
+                      </Typography>
+                    </CardContent>
+                    <CardActions
+                      sx={{ justifyContent: "center", width: "100%" }}
+                    >
+                      <IconButton
+                        color="primary"
+                        onClick={async () => {
+                          await handlePlay(file.fullPath);
+                        }}
+                      >
+                        <PlayArrowIcon />
+                      </IconButton>
+                      <IconButton
+                        color="error"
+                        onClick={() => handleDelete(file.fullPath)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                      <IconButton
+                        color="primary"
+                        onClick={() => handleDownload(file)}
+                      >
+                        <Button size="small">Download</Button>
+                      </IconButton>
+                    </CardActions>
+                  </Card>
+                </Grid>
+              ))}
+            </React.Fragment>
           ))}
         </Grid>
       )}

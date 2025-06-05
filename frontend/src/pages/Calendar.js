@@ -1,6 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState, useEffect } from "react";
-import { Box, Paper, Typography, Button, TextField, CircularProgress, Container, Grid, Card, CardContent, CardActions, IconButton, Stack, InputAdornment, } from "@mui/material";
+import { Box, Paper, Typography, Button, TextField, MenuItem, CircularProgress, Container, Grid, Card, CardContent, CardActions, IconButton, Stack, InputAdornment, Dialog, DialogTitle, DialogContent, DialogActions, } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
@@ -36,6 +36,8 @@ const Calendar = () => {
     const [loading, setLoading] = useState(false);
     const [editId, setEditId] = useState(null);
     const [userId, setUserId] = useState(null);
+    const [quickBookOpen, setQuickBookOpen] = useState(false);
+    const [quickBookDuration, setQuickBookDuration] = useState("60");
     useEffect(() => {
         setLoading(true);
         const fetchUpcoming = async () => {
@@ -109,6 +111,25 @@ const Calendar = () => {
         hour = hour % 12 === 0 ? 12 : hour % 12;
         return `${hour.toString().padStart(2, "0")}:${min} ${ampm}`;
     }
+    const handleQuickBook = async () => {
+        if (!selectedDate || !userId)
+            return;
+        setBooking(true);
+        const dateStr = selectedDate.format("YYYY-MM-DD");
+        const now = dayjs();
+        const startTimeStr = now.format("HH:mm");
+        const endTimeStr = now
+            .add(parseInt(quickBookDuration), "minutes")
+            .format("HH:mm");
+        await supabase.from("bookings").insert({
+            date: dateStr,
+            start_time: startTimeStr,
+            end_time: endTimeStr,
+            user_id: userId,
+        });
+        setBooking(false);
+        setQuickBookOpen(false);
+    };
     return (_jsx(LocalizationProvider, { dateAdapter: AdapterDayjs, children: _jsx(Box, { sx: {
                 minHeight: "100vh",
                 width: "100vw",
@@ -118,7 +139,7 @@ const Calendar = () => {
                 background: "linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%)",
                 py: 4,
                 mt: 10,
-            }, children: _jsx(Container, { maxWidth: "sm", children: _jsxs(Grid, { container: true, spacing: 4, justifyContent: "center", children: [_jsx(Grid, { item: true, xs: 12, children: _jsxs(Paper, { elevation: 3, sx: { p: 4, borderRadius: 4 }, children: [_jsx(Typography, { variant: "h5", align: "center", mb: 3, fontWeight: 500, children: "Book a Field" }), _jsxs(Stack, { spacing: 3, children: [_jsx(DatePicker, { label: "Date", value: selectedDate, onChange: setSelectedDate, disablePast: true, slotProps: {
+            }, children: _jsx(Container, { maxWidth: "sm", children: _jsxs(Grid, { container: true, spacing: 4, justifyContent: "center", children: [_jsx(Grid, { item: true, xs: 12, children: _jsx(Button, { variant: "contained", color: "secondary", fullWidth: true, onClick: () => setQuickBookOpen(true), sx: { py: 2, fontWeight: 600, fontSize: 18 }, children: "Quick Book Now" }) }), _jsxs(Dialog, { open: quickBookOpen, onClose: () => setQuickBookOpen(false), children: [_jsx(DialogTitle, { children: "Quick Book" }), _jsx(DialogContent, { children: _jsx(Stack, { spacing: 3, sx: { mt: 2 }, children: _jsxs(TextField, { select: true, label: "Duration", value: quickBookDuration, onChange: (e) => setQuickBookDuration(e.target.value), fullWidth: true, children: [_jsx(MenuItem, { value: "1", children: "1 minute" }), _jsx(MenuItem, { value: "30", children: "30 minutes" }), _jsx(MenuItem, { value: "60", children: "1 hour" }), _jsx(MenuItem, { value: "90", children: "1.5 hours" }), _jsx(MenuItem, { value: "120", children: "2 hours" })] }) }) }), _jsxs(DialogActions, { children: [_jsx(Button, { onClick: () => setQuickBookOpen(false), children: "Cancel" }), _jsx(Button, { onClick: handleQuickBook, variant: "contained", disabled: booking, children: booking ? "Booking..." : "Book Now" })] })] }), _jsx(Grid, { item: true, xs: 12, children: _jsxs(Paper, { elevation: 3, sx: { p: 4, borderRadius: 4 }, children: [_jsx(Typography, { variant: "h5", align: "center", mb: 3, fontWeight: 500, children: "Book a Field" }), _jsxs(Stack, { spacing: 3, children: [_jsx(DatePicker, { label: "Date", value: selectedDate, onChange: setSelectedDate, disablePast: true, slotProps: {
                                                     textField: {
                                                         fullWidth: true,
                                                         variant: "outlined",
