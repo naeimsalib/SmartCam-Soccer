@@ -125,11 +125,14 @@ def prepend_intro(intro_path, main_path, output_path):
             "-y", temp_intro
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
-        # Encode main video to ensure consistent parameters
+        # Encode main video with significant slowdown to achieve real-time speed
         subprocess.run([
             "ffmpeg", "-i", main_path,
+            "-vf", "setpts=2.5*PTS",  # Slow down video significantly
+            "-af", "atempo=0.4",  # Slow down audio to match
             "-c:v", "libx264", "-preset", "medium", "-crf", "23",
             "-c:a", "aac", "-b:a", "128k",
+            "-vsync", "cfr",  # Constant frame rate
             "-y", temp_main
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
@@ -383,7 +386,7 @@ def main():
         
         # Set up video writer with explicit frame rate
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        fps = 30  # Back to original frame rate
+        fps = 30  # Standard frame rate for real-time recording
         out, recording = None, False
         appointments = []
         active_appt_id = None
