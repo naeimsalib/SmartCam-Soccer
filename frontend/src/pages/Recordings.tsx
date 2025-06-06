@@ -331,25 +331,11 @@ const Recordings = () => {
                           {`${file.startTime} - ${file.endTime}`}
                         </Typography>
                       </Tooltip>
-                      <Typography
-                        color="info.main"
-                        variant="body2"
-                        align="center"
-                        sx={{
-                          mt: 1,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 1,
-                        }}
-                      >
-                        <InfoOutlinedIcon
-                          fontSize="small"
-                          sx={{ verticalAlign: "middle" }}
-                        />
-                        Video preview is disabled for privacy. Click below to
-                        download your recording.
-                      </Typography>
+                      {/* Inline video preview */}
+                      <VideoPlayer
+                        fullPath={file.fullPath}
+                        getSignedVideoUrl={getSignedVideoUrl}
+                      />
                     </CardContent>
                     <CardActions
                       sx={{ justifyContent: "center", width: "100%" }}

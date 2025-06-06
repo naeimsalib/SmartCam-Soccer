@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { Box, Typography, Card, CardContent, CardActions, Button, IconButton, Grid, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Divider, } from "@mui/material";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import DeleteIcon from "@mui/icons-material/Delete";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { supabase } from "../supabaseClient";
 import Tooltip from "@mui/material/Tooltip";
 const Recordings = () => {
@@ -227,13 +226,7 @@ const Recordings = () => {
                                                         overflow: "hidden",
                                                         textOverflow: "ellipsis",
                                                         display: "block",
-                                                    }, children: `${file.startTime} - ${file.endTime}` }) }), _jsxs(Typography, { color: "info.main", variant: "body2", align: "center", sx: {
-                                                    mt: 1,
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    justifyContent: "center",
-                                                    gap: 1,
-                                                }, children: [_jsx(InfoOutlinedIcon, { fontSize: "small", sx: { verticalAlign: "middle" } }), "Video preview is disabled for privacy. Click below to download your recording."] })] }), _jsxs(CardActions, { sx: { justifyContent: "center", width: "100%" }, children: [_jsx(IconButton, { color: "primary", onClick: async () => {
+                                                    }, children: `${file.startTime} - ${file.endTime}` }) }), _jsx(VideoPlayer, { fullPath: file.fullPath, getSignedVideoUrl: getSignedVideoUrl })] }), _jsxs(CardActions, { sx: { justifyContent: "center", width: "100%" }, children: [_jsx(IconButton, { color: "primary", onClick: async () => {
                                                     await handlePlay(file.fullPath);
                                                 }, children: _jsx(PlayArrowIcon, {}) }), _jsx(IconButton, { color: "error", onClick: () => handleDelete(file.fullPath), children: _jsx(DeleteIcon, {}) }), _jsx(IconButton, { color: "primary", onClick: () => handleDownload(file), children: _jsx(Button, { size: "small", children: "Download" }) })] })] }) }, file.fullPath)))] }, date))) })), _jsxs(Dialog, { open: !!playUrl, onClose: () => setPlayUrl(null), maxWidth: "md", fullWidth: true, children: [_jsx(DialogTitle, { children: "Play Video" }), _jsx(DialogContent, { children: playUrl && (_jsx("video", { src: playUrl, controls: true, style: { width: "100%" } })) }), _jsx(DialogActions, { children: _jsx(Button, { onClick: () => setPlayUrl(null), children: "Close" }) })] }), _jsxs(Dialog, { open: !!deleteTarget, onClose: () => setDeleteTarget(null), children: [_jsx(DialogTitle, { children: "Delete Video" }), _jsx(DialogContent, { children: _jsx(Typography, { children: "Are you sure you want to delete this video?" }) }), _jsxs(DialogActions, { children: [_jsx(Button, { onClick: () => setDeleteTarget(null), children: "Cancel" }), _jsx(Button, { color: "error", onClick: confirmDelete, children: "Delete" })] })] })] }));
 };
