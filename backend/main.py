@@ -125,11 +125,11 @@ def prepend_intro(intro_path, main_path, output_path):
             "-y", temp_intro
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
-        # Encode main video with significant slowdown to achieve real-time speed
+        # Encode main video with slowdown
         subprocess.run([
             "ffmpeg", "-i", main_path,
-            "-vf", "setpts=1.96*PTS",  # Slow down video significantly
-            "-af", "atempo=0.4",  # Slow down audio to match
+            "-vf", "setpts=1.96*PTS",  # Slow down video
+            "-af", "atempo=0.51",  # Slow down audio to match
             "-c:v", "libx264", "-preset", "medium", "-crf", "23",
             "-c:a", "aac", "-b:a", "128k",
             "-vsync", "cfr",  # Constant frame rate
@@ -204,18 +204,148 @@ def prepend_intro(intro_path, main_path, output_path):
             pass
         return False
 
-def detect_ball(frame):
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    lower = np.array([10, 100, 100])
-    upper = np.array([30, 255, 255])
-    mask = cv2.inRange(hsv, lower, upper)
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if contours:
-        largest = max(contours, key=cv2.contourArea)
-        ((x, y), radius) = cv2.minEnclosingCircle(largest)
-        if radius > 10:
-            return int(x), int(y), int(radius)
+def get_upcoming_bookings():
+    now = datetime.datetime.now()
+    today = now.strftime("%Y-%m-%d")
+    current_time = now.strftime("%H:%M")
+    
+    try:
+        # Get today's bookings that haven't ended yet
+        response = supabase.table("bookings").select("*").eq("user_id", USER_ID).eq("date", today).gte("end_time", current_time).order("start_time").execute()
+        
+        # Get future bookings
+        future_response = supabase.table("bookings").select("*").eq("user_id", USER_ID).gt("date", today).order("date").order("start_time").execute()
+        
+        # Combine and sort all bookings
+        all_bookings = response.data + future_response.data
+        return sorted(all_bookings, key=lambda x: (x['date'], x['start_time']))
+    except Exception as e:
+        log(f"Error fetching bookings: {str(e)}", LogLevel.ERROR)
+        return []  # Return empty list on error
+
+def wait_for_camera(camera_index, max_retries=5, retry_delay=5):
+    for attempt in range(max_retries):
+        cap = cv2.VideoCapture(camera_index)
+        if cap.isOpened():
+            return cap
+        log(f"Camera not found. Retrying in {retry_delay} seconds... (Attempt {attempt + 1}/{max_retries})", LogLevel.WARNING)
+        time.sleep(retry_delay)
     return None
+
+def detect_moving_circle(frame, prev_frame):
+    if prev_frame is None:
+        return None, None
+    
+    # Convert frames to grayscale
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    prev_gray = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
+    
+    # Apply stronger Gaussian blur to reduce noise
+    gray = cv2.GaussianBlur(gray, (15, 15), 0)  # Increased blur for more stable detection
+    prev_gray = cv2.GaussianBlur(prev_gray, (15, 15), 0)
+    
+    # Calculate frame difference
+    frame_diff = cv2.absdiff(gray, prev_gray)
+    
+    # Apply higher threshold to only detect significant movement
+    _, thresh = cv2.threshold(frame_diff, 40, 255, cv2.THRESH_BINARY)  # Increased threshold
+    
+    # Apply stronger morphological operations to reduce noise
+    kernel = np.ones((15,15), np.uint8)  # Larger kernel for more stable regions
+    thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+    thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
+    
+    # Find contours in the thresholded image
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    # Sort contours by area and only process the largest ones
+    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:2]  # Only look at top 2 largest movements
+    
+    best_contour = None
+    best_score = 0
+    
+    for contour in contours:
+        area = cv2.contourArea(contour)
+        if 200 < area < 5000:  # Much larger area range for gameplay
+            # Get the bounding circle
+            (x, y), radius = cv2.minEnclosingCircle(contour)
+            center = (int(x), int(y))
+            radius = int(radius)
+            
+            # Calculate circularity
+            perimeter = cv2.arcLength(contour, True)
+            if perimeter > 0:
+                circularity = 4 * np.pi * area / (perimeter * perimeter)
+                
+                # Calculate score based on circularity and size
+                size_score = 1 - abs(area - 1000) / 5000  # Prefer larger areas
+                shape_score = circularity
+                score = size_score * shape_score
+                
+                if 0.5 < circularity < 1.5 and score > best_score:  # Much more relaxed circularity
+                    best_score = score
+                    best_contour = (center, radius)
+    
+    return best_contour if best_contour else (None, None)
+
+def create_focused_frame(frame, center, radius, zoom_factor=1.5):
+    if center is None or radius is None:
+        return frame
+    
+    height, width = frame.shape[:2]
+    
+    # Calculate the region of interest with wider view
+    roi_size = int(radius * zoom_factor * 3)  # Increased multiplier for wider view
+    
+    # Ensure ROI size is not too small
+    min_roi_size = 400  # Increased minimum size for better gameplay view
+    roi_size = max(roi_size, min_roi_size)
+    
+    # Calculate ROI boundaries with smooth transitions
+    x1 = max(0, center[0] - roi_size)
+    y1 = max(0, center[1] - roi_size)
+    x2 = min(width, center[0] + roi_size)
+    y2 = min(height, center[1] + roi_size)
+    
+    # Ensure ROI has valid dimensions
+    if x2 <= x1 or y2 <= y1:
+        return frame
+    
+    # Extract the region of interest
+    try:
+        roi = frame[y1:y2, x1:x2]
+        if roi.size == 0:
+            return frame
+            
+        # Resize the ROI to the original frame size with smooth interpolation
+        focused_frame = cv2.resize(roi, (width, height), interpolation=cv2.INTER_LINEAR)
+        return focused_frame
+    except Exception as e:
+        log(f"Error in create_focused_frame: {str(e)}", LogLevel.ERROR)
+        return frame
+
+class BallTracker:
+    def __init__(self):
+        self.kalman = cv2.KalmanFilter(4, 2)
+        self.kalman.measurementMatrix = np.array([[1, 0, 0, 0],
+                                                [0, 1, 0, 0]], np.float32)
+        self.kalman.transitionMatrix = np.array([[1, 0, 1, 0],
+                                               [0, 1, 0, 1],
+                                               [0, 0, 1, 0],
+                                               [0, 0, 0, 1]], np.float32)
+        # Reduce process noise for more stable tracking
+        self.kalman.processNoiseCov = np.array([[1, 0, 0, 0],
+                                              [0, 1, 0, 0],
+                                              [0, 0, 1, 0],
+                                              [0, 0, 0, 1]], np.float32) * 0.03
+        self.last_measurement = None
+        self.last_prediction = None
+        self.tracking_lost_count = 0
+        self.max_tracking_lost = 20  # Increased persistence
+        self.last_radius = 30  # Increased default radius
+        self.min_detection_confidence = 0.3
+        self.last_positions = []  # Store last few positions for smoothing
+        self.max_positions = 10   # Increased number of positions to average
 
 def upload_video_to_supabase(local_path, user_id, filename):
     storage_path = f"{user_id}/{filename}"
@@ -255,117 +385,72 @@ def cleanup_local_file(file_path):
 
 def upload_worker():
     while True:
-        task = upload_queue.get()
-        if task is None:
-            break
-        user_id, final_video_path, booking_id = task
         try:
-            # Upload the video
-            storage_path = upload_video_to_supabase(final_video_path, user_id, os.path.basename(final_video_path))
-            
-            if storage_path:
-                # If upload was successful, add to database
-                if insert_video_reference(user_id, os.path.basename(final_video_path), storage_path, booking_id):
-                    # Only cleanup local files after successful upload and database insert
-                    cleanup_local_file(final_video_path)
-                    
-                    # Also cleanup the original recording file if it exists
-                    original_recording = final_video_path.replace("final_", "")
-                    if os.path.exists(original_recording):
-                        cleanup_local_file(original_recording)
-            else:
-                log(f"Keeping local file {final_video_path} due to failed upload", LogLevel.WARNING)
+            task = upload_queue.get()
+            if task is None:
+                break
                 
-        except Exception as e:
-            log(f"Upload worker error: {str(e)}", LogLevel.ERROR)
-        finally:
-            upload_queue.task_done()
-
-threading.Thread(target=upload_worker, daemon=True).start()
-
-def get_upcoming_bookings():
-    now = datetime.datetime.now()
-    today = now.strftime("%Y-%m-%d")
-    current_time = now.strftime("%H:%M")
-    
-    # Get today's bookings that haven't ended yet
-    response = supabase.table("bookings").select("*").eq("user_id", USER_ID).eq("date", today).gte("end_time", current_time).order("start_time").execute()
-    
-    # Get future bookings
-    future_response = supabase.table("bookings").select("*").eq("user_id", USER_ID).gt("date", today).order("date").order("start_time").execute()
-    
-    return response.data + future_response.data
-
-def cleanup_booking(booking_id):
-    try:
-        supabase.table("bookings").delete().eq("id", booking_id).execute()
-        log(f"Cleaned up booking {booking_id}", LogLevel.SUCCESS)
-        return True
-    except Exception as e:
-        log(f"Failed to cleanup booking: {str(e)}", LogLevel.ERROR)
-        return False
-
-def wait_for_camera(camera_index, max_retries=5, retry_delay=5):
-    for attempt in range(max_retries):
-        cap = cv2.VideoCapture(camera_index)
-        if cap.isOpened():
-            return cap
-        log(f"Camera not found. Retrying in {retry_delay} seconds... (Attempt {attempt + 1}/{max_retries})", LogLevel.WARNING)
-        time.sleep(retry_delay)
-    return None
-
-def cleanup_leftover_videos():
-    log("Checking for leftover videos...", LogLevel.INFO)
-    try:
-        # Get all video files in the current directory
-        video_files = [f for f in os.listdir('.') if f.endswith('.mp4')]
-        
-        for video_file in video_files:
+            user_id, final_video_path, booking_id = task
+            if not all([user_id, final_video_path, booking_id]):
+                continue
+                
             try:
-                # Check if this video is already in the database
-                response = supabase.table("videos").select("*").eq("filename", video_file).execute()
+                # Upload the video
+                storage_path = upload_video_to_supabase(final_video_path, user_id, os.path.basename(final_video_path))
                 
-                if not response.data:  # Video not in database
-                    log(f"Found unprocessed video: {video_file}", LogLevel.WARNING)
-                    # Try to upload it
-                    storage_path = upload_video_to_supabase(video_file, USER_ID, video_file)
-                    if storage_path:
-                        # If upload successful, add to database
-                        if insert_video_reference(USER_ID, video_file, storage_path, None):
-                            log(f"Successfully processed leftover video: {video_file}", LogLevel.SUCCESS)
-                            cleanup_local_file(video_file)
-                        else:
-                            log(f"Failed to add video reference to database: {video_file}", LogLevel.ERROR)
-                    else:
-                        log(f"Failed to upload leftover video: {video_file}", LogLevel.ERROR)
+                if storage_path:
+                    # If upload was successful, add to database
+                    if insert_video_reference(user_id, os.path.basename(final_video_path), storage_path, booking_id):
+                        # Only cleanup local files after successful upload and database insert
+                        cleanup_local_file(final_video_path)
+                        
+                        # Also cleanup the original recording file if it exists
+                        original_recording = final_video_path.replace("final_", "")
+                        if os.path.exists(original_recording):
+                            cleanup_local_file(original_recording)
                 else:
-                    # Video is in database, safe to delete
-                    log(f"Found already processed video, cleaning up: {video_file}", LogLevel.INFO)
-                    cleanup_local_file(video_file)
+                    log(f"Keeping local file {final_video_path} due to failed upload", LogLevel.WARNING)
                     
             except Exception as e:
-                log(f"Error processing leftover video {video_file}: {str(e)}", LogLevel.ERROR)
-                
-    except Exception as e:
-        log(f"Error during leftover video cleanup: {str(e)}", LogLevel.ERROR)
+                log(f"Upload worker error: {str(e)}", LogLevel.ERROR)
+            finally:
+                upload_queue.task_done()
+        except Exception as e:
+            log(f"Upload worker critical error: {str(e)}", LogLevel.ERROR)
+            time.sleep(1)  # Prevent tight loop on errors
 
 def main():
     log("Initializing SmartCam...", LogLevel.INFO)
     
-    # Clean up any leftover videos from previous runs
-    cleanup_leftover_videos()
+    # Start upload worker thread
+    upload_thread = threading.Thread(target=upload_worker, daemon=True)
+    upload_thread.start()
     
-    while True:
-        cap = wait_for_camera(CAMERA_INDEX)
-        if cap is None:
-            log("Failed to connect to camera. Retrying...", LogLevel.ERROR)
-            time.sleep(5)
-            continue
-            
-        log("Camera connected successfully", LogLevel.SUCCESS)
-        time.sleep(2)
-
-        os.makedirs("user_assets", exist_ok=True)
+    # First, initialize the camera
+    cap = wait_for_camera(CAMERA_INDEX)
+    if cap is None:
+        log("Failed to connect to camera. Exiting...", LogLevel.ERROR)
+        return
+        
+    log("Camera connected successfully", LogLevel.SUCCESS)
+    time.sleep(2)  # Give the camera time to stabilize
+    
+    # Initialize ball tracker
+    ball_tracker = BallTracker()
+    
+    # Now that camera is initialized, clean up any leftover videos
+    try:
+        log("Checking for leftover videos...", LogLevel.INFO)
+        cleanup_leftover_videos()
+    except Exception as e:
+        log(f"Error during cleanup: {str(e)}", LogLevel.ERROR)
+        # Continue even if cleanup fails
+    
+    # Create user assets directory
+    os.makedirs("user_assets", exist_ok=True)
+    
+    # Load user settings and assets
+    try:
         user_settings = get_user_settings()
         local_logos = {}
 
@@ -383,56 +468,140 @@ def main():
             download_file_from_supabase(user_settings["intro_video_path"], intro_local)
 
         log("SmartCam is ready", LogLevel.SUCCESS)
-        
-        # Set up video writer with explicit frame rate
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        fps = 30  # Standard frame rate for real-time recording
-        out, recording = None, False
-        appointments = []
-        active_appt_id = None
-        last_check_time = 0
-        current_filename = None
-        recording_start_time = None
-        target_duration = datetime.timedelta(minutes=1)  # 1 minute target
-        buffer_time = datetime.timedelta(seconds=2)  # 2 second buffer
+    except Exception as e:
+        log(f"Error loading user assets: {str(e)}", LogLevel.ERROR)
+        # Continue with default settings if asset loading fails
+        user_settings = {}
+        local_logos = {}
+        intro_local = None
+    
+    # Set up video writer with explicit frame rate
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    fps = 30  # Standard frame rate for real-time recording
+    out, recording = None, False
+    appointments = []
+    active_appt_id = None
+    last_check_time = 0
+    current_filename = None
+    recording_start_time = None
+    buffer_time = datetime.timedelta(seconds=2)  # 2 second buffer
+    
+    # Initialize variables for motion tracking
+    prev_frame = None
+    ball_tracking_active = False
+    last_ball_detection = None
+    ball_tracking_timeout = 2.0  # seconds to wait before resetting tracking
+    last_ball_time = time.time()
 
-        while True:
+    while True:
+        try:
             ret, frame = cap.read()
             if not ret:
                 log("Camera disconnected. Attempting to reconnect...", LogLevel.ERROR)
-                break
+                cap.release()
+                if out:
+                    out.release()
+                cv2.destroyAllWindows()
+                time.sleep(5)
+                cap = wait_for_camera(CAMERA_INDEX)
+                if cap is None:
+                    log("Failed to reconnect to camera. Exiting...", LogLevel.ERROR)
+                    return
+                continue
 
             now = datetime.datetime.now()
+            
+            # Motion tracking logic (only active during recording)
+            if recording:
+                if not ball_tracking_active:
+                    log("Motion tracking activated", LogLevel.INFO)
+                    ball_tracking_active = True
+                
+                try:
+                    # Detect moving circular objects
+                    center, radius = detect_moving_circle(frame, prev_frame)
+                    
+                    # Update tracker with new measurement
+                    tracked_position, tracked_radius = ball_tracker.update(center, radius)
+                    
+                    if tracked_position is not None:
+                        # Apply gentle zoom to follow the object
+                        frame = create_focused_frame(frame, tracked_position, tracked_radius)
+                        
+                        # Draw tracking circle with thickness
+                        cv2.circle(frame, tracked_position, tracked_radius, (0, 255, 0), 3)
+                        # Draw a crosshair at the center
+                        crosshair_size = 10
+                        cv2.line(frame, 
+                                (tracked_position[0] - crosshair_size, tracked_position[1]),
+                                (tracked_position[0] + crosshair_size, tracked_position[1]),
+                                (0, 255, 0), 2)
+                        cv2.line(frame, 
+                                (tracked_position[0], tracked_position[1] - crosshair_size),
+                                (tracked_position[0], tracked_position[1] + crosshair_size),
+                                (0, 255, 0), 2)
+                        last_ball_time = time.time()
+                    else:
+                        # If no movement detected for too long, reset tracking
+                        if time.time() - last_ball_time > ball_tracking_timeout:
+                            ball_tracker = BallTracker()  # Reset tracker
+                            last_ball_detection = None
+                except Exception as e:
+                    log(f"Error in motion tracking: {str(e)}", LogLevel.ERROR)
+                    # Show normal frame if tracking fails
+                    last_ball_detection = None
+            else:
+                ball_tracking_active = False
+                last_ball_detection = None
+            
+            # Store current frame for next iteration
+            prev_frame = frame.copy()
+            
+            # Add timestamp
             frame = cv2.putText(frame, now.strftime("%Y-%m-%d %H:%M:%S"), (10, 30),
                                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
             for pos, logo_file in local_logos.items():
                 frame = overlay_logo(frame, logo_file, pos)
 
+            # Check for new bookings every 30 seconds
             if time.time() - last_check_time > 30:
-                appointments = get_upcoming_bookings()
-                last_check_time = time.time()
+                try:
+                    appointments = get_upcoming_bookings()
+                    last_check_time = time.time()
+                except Exception as e:
+                    log(f"Error fetching appointments: {str(e)}", LogLevel.ERROR)
 
+            # Find current booking
             current_appt = next((a for a in appointments if
                 datetime.datetime.strptime(f"{a['date']} {a['start_time']}", "%Y-%m-%d %H:%M") <= now <=
                 datetime.datetime.strptime(f"{a['date']} {a['end_time']}", "%Y-%m-%d %H:%M")), None)
 
+            # Handle booking transitions
             if current_appt and (not recording or current_appt['id'] != active_appt_id):
+                # Stop current recording if any
                 if recording and out:
                     log(f"Stopping recording for booking {active_appt_id}", LogLevel.INFO)
                     out.release()
                     if current_filename:
-                        final_output = current_filename
-                        if intro_local:
-                            merged = f"final_{current_filename}"
-                            if prepend_intro(intro_local, current_filename, merged):
-                                os.remove(current_filename)
-                                final_output = merged
-                        upload_queue.put((USER_ID, final_output, active_appt_id))
-                        cleanup_booking(active_appt_id)
+                        try:
+                            final_output = current_filename
+                            if intro_local:
+                                merged = f"final_{current_filename}"
+                                if prepend_intro(intro_local, current_filename, merged):
+                                    if os.path.exists(current_filename):
+                                        os.remove(current_filename)
+                                    final_output = merged
+                            # Queue the upload task
+                            upload_queue.put((USER_ID, final_output, active_appt_id))
+                        except Exception as e:
+                            log(f"Error processing video: {str(e)}", LogLevel.ERROR)
                     recording = False
                     recording_start_time = None
+                    ball_tracking_active = False
+                    last_ball_detection = None
 
+                # Start new recording
                 log(f"Starting recording for booking {current_appt['id']}", LogLevel.SUCCESS)
                 active_appt_id = current_appt['id']
                 current_filename = format_video_filename(
@@ -443,43 +612,31 @@ def main():
                 out = cv2.VideoWriter(current_filename, fourcc, fps, (frame.shape[1], frame.shape[0]))
                 recording = True
                 recording_start_time = now
+                ball_tracker = BallTracker()  # Reset tracker for new recording
 
+            # Handle end of booking
             elif not current_appt and recording:
                 log("Stopping recording (no current appointment)", LogLevel.INFO)
                 out.release()
                 if current_filename:
-                    final_output = current_filename
-                    if intro_local:
-                        merged = f"final_{current_filename}"
-                        if prepend_intro(intro_local, current_filename, merged):
-                            os.remove(current_filename)
-                            final_output = merged
-                    upload_queue.put((USER_ID, final_output, active_appt_id))
-                    cleanup_booking(active_appt_id)
-                recording = False
-                active_appt_id = None
-                current_filename = None
-                recording_start_time = None
-
-            # Check if we've exceeded the booking duration
-            if recording and recording_start_time:
-                elapsed_time = now - recording_start_time
-                if elapsed_time >= target_duration + buffer_time:
-                    log(f"Booking duration reached ({elapsed_time.total_seconds():.1f} seconds recorded)", LogLevel.INFO)
-                    out.release()
-                    if current_filename:
+                    try:
                         final_output = current_filename
                         if intro_local:
                             merged = f"final_{current_filename}"
                             if prepend_intro(intro_local, current_filename, merged):
-                                os.remove(current_filename)
+                                if os.path.exists(current_filename):
+                                    os.remove(current_filename)
                                 final_output = merged
+                        # Queue the upload task
                         upload_queue.put((USER_ID, final_output, active_appt_id))
-                        cleanup_booking(active_appt_id)
-                    recording = False
-                    active_appt_id = None
-                    current_filename = None
-                    recording_start_time = None
+                    except Exception as e:
+                        log(f"Error processing video: {str(e)}", LogLevel.ERROR)
+                recording = False
+                active_appt_id = None
+                current_filename = None
+                recording_start_time = None
+                ball_tracking_active = False
+                last_ball_detection = None
 
             if recording and out:
                 out.write(frame)
@@ -490,17 +647,25 @@ def main():
                     out.release()
                 cap.release()
                 cv2.destroyAllWindows()
-                upload_queue.put((None, None, None))
+                upload_queue.put((None, None, None))  # Signal upload worker to stop
+                upload_thread.join(timeout=5)  # Wait for upload worker to finish
                 log("SmartCam shutdown complete", LogLevel.INFO)
                 return
 
-        # If we get here, the camera was disconnected
-        cap.release()
-        if out:
-            out.release()
-        cv2.destroyAllWindows()
-        log("Attempting to reconnect to camera...", LogLevel.INFO)
-        time.sleep(5)  # Wait before attempting to reconnect
+        except Exception as e:
+            log(f"Error in main loop: {str(e)}", LogLevel.ERROR)
+            time.sleep(1)  # Prevent tight loop on errors
+            continue
+
+    # If we get here, the camera was disconnected
+    cap.release()
+    if out:
+        out.release()
+    cv2.destroyAllWindows()
+    upload_queue.put((None, None, None))  # Signal upload worker to stop
+    upload_thread.join(timeout=5)  # Wait for upload worker to finish
+    log("Attempting to reconnect to camera...", LogLevel.INFO)
+    time.sleep(5)  # Wait before attempting to reconnect
 
 if __name__ == "__main__":
     main()
