@@ -241,9 +241,41 @@ def get_upcoming_bookings():
 
 def wait_for_camera(camera_index, max_retries=5, retry_delay=5):
     for attempt in range(max_retries):
+        # Try with V4L2 backend first
+        cap = cv2.VideoCapture(camera_index, cv2.CAP_V4L2)
+        
+        # Set some V4L2-specific parameters
+        if cap.isOpened():
+            # Set buffer size
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 3)
+            
+            # Set resolution (adjust if needed)
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+            
+            # Set FPS
+            cap.set(cv2.CAP_PROP_FPS, 30)
+            
+            # Try to read a frame to verify camera is working
+            ret, frame = cap.read()
+            if ret and frame is not None:
+                log("Camera initialized successfully with V4L2", LogLevel.SUCCESS)
+                return cap
+            else:
+                cap.release()
+                log("Camera opened but failed to read frame", LogLevel.WARNING)
+        
+        # If V4L2 fails, try with default backend
         cap = cv2.VideoCapture(camera_index)
         if cap.isOpened():
-            return cap
+            ret, frame = cap.read()
+            if ret and frame is not None:
+                log("Camera initialized successfully with default backend", LogLevel.SUCCESS)
+                return cap
+            else:
+                cap.release()
+                log("Camera opened but failed to read frame", LogLevel.WARNING)
+        
         log(f"Camera not found. Retrying in {retry_delay} seconds... (Attempt {attempt + 1}/{max_retries})", LogLevel.WARNING)
         time.sleep(retry_delay)
     return None
