@@ -14,6 +14,8 @@ import queue
 import json
 from enum import Enum
 import shutil
+import socket
+import signal
 
 class LogLevel(Enum):
     INFO = "INFO"
@@ -41,6 +43,20 @@ USER_ID = os.getenv("USER_ID")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 upload_queue = queue.Queue()
+
+# Add a global flag to indicate shutdown
+shutting_down = False
+
+def handle_shutdown(signum, frame):
+    global shutting_down
+    shutting_down = True
+    print("[INFO] Caught shutdown signal, marking camera offline...")
+    update_camera_status(camera_on=False, is_recording=False)
+    exit(0)
+
+# Register signal handlers
+signal.signal(signal.SIGINT, handle_shutdown)
+signal.signal(signal.SIGTERM, handle_shutdown)
 
 def get_user_settings():
     response = supabase.table("user_settings").select("*").eq("user_id", USER_ID).single().execute()
@@ -419,6 +435,30 @@ def upload_worker():
             log(f"Upload worker critical error: {str(e)}", LogLevel.ERROR)
             time.sleep(1)  # Prevent tight loop on errors
 
+def update_camera_status(camera_on, is_recording):
+    data = {
+        "id": os.getenv("CAMERA_ID"),
+        "user_id": USER_ID,
+        "name": os.getenv("CAMERA_NAME", "Camera"),
+        "location": os.getenv("CAMERA_LOCATION", ""),
+        "camera_on": camera_on,
+        "is_recording": is_recording,
+        "last_seen": datetime.datetime.utcnow().isoformat(),
+        "ip_address": get_ip(),
+    }
+    print(f"[{datetime.datetime.utcnow().isoformat()}] Upserting camera data: {data}")
+    supabase.table("cameras").upsert(data).execute()
+
+def get_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return None
+
 def main():
     log("Initializing SmartCam...", LogLevel.INFO)
     
@@ -492,6 +532,7 @@ def main():
     last_ball_detection = None
     ball_tracking_timeout = 2.0  # seconds to wait before resetting tracking
     last_ball_time = time.time()
+    last_status_update = 0
 
     while True:
         try:
@@ -652,10 +693,20 @@ def main():
                 log("SmartCam shutdown complete", LogLevel.INFO)
                 return
 
+            # Update camera status every 5 seconds
+            if time.time() - last_status_update > 5:
+                update_camera_status(camera_on=True, is_recording=recording)
+                last_status_update = time.time()
+
+            if shutting_down:
+                break
         except Exception as e:
             log(f"Error in main loop: {str(e)}", LogLevel.ERROR)
             time.sleep(1)  # Prevent tight loop on errors
             continue
+
+    # On exit, mark camera offline
+    update_camera_status(camera_on=False, is_recording=False)
 
     # If we get here, the camera was disconnected
     cap.release()

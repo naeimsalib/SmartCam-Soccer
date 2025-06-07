@@ -19,6 +19,7 @@ import {
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import DeleteIcon from "@mui/icons-material/Delete";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import ShareIcon from "@mui/icons-material/Share";
 import { supabase } from "../supabaseClient";
 import Tooltip from "@mui/material/Tooltip";
 
@@ -34,8 +35,9 @@ const Recordings = () => {
   const [videos, setVideos] = useState<VideoFile[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [playUrl, setPlayUrl] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [playUrl, setPlayUrl] = useState<string | null>(null);
 
   const parseVideoFilename = (filename: string): VideoFile | null => {
     try {
@@ -90,102 +92,125 @@ const Recordings = () => {
   };
 
   useEffect(() => {
-    const fetchUserIdAndVideos = async () => {
-      setLoading(true);
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const uid = session?.user?.id;
-      console.log("Current user ID:", uid);
-      setUserId(uid);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id || null);
+    });
+  }, []);
 
-      if (uid) {
-        console.log("Fetching videos for user:", uid);
-        const { data, error } = await supabase.storage
-          .from("videos")
-          .list(uid + "/", { limit: 100 });
+  const fetchVideos = async (uid: string) => {
+    setLoading(true);
+    console.log("Fetching videos for user:", uid);
+    const { data, error } = await supabase.storage
+      .from("videos")
+      .list(uid + "/", { limit: 100 });
 
-        console.log("Storage response:", { data, error });
+    console.log("Storage response:", { data, error });
 
-        if (error) {
-          console.error("Error fetching videos:", error);
-        }
+    if (error) {
+      console.error("Error fetching videos:", error);
+      return;
+    }
 
-        let mp4Files: VideoFile[] = [];
-        if (data) {
-          for (const item of data) {
-            if (item.name.endsWith(".mp4")) {
-              const parsedVideo = parseVideoFilename(item.name);
-              if (parsedVideo) {
-                mp4Files.push({
-                  ...parsedVideo,
-                  fullPath: uid + "/" + item.name,
-                });
-              }
-            } else if (item.metadata && item.metadata.type === "folder") {
-              const { data: subData, error: subError } = await supabase.storage
-                .from("videos")
-                .list(uid + "/" + item.name + "/", { limit: 100 });
-              if (subError) {
-                console.error("Error fetching subfolder videos:", subError);
-              }
-              if (subData) {
-                const subVideos = subData
-                  .filter((file) => file.name.endsWith(".mp4"))
-                  .map((file) => {
-                    const parsedVideo = parseVideoFilename(file.name);
-                    return parsedVideo
-                      ? {
-                          ...parsedVideo,
-                          fullPath: uid + "/" + item.name + "/" + file.name,
-                        }
-                      : null;
-                  })
-                  .filter((video): video is VideoFile => video !== null);
-                mp4Files = mp4Files.concat(subVideos);
-              }
-            }
+    let mp4Files: VideoFile[] = [];
+    if (data) {
+      for (const item of data) {
+        if (item.name.endsWith(".mp4")) {
+          const parsedVideo = parseVideoFilename(item.name);
+          if (parsedVideo) {
+            mp4Files.push({
+              ...parsedVideo,
+              fullPath: uid + "/" + item.name,
+            });
+          }
+        } else if (item.metadata && item.metadata.type === "folder") {
+          const { data: subData, error: subError } = await supabase.storage
+            .from("videos")
+            .list(uid + "/" + item.name + "/", { limit: 100 });
+          if (subError) {
+            console.error("Error fetching subfolder videos:", subError);
+          }
+          if (subData) {
+            const subVideos = subData
+              .filter((file) => file.name.endsWith(".mp4"))
+              .map((file) => {
+                const parsedVideo = parseVideoFilename(file.name);
+                return parsedVideo
+                  ? {
+                      ...parsedVideo,
+                      fullPath: uid + "/" + item.name + "/" + file.name,
+                    }
+                  : null;
+              })
+              .filter((video): video is VideoFile => video !== null);
+            mp4Files = mp4Files.concat(subVideos);
           }
         }
-        // Sort videos by date (oldest first)
-        mp4Files.sort((a, b) => {
-          // Extract date and time from the filename for accurate sorting
-          const matchA = a.name.match(/recording_(\d{8})_(\d{4})_/);
-          const matchB = b.name.match(/recording_(\d{8})_(\d{4})_/);
-
-          if (!matchA || !matchB) return 0;
-
-          const [, dateStrA, timeStrA] = matchA;
-          const [, dateStrB, timeStrB] = matchB;
-
-          const dateA = new Date(
-            `${dateStrA.substring(0, 4)}-${dateStrA.substring(
-              4,
-              6
-            )}-${dateStrA.substring(6, 8)}T${timeStrA.substring(
-              0,
-              2
-            )}:${timeStrA.substring(2, 4)}:00`
-          );
-          const dateB = new Date(
-            `${dateStrB.substring(0, 4)}-${dateStrB.substring(
-              4,
-              6
-            )}-${dateStrB.substring(6, 8)}T${timeStrB.substring(
-              0,
-              2
-            )}:${timeStrB.substring(2, 4)}:00`
-          );
-
-          return dateA.getTime() - dateB.getTime(); // Oldest first
-        });
-        console.log("MP4 files found:", mp4Files);
-        setVideos(mp4Files);
       }
-      setLoading(false);
+    }
+
+    // Sort videos by date (oldest first)
+    mp4Files.sort((a, b) => {
+      const matchA = a.name.match(/recording_(\d{8})_(\d{4})_/);
+      const matchB = b.name.match(/recording_(\d{8})_(\d{4})_/);
+
+      if (!matchA || !matchB) return 0;
+
+      const [, dateStrA, timeStrA] = matchA;
+      const [, dateStrB, timeStrB] = matchB;
+
+      const dateA = new Date(
+        `${dateStrA.substring(0, 4)}-${dateStrA.substring(
+          4,
+          6
+        )}-${dateStrA.substring(6, 8)}T${timeStrA.substring(
+          0,
+          2
+        )}:${timeStrA.substring(2, 4)}:00`
+      );
+      const dateB = new Date(
+        `${dateStrB.substring(0, 4)}-${dateStrB.substring(
+          4,
+          6
+        )}-${dateStrB.substring(6, 8)}T${timeStrB.substring(
+          0,
+          2
+        )}:${timeStrB.substring(2, 4)}:00`
+      );
+
+      return dateA.getTime() - dateB.getTime(); // Oldest first
+    });
+
+    console.log("MP4 files found:", mp4Files);
+    setVideos(mp4Files);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    if (!userId) return;
+    fetchVideos(userId);
+
+    // Subscribe to storage changes
+    const channel = supabase
+      .channel("storage-changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "storage",
+          table: "objects",
+          filter: `bucket_id=eq.videos AND name=ilike.${userId}/%`,
+        },
+        () => {
+          // Refetch videos when any change occurs in the user's video folder
+          fetchVideos(userId);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
     };
-    fetchUserIdAndVideos();
-  }, []);
+  }, [userId]);
 
   const getSignedVideoUrl = async (fullPath: string) => {
     if (!userId) return null;
@@ -197,11 +222,6 @@ const Recordings = () => {
       return null;
     }
     return data.signedUrl;
-  };
-
-  const handlePlay = async (fullPath: string) => {
-    const url = await getSignedVideoUrl(fullPath);
-    if (url) setPlayUrl(url);
   };
 
   const handleDelete = async (fullPath: string) => {
@@ -243,6 +263,11 @@ const Recordings = () => {
     } else {
       alert("Could not generate a download link for this video.");
     }
+  };
+
+  const handlePlay = async (fullPath: string) => {
+    const url = await getSignedVideoUrl(fullPath);
+    if (url) setPlayUrl(url);
   };
 
   // Group videos by date
@@ -303,63 +328,246 @@ const Recordings = () => {
               {dateVideos.map((file) => (
                 <Grid item xs={12} sm={6} md={4} key={file.fullPath}>
                   <Card
-                    elevation={4}
+                    elevation={6}
                     sx={{
-                      borderRadius: 3,
-                      p: 2,
+                      borderRadius: 4,
+                      p: 0,
                       display: "flex",
                       flexDirection: "column",
                       alignItems: "center",
-                      background: "#f7fafc",
+                      background: "#fff",
+                      width: 400,
+                      maxWidth: "100%",
+                      m: "0 auto 32px auto",
+                      boxShadow: "0 4px 24px 0 rgba(0,0,0,0.10)",
+                      transition: "box-shadow 0.2s, transform 0.2s",
+                      "&:hover": {
+                        boxShadow: "0 8px 32px 0 rgba(0,0,0,0.16)",
+                        transform: "translateY(-2px) scale(1.01)",
+                      },
+                      justifyContent: "flex-start",
                     }}
                   >
-                    <CardContent sx={{ width: "100%" }}>
-                      <Tooltip title={file.name} placement="top" arrow>
-                        <Typography
-                          variant="subtitle1"
-                          fontWeight={600}
-                          noWrap={false}
-                          gutterBottom
-                          sx={{
-                            wordBreak: "break-all",
-                            maxWidth: "100%",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            display: "block",
-                          }}
-                        >
-                          {`${file.startTime} - ${file.endTime}`}
-                        </Typography>
-                      </Tooltip>
-                      {/* Inline video preview */}
-                      <VideoPlayer
-                        fullPath={file.fullPath}
-                        getSignedVideoUrl={getSignedVideoUrl}
-                      />
-                    </CardContent>
-                    <CardActions
-                      sx={{ justifyContent: "center", width: "100%" }}
+                    <CardContent
+                      sx={{
+                        width: "100%",
+                        p: 0,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "flex-start",
+                      }}
                     >
-                      <IconButton
-                        color="primary"
-                        onClick={async () => {
-                          await handlePlay(file.fullPath);
+                      <Box
+                        sx={{
+                          width: "100%",
+                          py: 2,
+                          background: "#f7fafc",
+                          borderTopLeftRadius: 16,
+                          borderTopRightRadius: 16,
                         }}
                       >
-                        <PlayArrowIcon />
-                      </IconButton>
-                      <IconButton
-                        color="error"
-                        onClick={() => handleDelete(file.fullPath)}
+                        <Tooltip title={file.name} placement="top" arrow>
+                          <Typography
+                            variant="subtitle1"
+                            fontWeight={700}
+                            noWrap={false}
+                            gutterBottom
+                            sx={{
+                              wordBreak: "break-all",
+                              maxWidth: "100%",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              display: "block",
+                              textAlign: "center",
+                              fontSize: 18,
+                              letterSpacing: 0.2,
+                            }}
+                          >
+                            {`${file.startTime} - ${file.endTime}`}
+                          </Typography>
+                        </Tooltip>
+                        <Divider sx={{ mt: 1, mb: 0 }} />
+                      </Box>
+                      {/* Responsive 16:9 video preview */}
+                      <Box
+                        sx={{
+                          width: 360,
+                          maxWidth: "90%",
+                          aspectRatio: "16/9",
+                          background: "#000",
+                          borderRadius: 3,
+                          mt: 2,
+                          mb: 2,
+                          boxShadow: "0 2px 12px 0 rgba(0,0,0,0.10)",
+                          overflow: "hidden",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                        }}
                       >
-                        <DeleteIcon />
-                      </IconButton>
-                      <IconButton
-                        color="primary"
-                        onClick={() => handleDownload(file)}
+                        <VideoPlayer
+                          fullPath={file.fullPath}
+                          getSignedVideoUrl={getSignedVideoUrl}
+                          height="100%"
+                          width="100%"
+                        />
+                      </Box>
+                    </CardContent>
+                    <CardActions
+                      sx={{
+                        justifyContent: "center",
+                        width: "100%",
+                        mb: 2,
+                        px: 2,
+                        pt: 1,
+                        pb: 2,
+                        display: "block",
+                      }}
+                    >
+                      <Grid
+                        container
+                        spacing={2}
+                        sx={{ width: "100%", margin: 0 }}
                       >
-                        <Button size="small">Download</Button>
-                      </IconButton>
+                        <Grid item xs={6}>
+                          <Button
+                            onClick={async () =>
+                              await handlePlay(file.fullPath)
+                            }
+                            aria-label="Play video"
+                            sx={{
+                              width: "100%",
+                              flexDirection: "column",
+                              py: 2,
+                              borderRadius: 3,
+                              background: "#e3f2fd",
+                              color: "#1976d2",
+                              boxShadow: "0 2px 8px 0 rgba(25, 118, 210, 0.08)",
+                              transition:
+                                "background 0.2s, box-shadow 0.2s, transform 0.2s",
+                              "&:hover": {
+                                background: "#bbdefb",
+                                boxShadow:
+                                  "0 4px 16px 0 rgba(25, 118, 210, 0.16)",
+                                transform: "translateY(-2px) scale(1.03)",
+                              },
+                              textTransform: "none",
+                              fontWeight: 600,
+                              fontSize: 15,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <PlayArrowIcon sx={{ fontSize: 28, mb: 0.5 }} />
+                            Play
+                          </Button>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Button
+                            onClick={async () => {
+                              const url = await getSignedVideoUrl(
+                                file.fullPath
+                              );
+                              if (url) setShareUrl(url);
+                            }}
+                            aria-label="Share video"
+                            sx={{
+                              width: "100%",
+                              flexDirection: "column",
+                              py: 2,
+                              borderRadius: 3,
+                              background: "#e1f5fe",
+                              color: "#0288d1",
+                              boxShadow: "0 2px 8px 0 rgba(2, 136, 209, 0.08)",
+                              transition:
+                                "background 0.2s, box-shadow 0.2s, transform 0.2s",
+                              "&:hover": {
+                                background: "#b3e5fc",
+                                boxShadow:
+                                  "0 4px 16px 0 rgba(2, 136, 209, 0.16)",
+                                transform: "translateY(-2px) scale(1.03)",
+                              },
+                              textTransform: "none",
+                              fontWeight: 600,
+                              fontSize: 15,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <ShareIcon sx={{ fontSize: 26, mb: 0.5 }} />
+                            Share
+                          </Button>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Button
+                            onClick={() => handleDelete(file.fullPath)}
+                            aria-label="Delete video"
+                            sx={{
+                              width: "100%",
+                              flexDirection: "column",
+                              py: 2,
+                              borderRadius: 3,
+                              background: "#ffebee",
+                              color: "#d32f2f",
+                              boxShadow: "0 2px 8px 0 rgba(211, 47, 47, 0.08)",
+                              transition:
+                                "background 0.2s, box-shadow 0.2s, transform 0.2s",
+                              "&:hover": {
+                                background: "#ffcdd2",
+                                boxShadow:
+                                  "0 4px 16px 0 rgba(211, 47, 47, 0.16)",
+                                transform: "translateY(-2px) scale(1.03)",
+                              },
+                              textTransform: "none",
+                              fontWeight: 600,
+                              fontSize: 15,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <DeleteIcon sx={{ fontSize: 26, mb: 0.5 }} />
+                            Delete
+                          </Button>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Button
+                            onClick={() => handleDownload(file)}
+                            aria-label="Download video"
+                            sx={{
+                              width: "100%",
+                              flexDirection: "column",
+                              py: 2,
+                              borderRadius: 3,
+                              background: "#e8f5e9",
+                              color: "#388e3c",
+                              boxShadow: "0 2px 8px 0 rgba(56, 142, 60, 0.08)",
+                              transition:
+                                "background 0.2s, box-shadow 0.2s, transform 0.2s",
+                              "&:hover": {
+                                background: "#c8e6c9",
+                                boxShadow:
+                                  "0 4px 16px 0 rgba(56, 142, 60, 0.16)",
+                                transform: "translateY(-2px) scale(1.03)",
+                              },
+                              textTransform: "none",
+                              fontWeight: 600,
+                              fontSize: 15,
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                            }}
+                          >
+                            <InfoOutlinedIcon
+                              sx={{ fontSize: 24, mb: 0.5, color: "#388e3c" }}
+                            />
+                            Download
+                          </Button>
+                        </Grid>
+                      </Grid>
                     </CardActions>
                   </Card>
                 </Grid>
@@ -368,21 +576,53 @@ const Recordings = () => {
           ))}
         </Grid>
       )}
-      {/* Video Player Dialog */}
-      <Dialog
-        open={!!playUrl}
-        onClose={() => setPlayUrl(null)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>Play Video</DialogTitle>
+      {/* Share Dialog */}
+      <Dialog open={!!shareUrl} onClose={() => setShareUrl(null)}>
+        <DialogTitle>Share Video</DialogTitle>
         <DialogContent>
-          {playUrl && (
-            <video src={playUrl} controls style={{ width: "100%" }} />
-          )}
+          <Typography gutterBottom>
+            Anyone with this link can view and download the video (link expires
+            in 1 hour).
+          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <input
+              type="text"
+              value={shareUrl || ""}
+              readOnly
+              style={{ width: "100%" }}
+              onFocus={(e) => e.target.select()}
+            />
+            <Button
+              onClick={() => {
+                if (shareUrl) navigator.clipboard.writeText(shareUrl);
+              }}
+            >
+              Copy
+            </Button>
+          </Box>
+          <Box sx={{ mt: 2 }}>
+            <Button
+              href={`mailto:?subject=Check out this video&body=${encodeURIComponent(
+                shareUrl || ""
+              )}`}
+              target="_blank"
+              sx={{ mr: 1 }}
+            >
+              Share via Email
+            </Button>
+            <Button
+              href={`sms:?body=${encodeURIComponent(shareUrl || "")}`}
+              target="_blank"
+            >
+              Share via SMS
+            </Button>
+          </Box>
+          <Box sx={{ mt: 2 }}>
+            <video src={shareUrl || ""} controls style={{ width: "100%" }} />
+          </Box>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setPlayUrl(null)}>Close</Button>
+          <Button onClick={() => setShareUrl(null)}>Close</Button>
         </DialogActions>
       </Dialog>
       {/* Delete Confirmation Dialog */}
@@ -398,6 +638,27 @@ const Recordings = () => {
           </Button>
         </DialogActions>
       </Dialog>
+      {/* Video Player Dialog */}
+      <Dialog
+        open={!!playUrl}
+        onClose={() => setPlayUrl(null)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Play Video</DialogTitle>
+        <DialogContent>
+          {playUrl && (
+            <video
+              src={playUrl}
+              controls
+              style={{ width: "100%", height: "70vh" }}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPlayUrl(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
@@ -405,9 +666,13 @@ const Recordings = () => {
 function VideoPlayer({
   fullPath,
   getSignedVideoUrl,
+  height = "100%",
+  width = "100%",
 }: {
   fullPath: string;
   getSignedVideoUrl: (fullPath: string) => Promise<string | null>;
+  height?: number | string;
+  width?: number | string;
 }) {
   const [url, setUrl] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -421,11 +686,7 @@ function VideoPlayer({
     };
   }, [fullPath, getSignedVideoUrl]);
   if (!url)
-    return (
-      <Box
-        sx={{ width: "100%", height: 180, background: "#eee", borderRadius: 2 }}
-      />
-    );
+    return <Box sx={{ width, height, background: "#eee", borderRadius: 2 }} />;
   return (
     <>
       <video
@@ -433,9 +694,12 @@ function VideoPlayer({
         controls
         style={{
           width: "100%",
-          maxHeight: 180,
+          height: "100%",
           borderRadius: 8,
           background: "#000",
+          objectFit: "contain",
+          display: "block",
+          margin: "0 auto",
         }}
         onError={() =>
           setError("Failed to load video. Please try again or download.")
