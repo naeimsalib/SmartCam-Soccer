@@ -618,14 +618,22 @@ def main():
             if time.time() - last_check_time > 30:
                 try:
                     appointments = get_upcoming_bookings()
+                    log(f"Fetched appointments: {appointments}", LogLevel.INFO)
                     last_check_time = time.time()
                 except Exception as e:
                     log(f"Error fetching appointments: {str(e)}", LogLevel.ERROR)
+
+            now = datetime.datetime.now()
+            log(f"Current time: {now}", LogLevel.INFO)
 
             # Find current booking
             current_appt = next((a for a in appointments if
                 datetime.datetime.strptime(f"{a['date']} {a['start_time']}", "%Y-%m-%d %H:%M") <= now <=
                 datetime.datetime.strptime(f"{a['date']} {a['end_time']}", "%Y-%m-%d %H:%M")), None)
+            if current_appt:
+                log(f"Matched current booking: {current_appt}", LogLevel.INFO)
+            else:
+                log("No current booking matched.", LogLevel.INFO)
 
             # Handle booking transitions
             if current_appt and (not recording or current_appt['id'] != active_appt_id):
