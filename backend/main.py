@@ -16,6 +16,7 @@ from enum import Enum
 import shutil
 import socket
 import signal
+from picamera2 import Picamera2
 
 class LogLevel(Enum):
     INFO = "INFO"
@@ -239,45 +240,22 @@ def get_upcoming_bookings():
         log(f"Error fetching bookings: {str(e)}", LogLevel.ERROR)
         return []  # Return empty list on error
 
-def wait_for_camera(camera_index, max_retries=5, retry_delay=5):
+def wait_for_camera(camera_index=None, max_retries=5, retry_delay=5):
     for attempt in range(max_retries):
-        # Try with V4L2 backend first
-        cap = cv2.VideoCapture(camera_index, cv2.CAP_V4L2)
-        
-        # Set some V4L2-specific parameters
-        if cap.isOpened():
-            # Set buffer size
-            cap.set(cv2.CAP_PROP_BUFFERSIZE, 3)
-            
-            # Set resolution (adjust if needed)
-            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-            
-            # Set FPS
-            cap.set(cv2.CAP_PROP_FPS, 30)
-            
-            # Try to read a frame to verify camera is working
-            ret, frame = cap.read()
-            if ret and frame is not None:
-                log("Camera initialized successfully with V4L2", LogLevel.SUCCESS)
-                return cap
+        try:
+            picam2 = Picamera2()
+            picam2.start()
+            # Try to capture a frame
+            frame = picam2.capture_array()
+            if frame is not None:
+                log("Camera initialized successfully with Picamera2", LogLevel.SUCCESS)
+                return picam2
             else:
-                cap.release()
+                picam2.close()
                 log("Camera opened but failed to read frame", LogLevel.WARNING)
-        
-        # If V4L2 fails, try with default backend
-        cap = cv2.VideoCapture(camera_index)
-        if cap.isOpened():
-            ret, frame = cap.read()
-            if ret and frame is not None:
-                log("Camera initialized successfully with default backend", LogLevel.SUCCESS)
-                return cap
-            else:
-                cap.release()
-                log("Camera opened but failed to read frame", LogLevel.WARNING)
-        
-        log(f"Camera not found. Retrying in {retry_delay} seconds... (Attempt {attempt + 1}/{max_retries})", LogLevel.WARNING)
-        time.sleep(retry_delay)
+        except Exception as e:
+            log(f"Camera not found. Retrying in {retry_delay} seconds... (Attempt {attempt + 1}/{max_retries}) - {e}", LogLevel.WARNING)
+            time.sleep(retry_delay)
     return None
 
 def detect_moving_circle(frame, prev_frame):
@@ -499,11 +477,10 @@ def main():
     upload_thread.start()
     
     # First, initialize the camera
-    cap = wait_for_camera(CAMERA_INDEX)
-    if cap is None:
+    picam2 = wait_for_camera()
+    if picam2 is None:
         log("Failed to connect to camera. Exiting...", LogLevel.ERROR)
         return
-        
     log("Camera connected successfully", LogLevel.SUCCESS)
     time.sleep(2)  # Give the camera time to stabilize
     
@@ -568,16 +545,16 @@ def main():
 
     while True:
         try:
-            ret, frame = cap.read()
-            if not ret:
+            frame = picam2.capture_array()
+            if frame is None:
                 log("Camera disconnected. Attempting to reconnect...", LogLevel.ERROR)
-                cap.release()
+                picam2.close()
                 if out:
                     out.release()
                 cv2.destroyAllWindows()
                 time.sleep(5)
-                cap = wait_for_camera(CAMERA_INDEX)
-                if cap is None:
+                picam2 = wait_for_camera()
+                if picam2 is None:
                     log("Failed to reconnect to camera. Exiting...", LogLevel.ERROR)
                     return
                 continue
@@ -718,7 +695,7 @@ def main():
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 if recording and out:
                     out.release()
-                cap.release()
+                picam2.close()
                 cv2.destroyAllWindows()
                 upload_queue.put((None, None, None))  # Signal upload worker to stop
                 upload_thread.join(timeout=5)  # Wait for upload worker to finish
@@ -741,7 +718,7 @@ def main():
     update_camera_status(camera_on=False, is_recording=False)
 
     # If we get here, the camera was disconnected
-    cap.release()
+    picam2.close()
     if out:
         out.release()
     cv2.destroyAllWindows()
