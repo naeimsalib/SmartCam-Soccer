@@ -506,12 +506,12 @@ def main():
     ball_tracker = BallTracker()
     
     # Now that camera is initialized, clean up any leftover videos
-    try:
-        log("Checking for leftover videos...", LogLevel.INFO)
-        cleanup_leftover_videos()
-    except Exception as e:
-        log(f"Error during cleanup: {str(e)}", LogLevel.ERROR)
-        # Continue even if cleanup fails
+    # try:
+    #     log("Checking for leftover videos...", LogLevel.INFO)
+    #     cleanup_leftover_videos()
+    # except Exception as e:
+    #     log(f"Error during cleanup: {str(e)}", LogLevel.ERROR)
+    #     # Continue even if cleanup fails
     
     # Create user assets directory
     os.makedirs("user_assets", exist_ok=True)
@@ -580,7 +580,7 @@ def main():
                 continue
 
             # Convert raw data to numpy array
-            frame = np.frombuffer(raw_frame, dtype=np.uint8).reshape((720, 1280, 3))
+            frame = np.frombuffer(raw_frame, dtype=np.uint8).reshape((720, 1280, 3)).copy()
 
             now = datetime.datetime.now()
             
