@@ -469,6 +469,18 @@ def get_ip():
     except Exception:
         return None
 
+def start_recording():
+    global recording_process
+    if recording_process is None:
+        try:
+            # Use raspivid for video capture and ffmpeg with h264_omx for hardware acceleration
+            cmd = f"raspivid -t 0 -w 1280 -h 720 -fps 30 -o - | ffmpeg -f h264 -i - -f v4l2 -vcodec h264_omx -pix_fmt yuv420p /dev/video36"
+            recording_process = subprocess.Popen(cmd, shell=True)
+            log("Recording started", LogLevel.INFO)
+        except Exception as e:
+            log(f"Error starting recording: {str(e)}", LogLevel.ERROR)
+            recording_process = None
+
 def main():
     log("Initializing SmartCam...", LogLevel.INFO)
     
