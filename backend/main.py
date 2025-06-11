@@ -16,7 +16,6 @@ from enum import Enum
 import shutil
 import socket
 import signal
-from picamera2 import Picamera2
 
 class LogLevel(Enum):
     INFO = "INFO"
@@ -243,15 +242,13 @@ def get_upcoming_bookings():
 def wait_for_camera(camera_index=None, max_retries=5, retry_delay=5):
     for attempt in range(max_retries):
         try:
-            picam2 = Picamera2()
-            picam2.start()
-            # Try to capture a frame
-            frame = picam2.capture_array()
-            if frame is not None:
-                log("Camera initialized successfully with Picamera2", LogLevel.SUCCESS)
-                return picam2
+            # Test if we can access the camera using raspivid
+            test_cmd = "raspivid -t 1000 -o /dev/null"
+            result = subprocess.run(test_cmd, shell=True, capture_output=True)
+            if result.returncode == 0:
+                log("Camera initialized successfully with raspivid", LogLevel.SUCCESS)
+                return True
             else:
-                picam2.close()
                 log("Camera opened but failed to read frame", LogLevel.WARNING)
         except Exception as e:
             log(f"Camera not found. Retrying in {retry_delay} seconds... (Attempt {attempt + 1}/{max_retries}) - {e}", LogLevel.WARNING)
@@ -489,8 +486,8 @@ def main():
     upload_thread.start()
     
     # First, initialize the camera
-    picam2 = wait_for_camera()
-    if picam2 is None:
+    camera_ready = wait_for_camera()
+    if not camera_ready:
         log("Failed to connect to camera. Exiting...", LogLevel.ERROR)
         return
     log("Camera connected successfully", LogLevel.SUCCESS)
@@ -555,21 +552,26 @@ def main():
     last_ball_time = time.time()
     last_status_update = 0
 
+    # Start the video capture process
+    video_cmd = "raspivid -t 0 -w 1280 -h 720 -fps 30 -o - | ffmpeg -f h264 -i - -f rawvideo -pix_fmt bgr24 -"
+    video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE)
+
     while True:
         try:
-            frame = picam2.capture_array()
-            if frame is None:
+            # Read raw video data
+            raw_frame = video_process.stdout.read(1280 * 720 * 3)
+            if not raw_frame:
                 log("Camera disconnected. Attempting to reconnect...", LogLevel.ERROR)
-                picam2.close()
+                video_process.terminate()
                 if out:
                     out.release()
                 cv2.destroyAllWindows()
                 time.sleep(5)
-                picam2 = wait_for_camera()
-                if picam2 is None:
-                    log("Failed to reconnect to camera. Exiting...", LogLevel.ERROR)
-                    return
+                video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE)
                 continue
+
+            # Convert raw data to numpy array
+            frame = np.frombuffer(raw_frame, dtype=np.uint8).reshape((720, 1280, 3))
 
             now = datetime.datetime.now()
             
@@ -715,7 +717,7 @@ def main():
             if cv2.waitKey(1) & 0xFF == ord("q"):
                 if recording and out:
                     out.release()
-                picam2.close()
+                video_process.terminate()
                 cv2.destroyAllWindows()
                 upload_queue.put((None, None, None))  # Signal upload worker to stop
                 upload_thread.join(timeout=5)  # Wait for upload worker to finish
@@ -738,7 +740,7 @@ def main():
     update_camera_status(camera_on=False, is_recording=False)
 
     # If we get here, the camera was disconnected
-    picam2.close()
+    video_process.terminate()
     if out:
         out.release()
     cv2.destroyAllWindows()
