@@ -243,16 +243,19 @@ def wait_for_camera(camera_index=None, max_retries=5, retry_delay=5):
     for attempt in range(max_retries):
         try:
             # Test if we can access the camera using libcamera-vid (for HQ Camera)
-            test_cmd = "libcamera-vid -t 1000 -o /dev/null"
+            test_cmd = "libcamera-vid -t 1000 -o test.h264"
             result = subprocess.run(test_cmd, shell=True, capture_output=True, text=True)
             if result.returncode == 0:
                 log("Camera initialized successfully with libcamera-vid", LogLevel.SUCCESS)
+                # Clean up test file
+                if os.path.exists("test.h264"):
+                    os.remove("test.h264")
                 return True
             else:
                 log(f"Camera test failed. Error: {result.stderr}", LogLevel.WARNING)
                 # Try to get camera status
                 try:
-                    camera_status = subprocess.run("vcgencmd get_camera", shell=True, capture_output=True, text=True)
+                    camera_status = subprocess.run("libcamera-hello --list-cameras", shell=True, capture_output=True, text=True)
                     log(f"Camera status: {camera_status.stdout}", LogLevel.INFO)
                 except Exception as e:
                     log(f"Could not get camera status: {str(e)}", LogLevel.WARNING)
