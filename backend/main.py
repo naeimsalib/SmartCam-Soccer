@@ -242,14 +242,20 @@ def get_upcoming_bookings():
 def wait_for_camera(camera_index=None, max_retries=5, retry_delay=5):
     for attempt in range(max_retries):
         try:
-            # Test if we can access the camera using raspivid
-            test_cmd = "raspivid -t 1000 -o /dev/null"
-            result = subprocess.run(test_cmd, shell=True, capture_output=True)
+            # Test if we can access the camera using libcamera-vid (for HQ Camera)
+            test_cmd = "libcamera-vid -t 1000 -o /dev/null"
+            result = subprocess.run(test_cmd, shell=True, capture_output=True, text=True)
             if result.returncode == 0:
-                log("Camera initialized successfully with raspivid", LogLevel.SUCCESS)
+                log("Camera initialized successfully with libcamera-vid", LogLevel.SUCCESS)
                 return True
             else:
-                log("Camera opened but failed to read frame", LogLevel.WARNING)
+                log(f"Camera test failed. Error: {result.stderr}", LogLevel.WARNING)
+                # Try to get camera status
+                try:
+                    camera_status = subprocess.run("vcgencmd get_camera", shell=True, capture_output=True, text=True)
+                    log(f"Camera status: {camera_status.stdout}", LogLevel.INFO)
+                except Exception as e:
+                    log(f"Could not get camera status: {str(e)}", LogLevel.WARNING)
         except Exception as e:
             log(f"Camera not found. Retrying in {retry_delay} seconds... (Attempt {attempt + 1}/{max_retries}) - {e}", LogLevel.WARNING)
             time.sleep(retry_delay)
@@ -552,8 +558,8 @@ def main():
     last_ball_time = time.time()
     last_status_update = 0
 
-    # Start the video capture process
-    video_cmd = "raspivid -t 0 -w 1280 -h 720 -fps 30 -o - | ffmpeg -f h264 -i - -f rawvideo -pix_fmt bgr24 -"
+    # Start the video capture process for HQ Camera
+    video_cmd = "libcamera-vid -t 0 --width 1280 --height 720 --framerate 30 --codec yuv420 --inline --nopreview -o - | ffmpeg -f rawvideo -pix_fmt yuv420p -s 1280x720 -i - -f rawvideo -pix_fmt bgr24 -"
     video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE)
 
     while True:
