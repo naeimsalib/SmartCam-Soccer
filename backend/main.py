@@ -16,6 +16,7 @@ from enum import Enum
 import shutil
 import socket
 import signal
+import sys
 
 class LogLevel(Enum):
     INFO = "INFO"
@@ -552,18 +553,14 @@ def main():
     current_filename = None
     recording_start_time = None
     buffer_time = datetime.timedelta(seconds=2)  # 2 second buffer
-    
-    # Initialize variables for motion tracking
-    prev_frame = None
-    ball_tracking_active = False
-    last_ball_detection = None
-    ball_tracking_timeout = 2.0  # seconds to wait before resetting tracking
-    last_ball_time = time.time()
+    last_booking_log_time = 0
+    booking_log_interval = 5  # seconds
     last_status_update = 0
+    last_booking_id = None
 
     # Start the video capture process for HQ Camera
     video_cmd = "libcamera-vid -t 0 --width 1280 --height 720 --framerate 30 --codec yuv420 --inline --nopreview -o - | ffmpeg -f rawvideo -pix_fmt yuv420p -s 1280x720 -i - -f rawvideo -pix_fmt bgr24 -"
-    video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE)
+    video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
     while True:
         try:
@@ -576,7 +573,7 @@ def main():
                     out.release()
                 cv2.destroyAllWindows()
                 time.sleep(5)
-                video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE)
+                video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
                 continue
 
             # Convert raw data to numpy array
@@ -646,17 +643,21 @@ def main():
                 except Exception as e:
                     log(f"Error fetching appointments: {str(e)}", LogLevel.ERROR)
 
-            now = datetime.datetime.now()
-            log(f"Current time: {now}", LogLevel.INFO)
-
             # Find current booking
             current_appt = next((a for a in appointments if
                 datetime.datetime.strptime(f"{a['date']} {a['start_time']}", "%Y-%m-%d %H:%M") <= now <=
                 datetime.datetime.strptime(f"{a['date']} {a['end_time']}", "%Y-%m-%d %H:%M")), None)
+
+            # Throttle logging for no booking
             if current_appt:
-                log(f"Matched current booking: {current_appt}", LogLevel.INFO)
+                if last_booking_id != current_appt['id']:
+                    log(f"Matched current booking: {current_appt}", LogLevel.INFO)
+                    last_booking_id = current_appt['id']
             else:
-                log("No current booking matched.", LogLevel.INFO)
+                if time.time() - last_booking_log_time > booking_log_interval:
+                    log("No current booking matched.", LogLevel.INFO)
+                    last_booking_log_time = time.time()
+                last_booking_id = None
 
             # Handle booking transitions
             if current_appt and (not recording or current_appt['id'] != active_appt_id):
