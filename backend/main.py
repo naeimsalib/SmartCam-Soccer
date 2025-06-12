@@ -429,7 +429,8 @@ def update_camera_status(camera_on, is_recording):
         "last_seen": datetime.datetime.utcnow().isoformat(),
         "ip_address": get_ip(),
     }
-    print(f"[{datetime.datetime.utcnow().isoformat()}] Upserting camera data: {data}")
+    # Commented out to reduce terminal output
+    # print(f"[{datetime.datetime.utcnow().isoformat()}] Upserting camera data: {data}")
     supabase.table("cameras").upsert(data).execute()
 
 def get_ip():
@@ -525,6 +526,7 @@ def main():
     booking_log_interval = 5  # seconds
     last_status_update = 0
     last_booking_id = None
+    status_update_interval = 2  # seconds (was 5)
 
     while True:
         try:
@@ -698,8 +700,9 @@ def main():
                 log("SmartCam shutdown complete", LogLevel.INFO)
                 return
 
-            # Update camera status every 5 seconds
-            if time.time() - last_status_update > 5:
+            # Update camera status every 2 seconds
+            if time.time() - last_status_update > status_update_interval:
+                # log(f"Current time: {now}", LogLevel.INFO)  # Optional: comment out to reduce output
                 update_camera_status(camera_on=True, is_recording=recording)
                 last_status_update = time.time()
 
