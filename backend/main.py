@@ -17,6 +17,7 @@ import shutil
 import socket
 import signal
 import sys
+import queue as pyqueue
 
 class LogLevel(Enum):
     INFO = "INFO"
@@ -531,7 +532,6 @@ def main():
 
     # Real-time frame writing control
     frame_interval = 1.0 / fps
-    last_frame_write_time = time.time()
     last_output_frame = None
 
     # For FPS measurement
@@ -540,37 +540,50 @@ def main():
     measured_fps = fps  # fallback to default if measurement fails
     fps_measured = False
 
-    while True:
-        try:
-            # Read raw video data
+    frame_queue = pyqueue.Queue(maxsize=2)
+    frame_interval = 1.0 / fps
+    last_output_frame = None
+
+    def frame_reader():
+        nonlocal last_output_frame
+        while True:
             raw_frame = video_process.stdout.read(1280 * 720 * 3)
             if not raw_frame:
-                log("Camera disconnected. Attempting to reconnect...", LogLevel.ERROR)
-                video_process.terminate()
-                if out:
-                    out.release()
-                cv2.destroyAllWindows()
-                time.sleep(5)
-                video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
                 continue
-
-            # Convert raw data to numpy array
             frame = np.frombuffer(raw_frame, dtype=np.uint8).reshape((720, 1280, 3)).copy()
+            last_output_frame = frame
+            try:
+                if not frame_queue.full():
+                    frame_queue.put_nowait(frame)
+            except Exception:
+                pass
+
+    reader_thread = threading.Thread(target=frame_reader, daemon=True)
+    reader_thread.start()
+
+    while True:
+        try:
+            start_time = time.time()
+            # Get the latest frame, or repeat the last one
+            try:
+                frame = frame_queue.get_nowait()
+                last_output_frame = frame
+            except pyqueue.Empty:
+                frame = last_output_frame
+            if frame is None:
+                continue  # Wait for the first frame
 
             now = datetime.datetime.now()
 
-            # --- LOGO OVERLAY FOR RECORDING ---
-            frame_for_recording = frame.copy()
-            for pos, logo_file in local_logos.items():
-                frame_for_recording = overlay_logo(frame_for_recording, logo_file, pos)
-
-            # --- TIMER OVERLAY ONLY FOR PREVIEW ---
-            preview_frame = frame_for_recording.copy()
+            # --- Draw overlays on every output frame ---
+            output_frame = frame.copy()
             timer_text = now.strftime("%Y-%m-%d %H:%M:%S")
-            cv2.putText(preview_frame, timer_text, (15, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2, cv2.LINE_AA)
+            cv2.putText(output_frame, timer_text, (15, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2, cv2.LINE_AA)
+            for pos, logo_file in local_logos.items():
+                output_frame = overlay_logo(output_frame, logo_file, pos)
 
-            # --- KEYBOARD HANDLING: Always check for 'q' to quit ---
-            cv2.imshow("SmartCam Soccer", preview_frame)
+            # Show preview
+            cv2.imshow("SmartCam Soccer", output_frame)
             key = cv2.waitKey(1) & 0xFF
             if key == ord("q"):
                 if recording and out:
@@ -582,9 +595,9 @@ def main():
                 log("SmartCam shutdown complete", LogLevel.INFO)
                 return
 
-            # --- WRITE FRAME TO VIDEO AT FIXED FPS ---
+            # Write frame to video at fixed FPS
             if recording and out:
-                out.write(frame_for_recording)
+                out.write(output_frame)
 
             # Motion tracking logic (only active during recording)
             if recording:
@@ -738,6 +751,11 @@ def main():
 
             if shutting_down:
                 break
+            # Sleep to maintain real-time FPS
+            elapsed = time.time() - start_time
+            sleep_time = frame_interval - elapsed
+            if sleep_time > 0:
+                time.sleep(sleep_time)
         except Exception as e:
             log(f"Error in main loop: {str(e)}", LogLevel.ERROR)
             time.sleep(1)  # Prevent tight loop on errors
