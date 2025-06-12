@@ -514,7 +514,7 @@ def main():
     
     # Set up video writer with explicit frame rate
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    fps = 30  # Standard frame rate for real-time recording
+    fps = 30  # Fixed FPS for real-time recording
     out, recording = None, False
     appointments = []
     active_appt_id = None
@@ -559,14 +559,18 @@ def main():
 
             now = datetime.datetime.now()
 
-            # --- CLEAN OVERLAY: Only small green timer and logo ---
-            timer_text = now.strftime("%Y-%m-%d %H:%M:%S")
-            cv2.putText(frame, timer_text, (15, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2, cv2.LINE_AA)
+            # --- LOGO OVERLAY FOR RECORDING ---
+            frame_for_recording = frame.copy()
             for pos, logo_file in local_logos.items():
-                frame = overlay_logo(frame, logo_file, pos)
+                frame_for_recording = overlay_logo(frame_for_recording, logo_file, pos)
+
+            # --- TIMER OVERLAY ONLY FOR PREVIEW ---
+            preview_frame = frame_for_recording.copy()
+            timer_text = now.strftime("%Y-%m-%d %H:%M:%S")
+            cv2.putText(preview_frame, timer_text, (15, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2, cv2.LINE_AA)
 
             # --- KEYBOARD HANDLING: Always check for 'q' to quit ---
-            cv2.imshow("SmartCam Soccer", frame)
+            cv2.imshow("SmartCam Soccer", preview_frame)
             key = cv2.waitKey(1) & 0xFF
             if key == ord("q"):
                 if recording and out:
@@ -578,28 +582,9 @@ def main():
                 log("SmartCam shutdown complete", LogLevel.INFO)
                 return
 
-            # --- FPS MEASUREMENT AND VIDEO WRITER RE-INIT ---
-            if recording:
-                if not fps_measured:
-                    if fps_measure_start is None:
-                        fps_measure_start = time.time()
-                        frame_count = 0
-                    frame_count += 1
-                    elapsed = time.time() - fps_measure_start
-                    if elapsed >= 2.0:
-                        measured_fps = frame_count / elapsed
-                        log(f"Measured FPS: {measured_fps:.2f}", LogLevel.INFO)
-                        # Re-init video writer with measured FPS
-                        if out:
-                            out.release()
-                        out = cv2.VideoWriter(current_filename, fourcc, measured_fps, (frame.shape[1], frame.shape[0]))
-                        fps_measured = True
-                if fps_measured and out:
-                    out.write(frame)
-            else:
-                fps_measure_start = None
-                frame_count = 0
-                fps_measured = False
+            # --- WRITE FRAME TO VIDEO AT FIXED FPS ---
+            if recording and out:
+                out.write(frame_for_recording)
 
             # Motion tracking logic (only active during recording)
             if recording:
