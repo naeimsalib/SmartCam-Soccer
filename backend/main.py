@@ -49,6 +49,12 @@ upload_queue = queue.Queue()
 # Add a global flag to indicate shutdown
 shutting_down = False
 
+# Add these global variables to track last printed states
+last_printed_booking_id = None
+last_printed_recording = None
+last_printed_camera_on = None
+last_printed_status = None
+
 def handle_shutdown(signum, frame):
     global shutting_down
     shutting_down = True
@@ -694,21 +700,37 @@ def main():
                 except Exception as e:
                     log(f"Error fetching appointments: {str(e)}", LogLevel.ERROR)
 
+            # --- Status/booking change logging ---
             # Find current booking
             current_appt = next((a for a in appointments if
                 datetime.datetime.strptime(f"{a['date']} {a['start_time']}", "%Y-%m-%d %H:%M") <= now <=
                 datetime.datetime.strptime(f"{a['date']} {a['end_time']}", "%Y-%m-%d %H:%M")), None)
 
-            # Throttle logging for no booking
+            # Only log if booking changes
+            global last_printed_booking_id
             if current_appt:
-                if last_booking_id != current_appt['id']:
+                if last_printed_booking_id != current_appt['id']:
                     log(f"Matched current booking: {current_appt}", LogLevel.INFO)
-                    last_booking_id = current_appt['id']
+                    last_printed_booking_id = current_appt['id']
             else:
-                if time.time() - last_booking_log_time > booking_log_interval:
+                if last_printed_booking_id is not None:
                     log("No current booking matched.", LogLevel.INFO)
-                    last_booking_log_time = time.time()
-                last_booking_id = None
+                    last_printed_booking_id = None
+
+            # Only log if recording status changes
+            global last_printed_recording
+            if last_printed_recording != recording:
+                log(f"Recording status changed: {'Started' if recording else 'Stopped'}", LogLevel.INFO)
+                last_printed_recording = recording
+
+            # Only log if camera status changes
+            global last_printed_camera_on
+            camera_on = True  # Always true in main loop unless shutting down
+            if last_printed_camera_on != camera_on:
+                log(f"Camera status changed: {'Online' if camera_on else 'Offline'}", LogLevel.INFO)
+                last_printed_camera_on = camera_on
+
+            # Only log errors/warnings as they occur (leave those as is)
 
             # Handle booking transitions
             if current_appt and (not recording or current_appt['id'] != active_appt_id):
