@@ -462,8 +462,8 @@ def main():
     upload_thread = threading.Thread(target=upload_worker, daemon=True)
     upload_thread.start()
     
-    # Try to start the main camera process directly
-    video_cmd = "libcamera-vid -t 0 --width 1280 --height 720 --framerate 30 --codec yuv420 --inline --nopreview -o - | ffmpeg -framerate 30 -f rawvideo -pix_fmt yuv420p -s 1280x720 -i - -f rawvideo -pix_fmt bgr24 -"
+    # Start the main camera process directly
+    video_cmd = "libcamera-vid -t 0 --width 1280 --height 720 --framerate 30 --codec yuv420 --inline --nopreview -o - | ffmpeg -re -framerate 30 -f rawvideo -pix_fmt yuv420p -s 1280x720 -i - -f rawvideo -pix_fmt bgr24 -"
     try:
         video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     except Exception as e:
@@ -527,6 +527,7 @@ def main():
     last_status_update = 0
     last_booking_id = None
     status_update_interval = 2  # seconds (was 5)
+    last_ball_time = time.time()
 
     while True:
         try:
@@ -552,18 +553,14 @@ def main():
                 if not ball_tracking_active:
                     log("Motion tracking activated", LogLevel.INFO)
                     ball_tracking_active = True
-                
                 try:
                     # Detect moving circular objects
                     center, radius = detect_moving_circle(frame, prev_frame)
-                    
                     # Update tracker with new measurement
                     tracked_position, tracked_radius = ball_tracker.update(center, radius)
-                    
                     if tracked_position is not None:
                         # Apply gentle zoom to follow the object
                         frame = create_focused_frame(frame, tracked_position, tracked_radius)
-                        
                         # Draw tracking circle with thickness
                         cv2.circle(frame, tracked_position, tracked_radius, (0, 255, 0), 3)
                         # Draw a crosshair at the center
@@ -583,12 +580,14 @@ def main():
                             ball_tracker = BallTracker()  # Reset tracker
                             last_ball_detection = None
                 except Exception as e:
-                    log(f"Error in motion tracking: {str(e)}", LogLevel.ERROR)
-                    # Show normal frame if tracking fails
-                    last_ball_detection = None
+                    # Only log the first error to avoid spam
+                    if not hasattr(main, '_motion_error_logged'):
+                        log(f"Error in motion tracking: {str(e)}", LogLevel.ERROR)
+                        main._motion_error_logged = True
             else:
                 ball_tracking_active = False
                 last_ball_detection = None
+                main._motion_error_logged = False
             
             # Store current frame for next iteration
             prev_frame = frame.copy()
@@ -677,6 +676,13 @@ def main():
                                 final_output = merged
                         # Queue the upload task
                         upload_queue.put((USER_ID, final_output, active_appt_id))
+                        # Remove finished booking from Supabase
+                        try:
+                            if active_appt_id:
+                                supabase.table("bookings").delete().eq("id", active_appt_id).execute()
+                                log(f"Removed finished booking {active_appt_id} from DB", LogLevel.SUCCESS)
+                        except Exception as e:
+                            log(f"Error removing finished booking: {str(e)}", LogLevel.WARNING)
                     except Exception as e:
                         log(f"Error processing video: {str(e)}", LogLevel.ERROR)
                 recording = False
