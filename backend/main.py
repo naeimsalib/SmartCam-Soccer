@@ -530,50 +530,31 @@ def main():
     status_update_interval = 2  # seconds (was 5)
     last_ball_time = time.time()
 
-    # Real-time frame writing control
-    frame_interval = 1.0 / fps
-    last_output_frame = None
-
-    # For FPS measurement
+    # --- FPS measurement variables ---
     frame_count = 0
     fps_measure_start = None
     measured_fps = fps  # fallback to default if measurement fails
     fps_measured = False
 
-    frame_queue = pyqueue.Queue(maxsize=2)
-    last_output_frame = None
-
-    def frame_reader():
-        nonlocal last_output_frame
-        while True:
-            raw_frame = video_process.stdout.read(1280 * 720 * 3)
-            if not raw_frame:
-                continue
-            frame = np.frombuffer(raw_frame, dtype=np.uint8).reshape((720, 1280, 3)).copy()
-            last_output_frame = frame
-            try:
-                if not frame_queue.full():
-                    frame_queue.put_nowait(frame)
-            except Exception:
-                pass
-
-    reader_thread = threading.Thread(target=frame_reader, daemon=True)
-    reader_thread.start()
-
     while True:
         try:
-            # Get the latest frame, or repeat the last one
-            try:
-                frame = frame_queue.get_nowait()
-                last_output_frame = frame
-            except pyqueue.Empty:
-                frame = last_output_frame
-            if frame is None:
-                continue  # Wait for the first frame
+            # Read raw video data
+            raw_frame = video_process.stdout.read(1280 * 720 * 3)
+            if not raw_frame:
+                log("Camera disconnected. Attempting to reconnect...", LogLevel.ERROR)
+                video_process.terminate()
+                if out:
+                    out.release()
+                cv2.destroyAllWindows()
+                time.sleep(5)
+                video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+                continue
 
+            # Convert raw data to numpy array
+            frame = np.frombuffer(raw_frame, dtype=np.uint8).reshape((720, 1280, 3)).copy()
             now = datetime.datetime.now()
 
-            # --- Draw overlays on every output frame ---
+            # --- Draw overlays (timer and logo) only once per frame ---
             output_frame = frame.copy()
             timer_text = now.strftime("%Y-%m-%d %H:%M:%S")
             cv2.putText(output_frame, timer_text, (15, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2, cv2.LINE_AA)
@@ -593,9 +574,28 @@ def main():
                 log("SmartCam shutdown complete", LogLevel.INFO)
                 return
 
-            # Write every frame to video as soon as it is received
-            if recording and out:
-                out.write(output_frame)
+            # --- FPS MEASUREMENT AND VIDEO WRITER RE-INIT ---
+            if recording:
+                if not fps_measured:
+                    if fps_measure_start is None:
+                        fps_measure_start = time.time()
+                        frame_count = 0
+                    frame_count += 1
+                    elapsed = time.time() - fps_measure_start
+                    if elapsed >= 2.0:
+                        measured_fps = frame_count / elapsed
+                        log(f"Measured FPS: {measured_fps:.2f}", LogLevel.INFO)
+                        # Re-init video writer with measured FPS
+                        if out:
+                            out.release()
+                        out = cv2.VideoWriter(current_filename, fourcc, measured_fps, (frame.shape[1], frame.shape[0]))
+                        fps_measured = True
+                if fps_measured and out:
+                    out.write(output_frame)
+            else:
+                fps_measure_start = None
+                frame_count = 0
+                fps_measured = False
 
             # Motion tracking logic (only active during recording)
             if recording:
