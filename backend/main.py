@@ -120,7 +120,63 @@ def format_video_filename(booking_date, booking_time, user_id):
     
     return f"recording_{formatted_date}_{formatted_time}_{user_id}.mp4"
 
+def encode_video_with_fixed_fps(input_path, output_path, target_fps=45):
+    """Encode video with fixed FPS and proper codec settings."""
+    try:
+        # First, ensure the video has a constant frame rate
+        cmd = [
+            "ffmpeg", "-i", input_path,
+            "-filter:v", f"fps={target_fps}",
+            "-c:v", "libx264",
+            "-preset", "medium",
+            "-crf", "23",
+            "-c:a", "aac",
+            "-b:a", "128k",
+            "-y", output_path
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            log(f"Error encoding video: {result.stderr}", LogLevel.ERROR)
+            return False
+        return True
+    except Exception as e:
+        log(f"Failed to encode video: {str(e)}", LogLevel.ERROR)
+        return False
+
+def ensure_video_has_audio(video_path):
+    """Ensure video has an audio track, add silent audio if needed."""
+    try:
+        # Check if video has audio
+        probe_cmd = ["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=codec_type", "-of", "json", video_path]
+        probe_result = subprocess.run(probe_cmd, capture_output=True, text=True)
+        has_audio = "codec_type" in probe_result.stdout
+
+        if not has_audio:
+            temp_path = f"{video_path}.temp.mp4"
+            cmd = [
+                "ffmpeg",
+                "-f", "lavfi", "-i", "anullsrc",
+                "-i", video_path,
+                "-shortest",
+                "-c:v", "copy",
+                "-c:a", "aac",
+                "-b:a", "128k",
+                "-y", temp_path
+            ]
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode == 0:
+                os.replace(temp_path, video_path)
+                return True
+            else:
+                log(f"Error adding audio: {result.stderr}", LogLevel.ERROR)
+                return False
+        return True
+    except Exception as e:
+        log(f"Failed to check/add audio: {str(e)}", LogLevel.ERROR)
+        return False
+
 def prepend_intro(intro_path, main_path, output_path):
+    """Improved version of prepend_intro with better error handling and encoding."""
     temp_dir = "temp_processing"
     try:
         # Create a temporary directory for processing
@@ -128,95 +184,95 @@ def prepend_intro(intro_path, main_path, output_path):
             shutil.rmtree(temp_dir)
         os.makedirs(temp_dir, exist_ok=True)
         
-        # First, ensure both videos are properly encoded with the same parameters
+        # Prepare paths for temporary files
         temp_intro = os.path.join(temp_dir, "temp_intro.mp4")
         temp_main = os.path.join(temp_dir, "temp_main.mp4")
         
-        # Get the frame rate and resolution from the main video
+        # Get video information
         probe_cmd = ["ffprobe", "-v", "error", "-select_streams", "v:0",
                     "-show_entries", "stream=width,height,r_frame_rate", "-of", "json", main_path]
         probe_result = subprocess.run(probe_cmd, capture_output=True, text=True)
         video_info = json.loads(probe_result.stdout)
         width = video_info['streams'][0]['width']
         height = video_info['streams'][0]['height']
-        frame_rate = eval(video_info['streams'][0]['r_frame_rate'])
         
-        # Encode intro video to match main video parameters
-        subprocess.run([
+        # Process intro video
+        log("Processing intro video...", LogLevel.INFO)
+        intro_cmd = [
             "ffmpeg", "-i", intro_path,
             "-vf", f"scale={width}:{height}",
-            "-r", str(frame_rate),
-            "-c:v", "libx264", "-preset", "medium", "-crf", "23",
-            "-c:a", "aac", "-b:a", "128k",
+            "-c:v", "libx264",
+            "-preset", "medium",
+            "-crf", "23",
+            "-c:a", "aac",
+            "-b:a", "128k",
             "-y", temp_intro
-        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        ]
+        result = subprocess.run(intro_cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            log(f"Error processing intro: {result.stderr}", LogLevel.ERROR)
+            return False
+            
+        # Process main video
+        log("Processing main video...", LogLevel.INFO)
+        if not encode_video_with_fixed_fps(main_path, temp_main):
+            return False
+            
+        # Ensure both videos have audio
+        if not ensure_video_has_audio(temp_intro) or not ensure_video_has_audio(temp_main):
+            return False
+            
+        # Verify both videos are valid
+        for video in [temp_intro, temp_main]:
+            probe_cmd = ["ffprobe", "-v", "error", video]
+            if subprocess.run(probe_cmd, capture_output=True).returncode != 0:
+                log(f"Invalid video file: {video}", LogLevel.ERROR)
+                return False
         
-        # Encode main video (no slowdown)
-        subprocess.run([
-            "ffmpeg", "-i", main_path,
-            "-vf", f"scale={width}:{height}",
-            "-r", str(frame_rate),
-            "-c:v", "libx264", "-preset", "medium", "-crf", "23",
-            "-c:a", "aac", "-b:a", "128k",
-            "-vsync", "cfr",
-            "-y", temp_main
-        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        
-        # Create a file list for FFmpeg
+        # Create file list for concatenation
         list_file = os.path.join(temp_dir, "list.txt")
         with open(list_file, "w") as f:
             f.write(f"file '{os.path.abspath(temp_intro)}'\n")
             f.write(f"file '{os.path.abspath(temp_main)}'\n")
         
-        # Merge videos using the concat demuxer
-        subprocess.run([
+        # Merge videos with proper encoding
+        log("Merging videos...", LogLevel.INFO)
+        merge_cmd = [
             "ffmpeg",
             "-f", "concat",
             "-safe", "0",
             "-i", list_file,
-            "-c", "copy",
+            "-c:v", "libx264",
+            "-preset", "medium",
+            "-crf", "23",
+            "-c:a", "aac",
+            "-b:a", "128k",
             "-y", output_path
-        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        
-        # Cleanup temporary files
-        try:
-            for file in [temp_intro, temp_main, list_file]:
-                if os.path.exists(file):
-                    os.remove(file)
-                    hidden_file = os.path.join(os.path.dirname(file), f"._{os.path.basename(file)}")
-                    if os.path.exists(hidden_file):
-                        try:
-                            os.remove(hidden_file)
-                        except:
-                            pass
-            for file in os.listdir(temp_dir):
-                if file.startswith('._'):
-                    try:
-                        os.remove(os.path.join(temp_dir, file))
-                    except:
-                        pass
-            os.rmdir(temp_dir)
-        except Exception as e:
-            log(f"Warning during cleanup: {str(e)}", LogLevel.WARNING)
+        ]
+        result = subprocess.run(merge_cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            log(f"Error merging videos: {result.stderr}", LogLevel.ERROR)
+            return False
+            
+        # Verify final output
+        probe_cmd = ["ffprobe", "-v", "error", output_path]
+        if subprocess.run(probe_cmd, capture_output=True).returncode != 0:
+            log("Final output video is invalid", LogLevel.ERROR)
+            return False
+            
+        log("Video processing completed successfully", LogLevel.SUCCESS)
         return True
+        
     except Exception as e:
         log(f"Failed to merge videos: {str(e)}", LogLevel.ERROR)
+        return False
+    finally:
+        # Cleanup
         try:
             if os.path.exists(temp_dir):
-                for file in os.listdir(temp_dir):
-                    try:
-                        file_path = os.path.join(temp_dir, file)
-                        if os.path.isfile(file_path):
-                            os.remove(file_path)
-                        hidden_file = os.path.join(temp_dir, f"._{file}")
-                        if os.path.exists(hidden_file):
-                            os.remove(hidden_file)
-                    except:
-                        pass
-                os.rmdir(temp_dir)
-        except:
-            pass
-        return False
+                shutil.rmtree(temp_dir)
+        except Exception as e:
+            log(f"Warning during cleanup: {str(e)}", LogLevel.WARNING)
 
 def get_upcoming_bookings():
     now = datetime.datetime.now()
@@ -521,10 +577,15 @@ def main():
         local_logos = {}
         intro_local = None
     
-    # Set up video writer with explicit frame rate
+    # Initialize video writer with default FPS (will be updated after measurement)
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    fps = 45  # Fixed FPS for real-time 45fps recording
+    fps = 45  # Default FPS
     out, recording = None, False
+    
+    # Add frame counter for logging
+    frame_counter = 0
+    last_frame_log_time = time.time()
+    
     appointments = []
     active_appt_id = None
     last_check_time = 0
@@ -600,8 +661,15 @@ def main():
                             out.release()
                         out = cv2.VideoWriter(current_filename, fourcc, measured_fps, (frame.shape[1], frame.shape[0]))
                         fps_measured = True
-                if fps_measured and out:
+                elif out:
                     out.write(output_frame)
+                    frame_counter += 1
+                    # Log frame count every 1000 frames
+                    if frame_counter % 1000 == 0:
+                        elapsed = time.time() - last_frame_log_time
+                        actual_fps = 1000 / elapsed
+                        log(f"Writing frames: {frame_counter} (Actual FPS: {actual_fps:.2f})", LogLevel.INFO)
+                        last_frame_log_time = time.time()
             else:
                 fps_measure_start = None
                 frame_count = 0
