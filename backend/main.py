@@ -82,8 +82,10 @@ def overlay_logo(frame, logo_path, position):
         return frame
 
     h_frame, w_frame = frame.shape[:2]
-    scale_factor = min((w_frame * 0.15) / logo.shape[1], 1.0)
-    logo = cv2.resize(logo, (0, 0), fx=scale_factor, fy=scale_factor)
+    # Always use a fixed logo width (e.g., 180px or 15% of frame width, whichever is smaller)
+    fixed_logo_width = min(int(w_frame * 0.15), 180)
+    scale_factor = fixed_logo_width / logo.shape[1]
+    logo = cv2.resize(logo, (0, 0), fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_AREA)
 
     h_logo, w_logo = logo.shape[:2]
     x, y = {
@@ -93,14 +95,20 @@ def overlay_logo(frame, logo_path, position):
         "bottom-right": (w_frame - w_logo - 10, h_frame - h_logo - 10),
     }.get(position, (10, 10))
 
+    # Ensure the logo fits in the frame
+    if x < 0 or y < 0 or x + w_logo > w_frame or y + h_logo > h_frame:
+        return frame
+
+    overlay = frame.copy()
     if logo.shape[2] == 4:
         alpha = logo[:, :, 3] / 255.0
         for c in range(3):
-            frame[y:y+h_logo, x:x+w_logo, c] = (alpha * logo[:, :, c] +
-                                                (1 - alpha) * frame[y:y+h_logo, x:x+w_logo, c])
+            overlay[y:y+h_logo, x:x+w_logo, c] = (
+                alpha * logo[:, :, c] + (1 - alpha) * overlay[y:y+h_logo, x:x+w_logo, c]
+            )
     else:
-        frame[y:y+h_logo, x:x+w_logo] = logo
-    return frame
+        overlay[y:y+h_logo, x:x+w_logo] = logo
+    return overlay
 
 def format_video_filename(booking_date, booking_time, user_id):
     # Convert date and time to a more readable format
