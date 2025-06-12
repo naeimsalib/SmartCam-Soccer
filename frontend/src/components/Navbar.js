@@ -14,7 +14,7 @@ const Navbar = () => {
         { label: "Book Field", path: "/calendar" },
         { label: "Recordings", path: "/recordings" },
         { label: "Settings", path: "/settings" },
-        { label: "About", path: "/about" },
+        { label: "About", path: "/about-authenticated" },
     ];
     return (_jsx(AppBar, { position: "fixed", sx: { background: "#111" }, children: _jsxs(Toolbar, { sx: { justifyContent: "space-between" }, children: [_jsx(Box, { sx: { display: "flex", alignItems: "center" }, children: _jsxs(Typography, { variant: "h4", onClick: () => navigate("/dashboard"), sx: {
                             fontWeight: 900,

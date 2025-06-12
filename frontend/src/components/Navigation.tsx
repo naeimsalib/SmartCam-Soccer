@@ -108,7 +108,7 @@ const Navigation = () => {
         <Button
           variant="contained"
           component={Link}
-          to="/get-started"
+          to="/contact"
           sx={{
             background: "#F44336",
             color: "#fff",
