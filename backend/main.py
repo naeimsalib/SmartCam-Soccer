@@ -463,8 +463,8 @@ def main():
     upload_thread = threading.Thread(target=upload_worker, daemon=True)
     upload_thread.start()
     
-    # Start the main camera process directly at 50 FPS
-    video_cmd = "libcamera-vid -t 0 --width 1280 --height 720 --framerate 50 --codec yuv420 --inline --nopreview -o - | ffmpeg -f rawvideo -pix_fmt yuv420p -s 1280x720 -i - -f rawvideo -pix_fmt bgr24 -"
+    # Start the main camera process directly at 45 FPS
+    video_cmd = "libcamera-vid -t 0 --width 1280 --height 720 --framerate 45 --codec yuv420 --inline --nopreview -o - | ffmpeg -f rawvideo -pix_fmt yuv420p -s 1280x720 -i - -f rawvideo -pix_fmt bgr24 -"
     try:
         video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     except Exception as e:
@@ -515,7 +515,7 @@ def main():
     
     # Set up video writer with explicit frame rate
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    fps = 50  # Fixed FPS for real-time 50fps recording
+    fps = 45  # Fixed FPS for real-time 45fps recording
     out, recording = None, False
     appointments = []
     active_appt_id = None
@@ -557,7 +557,9 @@ def main():
             # --- Draw overlays (timer and logo) only once per frame ---
             output_frame = frame.copy()
             timer_text = now.strftime("%Y-%m-%d %H:%M:%S")
+            # Draw timer in fixed position and size
             cv2.putText(output_frame, timer_text, (15, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2, cv2.LINE_AA)
+            # Draw logo(s) without resizing the frame
             for pos, logo_file in local_logos.items():
                 output_frame = overlay_logo(output_frame, logo_file, pos)
 
