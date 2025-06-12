@@ -534,39 +534,39 @@ def main():
     last_frame_write_time = time.time()
     last_output_frame = None
 
+    # For FPS measurement
+    frame_count = 0
+    fps_measure_start = None
+    measured_fps = fps  # fallback to default if measurement fails
+    fps_measured = False
+
     while True:
         try:
-            # Read raw video data (non-blocking)
-            video_process.stdout.flush()
+            # Read raw video data
             raw_frame = video_process.stdout.read(1280 * 720 * 3)
-            if raw_frame:
-                # Convert raw data to numpy array
-                frame = np.frombuffer(raw_frame, dtype=np.uint8).reshape((720, 1280, 3)).copy()
-                last_output_frame = frame
-            # If no new frame, use the last frame for output
-            if last_output_frame is None:
-                continue  # Wait for the first frame
+            if not raw_frame:
+                log("Camera disconnected. Attempting to reconnect...", LogLevel.ERROR)
+                video_process.terminate()
+                if out:
+                    out.release()
+                cv2.destroyAllWindows()
+                time.sleep(5)
+                video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+                continue
+
+            # Convert raw data to numpy array
+            frame = np.frombuffer(raw_frame, dtype=np.uint8).reshape((720, 1280, 3)).copy()
 
             now = datetime.datetime.now()
-            
-            # --- STATUS AND TIMER OVERLAY ---
-            status_text = "READY"
-            status_color = (0, 255, 0)  # Green
-            if recording:
-                status_text = "RECORDING"
-                status_color = (0, 0, 255)  # Red
-            # Draw status box
-            cv2.rectangle(last_output_frame, (10, 10), (220, 60), (0, 0, 0), -1)  # Black background for text
-            cv2.putText(last_output_frame, status_text, (20, 45), cv2.FONT_HERSHEY_SIMPLEX, 1.2, status_color, 3, cv2.LINE_AA)
-            # Draw timer (current time)
-            timer_text = now.strftime("%Y-%m-%d %H:%M:%S")
-            cv2.putText(last_output_frame, timer_text, (240, 45), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
 
+            # --- CLEAN OVERLAY: Only small green timer and logo ---
+            timer_text = now.strftime("%Y-%m-%d %H:%M:%S")
+            cv2.putText(frame, timer_text, (15, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2, cv2.LINE_AA)
             for pos, logo_file in local_logos.items():
-                last_output_frame = overlay_logo(last_output_frame, logo_file, pos)
+                frame = overlay_logo(frame, logo_file, pos)
 
             # --- KEYBOARD HANDLING: Always check for 'q' to quit ---
-            cv2.imshow("SmartCam Soccer", last_output_frame)
+            cv2.imshow("SmartCam Soccer", frame)
             key = cv2.waitKey(1) & 0xFF
             if key == ord("q"):
                 if recording and out:
@@ -578,11 +578,28 @@ def main():
                 log("SmartCam shutdown complete", LogLevel.INFO)
                 return
 
-            # --- FIXED TIMER LOOP FOR REAL-TIME FPS ---
-            current_time = time.time()
-            if recording and out and (current_time - last_frame_write_time >= frame_interval):
-                out.write(last_output_frame)
-                last_frame_write_time += frame_interval
+            # --- FPS MEASUREMENT AND VIDEO WRITER RE-INIT ---
+            if recording:
+                if not fps_measured:
+                    if fps_measure_start is None:
+                        fps_measure_start = time.time()
+                        frame_count = 0
+                    frame_count += 1
+                    elapsed = time.time() - fps_measure_start
+                    if elapsed >= 2.0:
+                        measured_fps = frame_count / elapsed
+                        log(f"Measured FPS: {measured_fps:.2f}", LogLevel.INFO)
+                        # Re-init video writer with measured FPS
+                        if out:
+                            out.release()
+                        out = cv2.VideoWriter(current_filename, fourcc, measured_fps, (frame.shape[1], frame.shape[0]))
+                        fps_measured = True
+                if fps_measured and out:
+                    out.write(frame)
+            else:
+                fps_measure_start = None
+                frame_count = 0
+                fps_measured = False
 
             # Motion tracking logic (only active during recording)
             if recording:
@@ -736,10 +753,6 @@ def main():
 
             if shutting_down:
                 break
-            # Sleep to maintain real-time FPS
-            sleep_time = last_frame_write_time + frame_interval - time.time()
-            if sleep_time > 0:
-                time.sleep(sleep_time)
         except Exception as e:
             log(f"Error in main loop: {str(e)}", LogLevel.ERROR)
             time.sleep(1)  # Prevent tight loop on errors
