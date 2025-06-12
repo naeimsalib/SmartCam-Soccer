@@ -463,8 +463,8 @@ def main():
     upload_thread = threading.Thread(target=upload_worker, daemon=True)
     upload_thread.start()
     
-    # Start the main camera process directly
-    video_cmd = "libcamera-vid -t 0 --width 1280 --height 720 --framerate 30 --codec yuv420 --inline --nopreview -o - | ffmpeg -re -framerate 30 -f rawvideo -pix_fmt yuv420p -s 1280x720 -i - -f rawvideo -pix_fmt bgr24 -"
+    # Start the main camera process directly at 60 FPS
+    video_cmd = "libcamera-vid -t 0 --width 1280 --height 720 --framerate 60 --codec yuv420 --inline --nopreview -o - | ffmpeg -f rawvideo -pix_fmt yuv420p -s 1280x720 -i - -f rawvideo -pix_fmt bgr24 -"
     try:
         video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     except Exception as e:
@@ -515,7 +515,7 @@ def main():
     
     # Set up video writer with explicit frame rate
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    fps = 30  # Fixed FPS for real-time recording
+    fps = 60  # Fixed FPS for real-time 60fps recording
     out, recording = None, False
     appointments = []
     active_appt_id = None
