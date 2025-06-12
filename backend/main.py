@@ -529,6 +529,10 @@ def main():
     status_update_interval = 2  # seconds (was 5)
     last_ball_time = time.time()
 
+    # Real-time frame writing control
+    frame_interval = 1.0 / fps
+    last_frame_write_time = time.time()
+
     while True:
         try:
             # Read raw video data
@@ -548,6 +552,27 @@ def main():
 
             now = datetime.datetime.now()
             
+            # --- KEYBOARD HANDLING: Always check for 'q' to quit ---
+            cv2.imshow("SmartCam Soccer", frame)
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord("q"):
+                if recording and out:
+                    out.release()
+                video_process.terminate()
+                cv2.destroyAllWindows()
+                upload_queue.put((None, None, None))  # Signal upload worker to stop
+                upload_thread.join(timeout=5)  # Wait for upload worker to finish
+                log("SmartCam shutdown complete", LogLevel.INFO)
+                return
+
+            # --- REAL-TIME FRAME WRITING ---
+            # Only write a frame if enough time has passed for real-time FPS
+            if recording and out:
+                current_time = time.time()
+                if current_time - last_frame_write_time >= frame_interval:
+                    out.write(frame)
+                    last_frame_write_time = current_time
+
             # Motion tracking logic (only active during recording)
             if recording:
                 if not ball_tracking_active:
@@ -694,17 +719,6 @@ def main():
 
             if recording and out:
                 out.write(frame)
-
-            cv2.imshow("SmartCam Soccer", frame)
-            if cv2.waitKey(1) & 0xFF == ord("q"):
-                if recording and out:
-                    out.release()
-                video_process.terminate()
-                cv2.destroyAllWindows()
-                upload_queue.put((None, None, None))  # Signal upload worker to stop
-                upload_thread.join(timeout=5)  # Wait for upload worker to finish
-                log("SmartCam shutdown complete", LogLevel.INFO)
-                return
 
             # Update camera status every 2 seconds
             if time.time() - last_status_update > status_update_interval:
