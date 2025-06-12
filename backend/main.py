@@ -240,31 +240,6 @@ def get_upcoming_bookings():
         log(f"Error fetching bookings: {str(e)}", LogLevel.ERROR)
         return []  # Return empty list on error
 
-def wait_for_camera(camera_index=None, max_retries=5, retry_delay=5):
-    for attempt in range(max_retries):
-        try:
-            # Test if we can access the camera using libcamera-vid (for HQ Camera)
-            test_cmd = "libcamera-vid -t 1000 -o test.h264"
-            result = subprocess.run(test_cmd, shell=True, capture_output=True, text=True)
-            if result.returncode == 0:
-                log("Camera initialized successfully with libcamera-vid", LogLevel.SUCCESS)
-                # Clean up test file
-                if os.path.exists("test.h264"):
-                    os.remove("test.h264")
-                return True
-            else:
-                log(f"Camera test failed. Error: {result.stderr}", LogLevel.WARNING)
-                # Try to get camera status
-                try:
-                    camera_status = subprocess.run("libcamera-hello --list-cameras", shell=True, capture_output=True, text=True)
-                    log(f"Camera status: {camera_status.stdout}", LogLevel.INFO)
-                except Exception as e:
-                    log(f"Could not get camera status: {str(e)}", LogLevel.WARNING)
-        except Exception as e:
-            log(f"Camera not found. Retrying in {retry_delay} seconds... (Attempt {attempt + 1}/{max_retries}) - {e}", LogLevel.WARNING)
-            time.sleep(retry_delay)
-    return None
-
 def detect_moving_circle(frame, prev_frame):
     if prev_frame is None:
         return None, None
@@ -495,10 +470,12 @@ def main():
     upload_thread = threading.Thread(target=upload_worker, daemon=True)
     upload_thread.start()
     
-    # First, initialize the camera
-    camera_ready = wait_for_camera()
-    if not camera_ready:
-        log("Failed to connect to camera. Exiting...", LogLevel.ERROR)
+    # Try to start the main camera process directly
+    video_cmd = "libcamera-vid -t 0 --width 1280 --height 720 --framerate 30 --codec yuv420 --inline --nopreview -o - | ffmpeg -f rawvideo -pix_fmt yuv420p -s 1280x720 -i - -f rawvideo -pix_fmt bgr24 -"
+    try:
+        video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    except Exception as e:
+        log(f"Failed to start camera process: {e}", LogLevel.ERROR)
         return
     log("Camera connected successfully", LogLevel.SUCCESS)
     time.sleep(2)  # Give the camera time to stabilize
@@ -557,10 +534,6 @@ def main():
     booking_log_interval = 5  # seconds
     last_status_update = 0
     last_booking_id = None
-
-    # Start the video capture process for HQ Camera
-    video_cmd = "libcamera-vid -t 0 --width 1280 --height 720 --framerate 30 --codec yuv420 --inline --nopreview -o - | ffmpeg -f rawvideo -pix_fmt yuv420p -s 1280x720 -i - -f rawvideo -pix_fmt bgr24 -"
-    video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
     while True:
         try:
