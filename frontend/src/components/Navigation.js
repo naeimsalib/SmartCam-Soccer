@@ -55,7 +55,7 @@ const Navigation = () => {
                             borderColor: "#fff",
                             boxShadow: "none",
                         },
-                    }, children: "Login" }), _jsx(Button, { variant: "contained", component: Link, to: "/get-started", sx: {
+                    }, children: "Login" }), _jsx(Button, { variant: "contained", component: Link, to: "/contact", sx: {
                         background: "#F44336",
                         color: "#fff",
                         fontWeight: 700,

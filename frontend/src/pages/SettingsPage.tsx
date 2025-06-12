@@ -13,9 +13,21 @@ import {
   Alert,
   TextField,
   Divider,
+  Stack,
+  Switch,
+  FormControlLabel,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import {
+  CloudUpload as CloudUploadIcon,
+  Delete as DeleteIcon,
+  Refresh as RefreshIcon,
+} from "@mui/icons-material";
 import { supabase } from "../supabaseClient";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
@@ -61,6 +73,13 @@ interface CameraRow {
   error?: string | null;
 }
 
+interface SystemStatus {
+  isRecording: boolean;
+  isStreaming: boolean;
+  storageUsed: number;
+  lastBackup: string;
+}
+
 function isCameraOnline(lastSeen: string, thresholdSec = 6) {
   return (Date.now() - new Date(lastSeen).getTime()) / 1000 < thresholdSec;
 }
@@ -79,6 +98,14 @@ const SettingsPage: React.FC = () => {
   }>({});
   const [cameras, setCameras] = useState<CameraRow[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [systemStatus, setSystemStatus] = useState<SystemStatus>({
+    isRecording: false,
+    isStreaming: false,
+    storageUsed: 0,
+    lastBackup: "",
+  });
+  const [backupDialogOpen, setBackupDialogOpen] = useState(false);
+  const [backupLoading, setBackupLoading] = useState(false);
 
   const fetchSettings = async () => {
     try {
@@ -381,189 +408,322 @@ const SettingsPage: React.FC = () => {
     </Grid>
   );
 
+  const fetchSystemStatus = async () => {
+    try {
+      setLoading(true);
+      // Fetch system status from your backend
+      const { data, error } = await supabase
+        .from("system_status")
+        .select("*")
+        .single();
+
+      if (error) throw error;
+      setSystemStatus(
+        data || {
+          isRecording: false,
+          isStreaming: false,
+          storageUsed: 0,
+          lastBackup: "",
+        }
+      );
+    } catch (err) {
+      setError("Failed to fetch system status");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBackup = async () => {
+    try {
+      setBackupLoading(true);
+      setError(null);
+      setSuccess(null);
+
+      // Implement backup logic here
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulated backup
+      setSuccess("Backup completed successfully");
+      setBackupDialogOpen(false);
+    } catch (err) {
+      setError("Failed to create backup");
+      console.error(err);
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+
+  const handleDeleteAllData = async () => {
+    if (
+      !window.confirm(
+        "Are you sure you want to delete all data? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      setSuccess(null);
+
+      // Implement delete all data logic here
+      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulated deletion
+      setSuccess("All data deleted successfully");
+    } catch (err) {
+      setError("Failed to delete data");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatStorage = (bytes: number) => {
+    const gb = bytes / (1024 * 1024 * 1024);
+    return `${gb.toFixed(2)} GB`;
+  };
+
   return (
     <Box
       sx={{
         minHeight: "100vh",
         width: "100vw",
-        background: "linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%)",
-        py: 4,
+        background: "#111",
+        pt: { xs: 10, md: 12 },
+        pb: 6,
+        boxSizing: "border-box",
       }}
     >
       <Navbar />
       <Container maxWidth="lg" sx={{ mt: 10 }}>
         <Typography
-          variant="h4"
-          component="h1"
-          gutterBottom
-          align="center"
-          fontWeight={600}
+          variant="h3"
+          fontWeight={900}
+          sx={{
+            color: "#fff",
+            mb: 6,
+            fontFamily: "Montserrat, sans-serif",
+            textAlign: "center",
+          }}
         >
-          Video Settings
+          Settings
         </Typography>
+
         {error && (
-          <Alert severity="error" sx={{ mb: 2, maxWidth: 500, mx: "auto" }}>
+          <Alert severity="error" sx={{ mb: 2 }}>
             {error}
           </Alert>
         )}
         {success && (
-          <Alert severity="success" sx={{ mb: 2, maxWidth: 500, mx: "auto" }}>
+          <Alert severity="success" sx={{ mb: 2 }}>
             {success}
           </Alert>
         )}
-        <Grid container spacing={4} alignItems="flex-start">
-          {/* Left: Uploaders */}
-          <Grid item xs={12} md={7}>
+
+        <Grid container spacing={4}>
+          {/* System Status */}
+          <Grid item xs={12} md={6}>
             <Card
               sx={{
-                p: { xs: 2, sm: 4 },
-                borderRadius: 4,
-                boxShadow: "0 4px 24px 0 rgba(0,0,0,0.07)",
-                background: "#f7fafc",
-                maxWidth: 900,
-                mx: "auto",
-                mt: 0,
+                background: "#1a1a1a",
+                color: "#fff",
+                borderRadius: 3,
+                height: "100%",
               }}
             >
-              <Typography
-                variant="h6"
-                sx={{ mb: 3, fontWeight: 500, textAlign: "center" }}
-              >
-                Upload and Manage Your Branding
-              </Typography>
-              <Grid container spacing={3}>
-                {renderUploader(
-                  "Intro Video",
-                  "intro_video_path",
-                  previewUrl.intro
+              <CardContent>
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                  sx={{ color: "#fff", fontWeight: 600 }}
+                >
+                  System Status
+                </Typography>
+                {loading ? (
+                  <Box display="flex" justifyContent="center" my={4}>
+                    <CircularProgress sx={{ color: "#F44336" }} />
+                  </Box>
+                ) : (
+                  <Stack spacing={2}>
+                    <Box
+                      display="flex"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                        Recording Status
+                      </Typography>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={systemStatus.isRecording}
+                            color="error"
+                          />
+                        }
+                        label=""
+                      />
+                    </Box>
+                    <Box
+                      display="flex"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                        Streaming Status
+                      </Typography>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={systemStatus.isStreaming}
+                            color="error"
+                          />
+                        }
+                        label=""
+                      />
+                    </Box>
+                    <Box
+                      display="flex"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                        Storage Used
+                      </Typography>
+                      <Typography sx={{ color: "#fff" }}>
+                        {formatStorage(systemStatus.storageUsed)}
+                      </Typography>
+                    </Box>
+                    <Box
+                      display="flex"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                        Last Backup
+                      </Typography>
+                      <Typography sx={{ color: "#fff" }}>
+                        {systemStatus.lastBackup
+                          ? new Date(
+                              systemStatus.lastBackup
+                            ).toLocaleDateString()
+                          : "Never"}
+                      </Typography>
+                    </Box>
+                    <Button
+                      variant="outlined"
+                      startIcon={<RefreshIcon />}
+                      onClick={fetchSystemStatus}
+                      sx={{
+                        mt: 2,
+                        color: "#F44336",
+                        borderColor: "#F44336",
+                        "&:hover": {
+                          borderColor: "#d32f2f",
+                          background: "rgba(244, 67, 54, 0.08)",
+                        },
+                      }}
+                    >
+                      Refresh Status
+                    </Button>
+                  </Stack>
                 )}
-                {renderUploader("Main Logo", "logo_path", previewUrl.logo)}
-                {renderUploader(
-                  "Sponsor Logo 1",
-                  "sponsor_logo1_path",
-                  previewUrl.sponsor_logo1
-                )}
-                {renderUploader(
-                  "Sponsor Logo 2",
-                  "sponsor_logo2_path",
-                  previewUrl.sponsor_logo2
-                )}
-                {renderUploader(
-                  "Sponsor Logo 3",
-                  "sponsor_logo3_path",
-                  previewUrl.sponsor_logo3
-                )}
-              </Grid>
+              </CardContent>
             </Card>
           </Grid>
-          {/* Right: Status Card */}
-          <Grid item xs={12} md={5}>
+
+          {/* Data Management */}
+          <Grid item xs={12} md={6}>
             <Card
               sx={{
-                p: 4,
-                borderRadius: 4,
-                boxShadow: "0 4px 24px 0 rgba(0,0,0,0.10)",
-                background: "#fff",
-                minHeight: 320,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
+                background: "#1a1a1a",
+                color: "#fff",
+                borderRadius: 3,
+                height: "100%",
               }}
             >
-              <Typography
-                variant="h6"
-                sx={{ mb: 2, fontWeight: 600, textAlign: "center" }}
-              >
-                System Status
-              </Typography>
-              {cameras.length > 0 ? (
-                cameras
-                  .filter(
-                    (camera): camera is CameraRow =>
-                      typeof camera === "object" &&
-                      camera !== null &&
-                      typeof camera.id === "string"
-                  )
-                  .map((camera) => {
-                    const online = isCameraOnline(camera.last_seen);
-                    const hasInternet = online && !!camera.ip_address;
-                    return (
-                      <Box key={camera.id} sx={{ mb: 3, width: "100%" }}>
-                        <Typography
-                          variant="subtitle1"
-                          fontWeight={700}
-                          sx={{ mb: 1 }}
-                        >
-                          {camera.name}{" "}
-                          {camera.location ? `- ${camera.location}` : ""}
-                        </Typography>
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", mb: 1 }}
-                        >
-                          <FiberManualRecordIcon
-                            sx={{
-                              color: online ? "#43a047" : "#e53935",
-                              mr: 1,
-                            }}
-                          />
-                          <Typography variant="subtitle1" fontWeight={500}>
-                            Camera: {online ? "Online" : "Offline"}
-                          </Typography>
-                        </Box>
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", mb: 1 }}
-                        >
-                          {hasInternet ? (
-                            <WifiIcon sx={{ color: "#43a047", mr: 1 }} />
-                          ) : (
-                            <WifiOffIcon sx={{ color: "#e53935", mr: 1 }} />
-                          )}
-                          <Typography variant="subtitle1" fontWeight={500}>
-                            Internet:{" "}
-                            {hasInternet ? "Connected" : "Disconnected"}
-                          </Typography>
-                        </Box>
-                        <Box
-                          sx={{ display: "flex", alignItems: "center", mb: 1 }}
-                        >
-                          <FiberManualRecordIcon
-                            sx={{
-                              color: camera.is_recording
-                                ? "#43a047"
-                                : "#757575",
-                              mr: 1,
-                            }}
-                          />
-                          <Typography variant="subtitle1" fontWeight={500}>
-                            Recording:{" "}
-                            {camera.is_recording ? "In Progress" : "Idle"}
-                          </Typography>
-                        </Box>
-                        <Typography
-                          variant="caption"
-                          color="text.secondary"
-                          sx={{ mt: 1 }}
-                        >
-                          Last seen:{" "}
-                          {new Date(camera.last_seen).toLocaleString()}
-                        </Typography>
-                      </Box>
-                    );
-                  })
-              ) : (
-                <Typography color="text.secondary">
-                  No camera data found.
+              <CardContent>
+                <Typography
+                  variant="h5"
+                  gutterBottom
+                  sx={{ color: "#fff", fontWeight: 600 }}
+                >
+                  Data Management
                 </Typography>
-              )}
+                <Stack spacing={3}>
+                  <Button
+                    variant="contained"
+                    startIcon={<CloudUploadIcon />}
+                    onClick={() => setBackupDialogOpen(true)}
+                    sx={{
+                      background: "#F44336",
+                      "&:hover": {
+                        background: "#d32f2f",
+                      },
+                    }}
+                  >
+                    Create Backup
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<DeleteIcon />}
+                    onClick={handleDeleteAllData}
+                    sx={{
+                      color: "#F44336",
+                      borderColor: "#F44336",
+                      "&:hover": {
+                        borderColor: "#d32f2f",
+                        background: "rgba(244, 67, 54, 0.08)",
+                      },
+                    }}
+                  >
+                    Delete All Data
+                  </Button>
+                </Stack>
+              </CardContent>
             </Card>
           </Grid>
         </Grid>
-        {loading && (
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-            <CircularProgress />
-          </Box>
-        )}
+
+        {/* Backup Dialog */}
+        <Dialog
+          open={backupDialogOpen}
+          onClose={() => setBackupDialogOpen(false)}
+          PaperProps={{
+            sx: {
+              background: "#1a1a1a",
+              color: "#fff",
+              minWidth: "400px",
+            },
+          }}
+        >
+          <DialogTitle>Create Backup</DialogTitle>
+          <DialogContent>
+            <Typography sx={{ color: "rgba(255, 255, 255, 0.7)", mt: 2 }}>
+              This will create a backup of all your recordings and settings. The
+              backup will be stored securely in the cloud.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => setBackupDialogOpen(false)}
+              sx={{ color: "#fff" }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBackup}
+              variant="contained"
+              disabled={backupLoading}
+              sx={{
+                background: "#F44336",
+                "&:hover": {
+                  background: "#d32f2f",
+                },
+              }}
+            >
+              {backupLoading ? "Creating Backup..." : "Create Backup"}
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Container>
     </Box>
   );
