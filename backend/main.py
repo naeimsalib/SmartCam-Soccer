@@ -130,7 +130,7 @@ def prepend_intro(intro_path, main_path, output_path):
         video_info = json.loads(probe_result.stdout)
         width = video_info['streams'][0]['width']
         height = video_info['streams'][0]['height']
-        frame_rate = eval(video_info['streams'][0]['r_frame_rate'])  # e.g., "30000/1001" -> 29.97
+        frame_rate = eval(video_info['streams'][0]['r_frame_rate'])
         
         # Encode intro video to match main video parameters
         subprocess.run([
@@ -142,14 +142,14 @@ def prepend_intro(intro_path, main_path, output_path):
             "-y", temp_intro
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
-        # Encode main video with slowdown
+        # Encode main video (no slowdown)
         subprocess.run([
             "ffmpeg", "-i", main_path,
-            "-vf", "setpts=1.96*PTS",  # Slow down video
-            "-af", "atempo=0.51",  # Slow down audio to match
+            "-vf", f"scale={width}:{height}",
+            "-r", str(frame_rate),
             "-c:v", "libx264", "-preset", "medium", "-crf", "23",
             "-c:a", "aac", "-b:a", "128k",
-            "-vsync", "cfr",  # Constant frame rate
+            "-vsync", "cfr",
             "-y", temp_main
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
@@ -165,57 +165,45 @@ def prepend_intro(intro_path, main_path, output_path):
             "-f", "concat",
             "-safe", "0",
             "-i", list_file,
-            "-c", "copy",  # Copy streams without re-encoding
+            "-c", "copy",
             "-y", output_path
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         
         # Cleanup temporary files
         try:
-            # Remove individual files first
             for file in [temp_intro, temp_main, list_file]:
                 if os.path.exists(file):
                     os.remove(file)
-                    # Also try to remove any associated macOS hidden files
                     hidden_file = os.path.join(os.path.dirname(file), f"._{os.path.basename(file)}")
                     if os.path.exists(hidden_file):
                         try:
                             os.remove(hidden_file)
                         except:
                             pass
-            
-            # Remove any remaining macOS hidden files in the directory
             for file in os.listdir(temp_dir):
                 if file.startswith('._'):
                     try:
                         os.remove(os.path.join(temp_dir, file))
                     except:
                         pass
-            
-            # Finally remove the directory
             os.rmdir(temp_dir)
         except Exception as e:
             log(f"Warning during cleanup: {str(e)}", LogLevel.WARNING)
-            # Continue even if cleanup fails
-            
         return True
     except Exception as e:
         log(f"Failed to merge videos: {str(e)}", LogLevel.ERROR)
-        # Attempt cleanup even if there was an error
         try:
             if os.path.exists(temp_dir):
-                # Remove individual files first
                 for file in os.listdir(temp_dir):
                     try:
                         file_path = os.path.join(temp_dir, file)
                         if os.path.isfile(file_path):
                             os.remove(file_path)
-                        # Also try to remove any associated macOS hidden files
                         hidden_file = os.path.join(temp_dir, f"._{file}")
                         if os.path.exists(hidden_file):
                             os.remove(hidden_file)
                     except:
                         pass
-                # Remove the directory
                 os.rmdir(temp_dir)
         except:
             pass
@@ -341,7 +329,6 @@ class BallTracker:
                                                [0, 1, 0, 1],
                                                [0, 0, 1, 0],
                                                [0, 0, 0, 1]], np.float32)
-        # Reduce process noise for more stable tracking
         self.kalman.processNoiseCov = np.array([[1, 0, 0, 0],
                                               [0, 1, 0, 0],
                                               [0, 0, 1, 0],
@@ -349,11 +336,15 @@ class BallTracker:
         self.last_measurement = None
         self.last_prediction = None
         self.tracking_lost_count = 0
-        self.max_tracking_lost = 20  # Increased persistence
-        self.last_radius = 30  # Increased default radius
+        self.max_tracking_lost = 20
+        self.last_radius = 30
         self.min_detection_confidence = 0.3
-        self.last_positions = []  # Store last few positions for smoothing
-        self.max_positions = 10   # Increased number of positions to average
+        self.last_positions = []
+        self.max_positions = 10
+
+    def update(self, center, radius):
+        # Simple passthrough for now; you can add Kalman logic if needed
+        return center, radius
 
 def upload_video_to_supabase(local_path, user_id, filename):
     storage_path = f"{user_id}/{filename}"
@@ -471,7 +462,7 @@ def main():
     upload_thread.start()
     
     # Try to start the main camera process directly
-    video_cmd = "libcamera-vid -t 0 --width 1280 --height 720 --framerate 30 --codec yuv420 --inline --nopreview -o - | ffmpeg -f rawvideo -pix_fmt yuv420p -s 1280x720 -i - -f rawvideo -pix_fmt bgr24 -"
+    video_cmd = "libcamera-vid -t 0 --width 1280 --height 720 --framerate 30 --codec yuv420 --inline --nopreview -o - | ffmpeg -framerate 30 -f rawvideo -pix_fmt yuv420p -s 1280x720 -i - -f rawvideo -pix_fmt bgr24 -"
     try:
         video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
     except Exception as e:
