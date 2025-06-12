@@ -541,7 +541,6 @@ def main():
     fps_measured = False
 
     frame_queue = pyqueue.Queue(maxsize=2)
-    frame_interval = 1.0 / fps
     last_output_frame = None
 
     def frame_reader():
@@ -563,7 +562,6 @@ def main():
 
     while True:
         try:
-            start_time = time.time()
             # Get the latest frame, or repeat the last one
             try:
                 frame = frame_queue.get_nowait()
@@ -595,7 +593,7 @@ def main():
                 log("SmartCam shutdown complete", LogLevel.INFO)
                 return
 
-            # Write frame to video at fixed FPS
+            # Write every frame to video as soon as it is received
             if recording and out:
                 out.write(output_frame)
 
@@ -751,11 +749,6 @@ def main():
 
             if shutting_down:
                 break
-            # Sleep to maintain real-time FPS
-            elapsed = time.time() - start_time
-            sleep_time = frame_interval - elapsed
-            if sleep_time > 0:
-                time.sleep(sleep_time)
         except Exception as e:
             log(f"Error in main loop: {str(e)}", LogLevel.ERROR)
             time.sleep(1)  # Prevent tight loop on errors
