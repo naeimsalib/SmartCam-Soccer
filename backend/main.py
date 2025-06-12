@@ -623,16 +623,21 @@ def main():
             frame = np.frombuffer(raw_frame, dtype=np.uint8).reshape((720, 1280, 3)).copy()
             now = datetime.datetime.now()
 
-            # --- Draw overlays (timer and logo) only once per frame ---
+            # --- Ball tracking and zoom (if recording) ---
+            if recording:
+                center, radius = detect_moving_circle(frame, prev_frame)
+                tracked_position, tracked_radius = ball_tracker.update(center, radius)
+                if tracked_position:
+                    frame = create_focused_frame(frame, tracked_position, tracked_radius)
+
+            # --- Overlays: timer and logo (apply only once, after all processing) ---
             output_frame = frame.copy()
             timer_text = now.strftime("%Y-%m-%d %H:%M:%S")
-            # Draw timer in fixed position and size
             cv2.putText(output_frame, timer_text, (15, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2, cv2.LINE_AA)
-            # Draw logo(s) without resizing the frame
             for pos, logo_file in local_logos.items():
                 output_frame = overlay_logo(output_frame, logo_file, pos)
 
-            # Show preview
+            # --- Show and write only output_frame ---
             cv2.imshow("SmartCam Soccer", output_frame)
             key = cv2.waitKey(1) & 0xFF
             if key == ord("q"):
@@ -645,7 +650,7 @@ def main():
                 log("SmartCam shutdown complete", LogLevel.INFO)
                 return
 
-            # --- FPS MEASUREMENT AND VIDEO WRITER RE-INIT ---
+            # Write frame to video only after FPS is measured
             if recording:
                 if not fps_measured:
                     if fps_measure_start is None:
@@ -675,47 +680,6 @@ def main():
                 frame_count = 0
                 fps_measured = False
 
-            # Motion tracking logic (only active during recording)
-            if recording:
-                if not ball_tracking_active:
-                    log("Motion tracking activated", LogLevel.INFO)
-                    ball_tracking_active = True
-                try:
-                    # Detect moving circular objects
-                    center, radius = detect_moving_circle(frame, prev_frame)
-                    # Update tracker with new measurement
-                    tracked_position, tracked_radius = ball_tracker.update(center, radius)
-                    if tracked_position is not None:
-                        # Apply gentle zoom to follow the object
-                        frame = create_focused_frame(frame, tracked_position, tracked_radius)
-                        # Draw tracking circle with thickness
-                        cv2.circle(frame, tracked_position, tracked_radius, (0, 255, 0), 3)
-                        # Draw a crosshair at the center
-                        crosshair_size = 10
-                        cv2.line(frame, 
-                                (tracked_position[0] - crosshair_size, tracked_position[1]),
-                                (tracked_position[0] + crosshair_size, tracked_position[1]),
-                                (0, 255, 0), 2)
-                        cv2.line(frame, 
-                                (tracked_position[0], tracked_position[1] - crosshair_size),
-                                (tracked_position[0], tracked_position[1] + crosshair_size),
-                                (0, 255, 0), 2)
-                        last_ball_time = time.time()
-                    else:
-                        # If no movement detected for too long, reset tracking
-                        if time.time() - last_ball_time > ball_tracking_timeout:
-                            ball_tracker = BallTracker()  # Reset tracker
-                            last_ball_detection = None
-                except Exception as e:
-                    # Only log the first error to avoid spam
-                    if not hasattr(main, '_motion_error_logged'):
-                        log(f"Error in motion tracking: {str(e)}", LogLevel.ERROR)
-                        main._motion_error_logged = True
-            else:
-                ball_tracking_active = False
-                last_ball_detection = None
-                main._motion_error_logged = False
-            
             # Store current frame for next iteration
             prev_frame = frame.copy()
             
