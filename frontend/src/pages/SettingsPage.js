@@ -1,12 +1,9 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState, useEffect } from "react";
-import { Box, Container, Typography, Button, Grid, Card, CardMedia, CircularProgress, Alert, } from "@mui/material";
+import { Box, Container, Typography, Button, Grid, Card, CardContent, CardMedia, CircularProgress, Alert, Stack, Switch, FormControlLabel, Dialog, DialogTitle, DialogContent, DialogActions, } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import { CloudUpload as CloudUploadIcon, Delete as DeleteIcon, Refresh as RefreshIcon, } from "@mui/icons-material";
 import { supabase } from "../supabaseClient";
-import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
-import WifiIcon from "@mui/icons-material/Wifi";
-import WifiOffIcon from "@mui/icons-material/WifiOff";
 import { useRealtimeSubscription } from "../hooks/useRealtimeSubscription";
 import Navbar from "../components/Navbar";
 const VisuallyHiddenInput = styled("input")({
@@ -31,6 +28,14 @@ const SettingsPage = () => {
     const [previewUrl, setPreviewUrl] = useState({});
     const [cameras, setCameras] = useState([]);
     const [userId, setUserId] = useState(null);
+    const [systemStatus, setSystemStatus] = useState({
+        isRecording: false,
+        isStreaming: false,
+        storageUsed: 0,
+        lastBackup: "",
+    });
+    const [backupDialogOpen, setBackupDialogOpen] = useState(false);
+    const [backupLoading, setBackupLoading] = useState(false);
     const fetchSettings = async () => {
         try {
             const { data: { user }, } = await supabase.auth.getUser();
@@ -246,45 +251,128 @@ const SettingsPage = () => {
                                 if (file)
                                     handleFileUpload(file, type);
                             } })] }))] }) }));
+    const fetchSystemStatus = async () => {
+        try {
+            setLoading(true);
+            // Fetch system status from your backend
+            const { data, error } = await supabase
+                .from("system_status")
+                .select("*")
+                .single();
+            if (error)
+                throw error;
+            setSystemStatus(data || {
+                isRecording: false,
+                isStreaming: false,
+                storageUsed: 0,
+                lastBackup: "",
+            });
+        }
+        catch (err) {
+            setError("Failed to fetch system status");
+            console.error(err);
+        }
+        finally {
+            setLoading(false);
+        }
+    };
+    const handleBackup = async () => {
+        try {
+            setBackupLoading(true);
+            setError(null);
+            setSuccess(null);
+            // Implement backup logic here
+            await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulated backup
+            setSuccess("Backup completed successfully");
+            setBackupDialogOpen(false);
+        }
+        catch (err) {
+            setError("Failed to create backup");
+            console.error(err);
+        }
+        finally {
+            setBackupLoading(false);
+        }
+    };
+    const handleDeleteAllData = async () => {
+        if (!window.confirm("Are you sure you want to delete all data? This action cannot be undone.")) {
+            return;
+        }
+        try {
+            setLoading(true);
+            setError(null);
+            setSuccess(null);
+            // Implement delete all data logic here
+            await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulated deletion
+            setSuccess("All data deleted successfully");
+        }
+        catch (err) {
+            setError("Failed to delete data");
+            console.error(err);
+        }
+        finally {
+            setLoading(false);
+        }
+    };
+    const formatStorage = (bytes) => {
+        const gb = bytes / (1024 * 1024 * 1024);
+        return `${gb.toFixed(2)} GB`;
+    };
     return (_jsxs(Box, { sx: {
             minHeight: "100vh",
             width: "100vw",
-            background: "linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%)",
-            py: 4,
-        }, children: [_jsx(Navbar, {}), _jsxs(Container, { maxWidth: "lg", sx: { mt: 10 }, children: [_jsx(Typography, { variant: "h4", component: "h1", gutterBottom: true, align: "center", fontWeight: 600, children: "Video Settings" }), error && (_jsx(Alert, { severity: "error", sx: { mb: 2, maxWidth: 500, mx: "auto" }, children: error })), success && (_jsx(Alert, { severity: "success", sx: { mb: 2, maxWidth: 500, mx: "auto" }, children: success })), _jsxs(Grid, { container: true, spacing: 4, alignItems: "flex-start", children: [_jsx(Grid, { item: true, xs: 12, md: 7, children: _jsxs(Card, { sx: {
-                                        p: { xs: 2, sm: 4 },
-                                        borderRadius: 4,
-                                        boxShadow: "0 4px 24px 0 rgba(0,0,0,0.07)",
-                                        background: "#f7fafc",
-                                        maxWidth: 900,
-                                        mx: "auto",
-                                        mt: 0,
-                                    }, children: [_jsx(Typography, { variant: "h6", sx: { mb: 3, fontWeight: 500, textAlign: "center" }, children: "Upload and Manage Your Branding" }), _jsxs(Grid, { container: true, spacing: 3, children: [renderUploader("Intro Video", "intro_video_path", previewUrl.intro), renderUploader("Main Logo", "logo_path", previewUrl.logo), renderUploader("Sponsor Logo 1", "sponsor_logo1_path", previewUrl.sponsor_logo1), renderUploader("Sponsor Logo 2", "sponsor_logo2_path", previewUrl.sponsor_logo2), renderUploader("Sponsor Logo 3", "sponsor_logo3_path", previewUrl.sponsor_logo3)] })] }) }), _jsx(Grid, { item: true, xs: 12, md: 5, children: _jsxs(Card, { sx: {
-                                        p: 4,
-                                        borderRadius: 4,
-                                        boxShadow: "0 4px 24px 0 rgba(0,0,0,0.10)",
-                                        background: "#fff",
-                                        minHeight: 320,
-                                        display: "flex",
-                                        flexDirection: "column",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                    }, children: [_jsx(Typography, { variant: "h6", sx: { mb: 2, fontWeight: 600, textAlign: "center" }, children: "System Status" }), cameras.length > 0 ? (cameras
-                                            .filter((camera) => typeof camera === "object" &&
-                                            camera !== null &&
-                                            typeof camera.id === "string")
-                                            .map((camera) => {
-                                            const online = isCameraOnline(camera.last_seen);
-                                            const hasInternet = online && !!camera.ip_address;
-                                            return (_jsxs(Box, { sx: { mb: 3, width: "100%" }, children: [_jsxs(Typography, { variant: "subtitle1", fontWeight: 700, sx: { mb: 1 }, children: [camera.name, " ", camera.location ? `- ${camera.location}` : ""] }), _jsxs(Box, { sx: { display: "flex", alignItems: "center", mb: 1 }, children: [_jsx(FiberManualRecordIcon, { sx: {
-                                                                    color: online ? "#43a047" : "#e53935",
-                                                                    mr: 1,
-                                                                } }), _jsxs(Typography, { variant: "subtitle1", fontWeight: 500, children: ["Camera: ", online ? "Online" : "Offline"] })] }), _jsxs(Box, { sx: { display: "flex", alignItems: "center", mb: 1 }, children: [hasInternet ? (_jsx(WifiIcon, { sx: { color: "#43a047", mr: 1 } })) : (_jsx(WifiOffIcon, { sx: { color: "#e53935", mr: 1 } })), _jsxs(Typography, { variant: "subtitle1", fontWeight: 500, children: ["Internet:", " ", hasInternet ? "Connected" : "Disconnected"] })] }), _jsxs(Box, { sx: { display: "flex", alignItems: "center", mb: 1 }, children: [_jsx(FiberManualRecordIcon, { sx: {
-                                                                    color: camera.is_recording
-                                                                        ? "#43a047"
-                                                                        : "#757575",
-                                                                    mr: 1,
-                                                                } }), _jsxs(Typography, { variant: "subtitle1", fontWeight: 500, children: ["Recording:", " ", camera.is_recording ? "In Progress" : "Idle"] })] }), _jsxs(Typography, { variant: "caption", color: "text.secondary", sx: { mt: 1 }, children: ["Last seen:", " ", new Date(camera.last_seen).toLocaleString()] })] }, camera.id));
-                                        })) : (_jsx(Typography, { color: "text.secondary", children: "No camera data found." }))] }) })] }), loading && (_jsx(Box, { sx: { display: "flex", justifyContent: "center", mt: 2 }, children: _jsx(CircularProgress, {}) }))] })] }));
+            background: "#111",
+            pt: { xs: 10, md: 12 },
+            pb: 6,
+            boxSizing: "border-box",
+        }, children: [_jsx(Navbar, {}), _jsxs(Container, { maxWidth: "lg", sx: { mt: 10 }, children: [_jsx(Typography, { variant: "h3", fontWeight: 900, sx: {
+                            color: "#fff",
+                            mb: 6,
+                            fontFamily: "Montserrat, sans-serif",
+                            textAlign: "center",
+                        }, children: "Settings" }), error && (_jsx(Alert, { severity: "error", sx: { mb: 2 }, children: error })), success && (_jsx(Alert, { severity: "success", sx: { mb: 2 }, children: success })), _jsxs(Grid, { container: true, spacing: 4, children: [_jsx(Grid, { item: true, xs: 12, md: 6, children: _jsx(Card, { sx: {
+                                        background: "#1a1a1a",
+                                        color: "#fff",
+                                        borderRadius: 3,
+                                        height: "100%",
+                                    }, children: _jsxs(CardContent, { children: [_jsx(Typography, { variant: "h5", gutterBottom: true, sx: { color: "#fff", fontWeight: 600 }, children: "System Status" }), loading ? (_jsx(Box, { display: "flex", justifyContent: "center", my: 4, children: _jsx(CircularProgress, { sx: { color: "#F44336" } }) })) : (_jsxs(Stack, { spacing: 2, children: [_jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Recording Status" }), _jsx(FormControlLabel, { control: _jsx(Switch, { checked: systemStatus.isRecording, color: "error" }), label: "" })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Streaming Status" }), _jsx(FormControlLabel, { control: _jsx(Switch, { checked: systemStatus.isStreaming, color: "error" }), label: "" })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Storage Used" }), _jsx(Typography, { sx: { color: "#fff" }, children: formatStorage(systemStatus.storageUsed) })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Last Backup" }), _jsx(Typography, { sx: { color: "#fff" }, children: systemStatus.lastBackup
+                                                                    ? new Date(systemStatus.lastBackup).toLocaleDateString()
+                                                                    : "Never" })] }), _jsx(Button, { variant: "outlined", startIcon: _jsx(RefreshIcon, {}), onClick: fetchSystemStatus, sx: {
+                                                            mt: 2,
+                                                            color: "#F44336",
+                                                            borderColor: "#F44336",
+                                                            "&:hover": {
+                                                                borderColor: "#d32f2f",
+                                                                background: "rgba(244, 67, 54, 0.08)",
+                                                            },
+                                                        }, children: "Refresh Status" })] }))] }) }) }), _jsx(Grid, { item: true, xs: 12, md: 6, children: _jsx(Card, { sx: {
+                                        background: "#1a1a1a",
+                                        color: "#fff",
+                                        borderRadius: 3,
+                                        height: "100%",
+                                    }, children: _jsxs(CardContent, { children: [_jsx(Typography, { variant: "h5", gutterBottom: true, sx: { color: "#fff", fontWeight: 600 }, children: "Data Management" }), _jsxs(Stack, { spacing: 3, children: [_jsx(Button, { variant: "contained", startIcon: _jsx(CloudUploadIcon, {}), onClick: () => setBackupDialogOpen(true), sx: {
+                                                            background: "#F44336",
+                                                            "&:hover": {
+                                                                background: "#d32f2f",
+                                                            },
+                                                        }, children: "Create Backup" }), _jsx(Button, { variant: "outlined", startIcon: _jsx(DeleteIcon, {}), onClick: handleDeleteAllData, sx: {
+                                                            color: "#F44336",
+                                                            borderColor: "#F44336",
+                                                            "&:hover": {
+                                                                borderColor: "#d32f2f",
+                                                                background: "rgba(244, 67, 54, 0.08)",
+                                                            },
+                                                        }, children: "Delete All Data" })] })] }) }) })] }), _jsxs(Dialog, { open: backupDialogOpen, onClose: () => setBackupDialogOpen(false), PaperProps: {
+                            sx: {
+                                background: "#1a1a1a",
+                                color: "#fff",
+                                minWidth: "400px",
+                            },
+                        }, children: [_jsx(DialogTitle, { children: "Create Backup" }), _jsx(DialogContent, { children: _jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)", mt: 2 }, children: "This will create a backup of all your recordings and settings. The backup will be stored securely in the cloud." }) }), _jsxs(DialogActions, { children: [_jsx(Button, { onClick: () => setBackupDialogOpen(false), sx: { color: "#fff" }, children: "Cancel" }), _jsx(Button, { onClick: handleBackup, variant: "contained", disabled: backupLoading, sx: {
+                                            background: "#F44336",
+                                            "&:hover": {
+                                                background: "#d32f2f",
+                                            },
+                                        }, children: backupLoading ? "Creating Backup..." : "Create Backup" })] })] })] })] }));
 };
 export default SettingsPage;

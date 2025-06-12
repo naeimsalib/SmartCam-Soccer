@@ -22,7 +22,6 @@ import {
   DialogContent,
   DialogActions,
 } from "@mui/material";
-import { styled } from "@mui/material/styles";
 import {
   CloudUpload as CloudUploadIcon,
   Delete as DeleteIcon,
@@ -36,18 +35,6 @@ import WifiIcon from "@mui/icons-material/Wifi";
 import WifiOffIcon from "@mui/icons-material/WifiOff";
 import { useRealtimeSubscription } from "../hooks/useRealtimeSubscription";
 import Navbar from "../components/Navbar";
-
-const VisuallyHiddenInput = styled("input")({
-  clip: "rect(0 0 0 0)",
-  clipPath: "inset(50%)",
-  height: 1,
-  overflow: "hidden",
-  position: "absolute",
-  bottom: 0,
-  left: 0,
-  whiteSpace: "nowrap",
-  width: 1,
-});
 
 interface UserSettings {
   intro_video_path: string | null;
@@ -333,7 +320,8 @@ const SettingsPage: React.FC = () => {
           p: 2,
           borderRadius: 3,
           boxShadow: "0 2px 8px 0 rgba(0,0,0,0.06)",
-          background: "#fff",
+          background: "#1a1a1a",
+          color: "#fff",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
@@ -342,7 +330,7 @@ const SettingsPage: React.FC = () => {
         <Typography
           variant="subtitle1"
           fontWeight={600}
-          sx={{ mb: 2, textAlign: "center" }}
+          sx={{ mb: 2, textAlign: "center", color: "#fff" }}
         >
           {label}
         </Typography>
@@ -367,7 +355,7 @@ const SettingsPage: React.FC = () => {
                 objectFit: "contain",
                 borderRadius: 2,
                 mb: 2,
-                background: "#f0f0f0",
+                background: "#2a2a2a",
               }}
               onError={() =>
                 console.error(`❌ Failed to load preview for: ${type}`, preview)
@@ -391,16 +379,23 @@ const SettingsPage: React.FC = () => {
             variant="contained"
             startIcon={<CloudUploadIcon />}
             disabled={loading}
-            sx={{ width: "100%" }}
+            sx={{
+              width: "100%",
+              background: "#F44336",
+              "&:hover": {
+                background: "#d32f2f",
+              },
+            }}
           >
             Upload {label}
-            <VisuallyHiddenInput
+            <input
               type="file"
               accept={type === "intro_video_path" ? "video/*" : "image/*"}
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) handleFileUpload(file, type);
               }}
+              style={{ display: "none" }}
             />
           </Button>
         )}
