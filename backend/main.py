@@ -532,28 +532,41 @@ def main():
     # Real-time frame writing control
     frame_interval = 1.0 / fps
     last_frame_write_time = time.time()
+    last_output_frame = None
 
     while True:
         try:
-            # Read raw video data
+            # Read raw video data (non-blocking)
+            video_process.stdout.flush()
             raw_frame = video_process.stdout.read(1280 * 720 * 3)
-            if not raw_frame:
-                log("Camera disconnected. Attempting to reconnect...", LogLevel.ERROR)
-                video_process.terminate()
-                if out:
-                    out.release()
-                cv2.destroyAllWindows()
-                time.sleep(5)
-                video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-                continue
-
-            # Convert raw data to numpy array
-            frame = np.frombuffer(raw_frame, dtype=np.uint8).reshape((720, 1280, 3)).copy()
+            if raw_frame:
+                # Convert raw data to numpy array
+                frame = np.frombuffer(raw_frame, dtype=np.uint8).reshape((720, 1280, 3)).copy()
+                last_output_frame = frame
+            # If no new frame, use the last frame for output
+            if last_output_frame is None:
+                continue  # Wait for the first frame
 
             now = datetime.datetime.now()
             
+            # --- STATUS AND TIMER OVERLAY ---
+            status_text = "READY"
+            status_color = (0, 255, 0)  # Green
+            if recording:
+                status_text = "RECORDING"
+                status_color = (0, 0, 255)  # Red
+            # Draw status box
+            cv2.rectangle(last_output_frame, (10, 10), (220, 60), (0, 0, 0), -1)  # Black background for text
+            cv2.putText(last_output_frame, status_text, (20, 45), cv2.FONT_HERSHEY_SIMPLEX, 1.2, status_color, 3, cv2.LINE_AA)
+            # Draw timer (current time)
+            timer_text = now.strftime("%Y-%m-%d %H:%M:%S")
+            cv2.putText(last_output_frame, timer_text, (240, 45), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
+
+            for pos, logo_file in local_logos.items():
+                last_output_frame = overlay_logo(last_output_frame, logo_file, pos)
+
             # --- KEYBOARD HANDLING: Always check for 'q' to quit ---
-            cv2.imshow("SmartCam Soccer", frame)
+            cv2.imshow("SmartCam Soccer", last_output_frame)
             key = cv2.waitKey(1) & 0xFF
             if key == ord("q"):
                 if recording and out:
@@ -565,13 +578,11 @@ def main():
                 log("SmartCam shutdown complete", LogLevel.INFO)
                 return
 
-            # --- REAL-TIME FRAME WRITING ---
-            # Only write a frame if enough time has passed for real-time FPS
-            if recording and out:
-                current_time = time.time()
-                if current_time - last_frame_write_time >= frame_interval:
-                    out.write(frame)
-                    last_frame_write_time = current_time
+            # --- FIXED TIMER LOOP FOR REAL-TIME FPS ---
+            current_time = time.time()
+            if recording and out and (current_time - last_frame_write_time >= frame_interval):
+                out.write(last_output_frame)
+                last_frame_write_time += frame_interval
 
             # Motion tracking logic (only active during recording)
             if recording:
@@ -620,9 +631,6 @@ def main():
             # Add timestamp
             frame = cv2.putText(frame, now.strftime("%Y-%m-%d %H:%M:%S"), (10, 30),
                                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-
-            for pos, logo_file in local_logos.items():
-                frame = overlay_logo(frame, logo_file, pos)
 
             # Check for new bookings every 30 seconds
             if time.time() - last_check_time > 30:
@@ -728,6 +736,10 @@ def main():
 
             if shutting_down:
                 break
+            # Sleep to maintain real-time FPS
+            sleep_time = last_frame_write_time + frame_interval - time.time()
+            if sleep_time > 0:
+                time.sleep(sleep_time)
         except Exception as e:
             log(f"Error in main loop: {str(e)}", LogLevel.ERROR)
             time.sleep(1)  # Prevent tight loop on errors
