@@ -1,19 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
-} from 'react-router-dom';
-import LandingPage from './pages/LandingPage';
-import AboutPage from './pages/AboutPage';
-import LoginPage from './pages/LoginPage';
-import Dashboard from './pages/Dashboard';
-import Calendar from './pages/Calendar';
-import Recordings from './pages/Recordings';
-import Navigation from './components/Navigation';
-import SettingsPage from './pages/SettingsPage';
-import { supabase } from './supabaseClient';
+} from "react-router-dom";
+import LandingPage from "./pages/LandingPage";
+import AboutPage from "./pages/AboutPage";
+import LoginPage from "./pages/LoginPage";
+import Dashboard from "./pages/Dashboard";
+import Calendar from "./pages/Calendar";
+import Recordings from "./pages/Recordings";
+import Navigation from "./components/Navigation";
+import SettingsPage from "./pages/SettingsPage";
+import { supabase } from "./supabaseClient";
+import FeaturesPage from "./pages/FeaturesPage";
+import PricingPage from "./pages/PricingPage";
+import ContactPage from "./pages/ContactPage";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -42,13 +45,13 @@ function App() {
 
   return (
     <Router>
-      <Navigation
-        isAuthenticated={isAuthenticated}
-        setIsAuthenticated={setIsAuthenticated}
-      />
+      <Navigation />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/about" element={<AboutPage />} />
+        <Route path="/features" element={<FeaturesPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/contact" element={<ContactPage />} />
         <Route
           path="/login"
           element={

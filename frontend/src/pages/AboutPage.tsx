@@ -12,70 +12,112 @@ const AboutPage = () => {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%)",
-        pt: { xs: "96px", md: "104px" },
+        background: "#111",
+        pt: { xs: 10, md: 12 },
+        pb: 6,
+        boxSizing: "border-box",
       }}
     >
       <Box sx={{ textAlign: "center", px: 2, width: "100%", maxWidth: 900 }}>
-        <Typography variant="h3" component="h1" gutterBottom fontWeight={600}>
-          About SmartCam Soccer
+        <Typography
+          variant="h3"
+          component="h1"
+          gutterBottom
+          fontWeight={900}
+          sx={{ color: "#fff", fontFamily: "Montserrat, sans-serif", mb: 2 }}
+        >
+          About{" "}
+          <Box component="span" sx={{ color: "#F44336" }}>
+            EZREC
+          </Box>
         </Typography>
         <Typography
           variant="h5"
           component="h2"
           gutterBottom
           mt={4}
-          fontWeight={500}
+          fontWeight={700}
+          sx={{ color: "#F44336", fontFamily: "Montserrat, sans-serif", mb: 2 }}
         >
           Our Mission
         </Typography>
-        <Typography variant="body1" paragraph>
-          SmartCam Soccer is dedicated to revolutionizing how soccer games are
-          recorded and analyzed. Our AI-powered camera system automatically
-          tracks and records games, providing high-quality footage that can be
-          accessed and downloaded at any time.
+        <Typography
+          variant="body1"
+          paragraph
+          sx={{ color: "#fff", opacity: 0.85, fontSize: "1.2rem", mb: 3 }}
+        >
+          EZREC is dedicated to revolutionizing how streaming and recording is
+          done. Our powerful, easy-to-use solution lets anyone set up, stream,
+          and share with just a few clicks.
         </Typography>
         <Typography
           variant="h5"
           component="h2"
           gutterBottom
           mt={4}
-          fontWeight={500}
+          fontWeight={700}
+          sx={{ color: "#F44336", fontFamily: "Montserrat, sans-serif", mb: 2 }}
         >
           How It Works
         </Typography>
-        <Typography variant="body1" paragraph>
-          1. Book your field through our easy-to-use calendar system
+        <Typography
+          variant="body1"
+          paragraph
+          sx={{ color: "#fff", opacity: 0.85, fontSize: "1.2rem", mb: 3 }}
+        >
+          1. Set up your device in seconds.
           <br />
-          2. Our smart cameras automatically start recording at your scheduled
-          time
+          2. Start streaming instantly.
           <br />
-          3. Access your recordings through your personal dashboard
+          3. Share your stream with the world.
           <br />
-          4. Download and share your game footage whenever you want
+          4. Access your recordings anytime.
         </Typography>
         <Typography
           variant="h5"
           component="h2"
           gutterBottom
           mt={4}
-          fontWeight={500}
+          fontWeight={700}
+          sx={{ color: "#F44336", fontFamily: "Montserrat, sans-serif", mb: 2 }}
         >
-          Features
+          Why Choose EZREC?
         </Typography>
-        <Typography variant="body1" paragraph>
-          • Automated recording based on your reservation &nbsp;•&nbsp;
-          High-quality video capture &nbsp;•&nbsp; Easy access to past
-          recordings &nbsp;•&nbsp; Secure cloud storage &nbsp;•&nbsp;
-          User-friendly interface &nbsp;•&nbsp; Real-time availability calendar
+        <Typography
+          variant="body1"
+          paragraph
+          sx={{ color: "#fff", opacity: 0.85, fontSize: "1.2rem", mb: 3 }}
+        >
+          • Automated, reliable streaming
+          <br />
+          • High-quality video
+          <br />
+          • Effortless sharing
+          <br />
+          • Secure cloud storage
+          <br />
+          • User-friendly interface
+          <br />
         </Typography>
         <Button
           variant="contained"
           size="large"
-          sx={{ mt: 5, px: 4, py: 1.5, fontSize: "1.1rem", fontWeight: 600 }}
-          onClick={() => navigate("/login")}
+          sx={{
+            mt: 5,
+            px: 4,
+            py: 1.5,
+            fontSize: "1.1rem",
+            fontWeight: 700,
+            background: "#F44336",
+            color: "#fff",
+            borderRadius: 2,
+            fontFamily: "Montserrat, sans-serif",
+            boxShadow: "none",
+            "&:hover": { background: "#d32f2f", boxShadow: "none" },
+          }}
+          onClick={() => navigate("/contact")}
         >
-          Get Started Today
+          Contact Us
         </Button>
       </Box>
     </Box>

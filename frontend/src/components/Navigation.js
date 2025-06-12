@@ -1,38 +1,75 @@
-import { jsx as _jsx, Fragment as _Fragment, jsxs as _jsxs } from "react/jsx-runtime";
-import AppBar from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import Box from '@mui/material/Box';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
-const Navigation = ({ isAuthenticated, setIsAuthenticated, }) => {
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { AppBar, Toolbar, Button, Box, Typography } from "@mui/material";
+import { Link, useLocation } from "react-router-dom";
+const navLinks = [
+    { label: "Features", to: "/features" },
+    { label: "Pricing", to: "/pricing" },
+    { label: "About", to: "/about" },
+    { label: "Contact", to: "/contact" },
+];
+const Navigation = () => {
     const location = useLocation();
-    const navigate = useNavigate();
-    const handleLogout = async () => {
-        await supabase.auth.signOut();
-        setIsAuthenticated(false);
-        navigate('/login');
-    };
-    return (_jsx(AppBar, { position: "fixed", color: "primary", sx: { mb: 4 }, children: _jsxs(Toolbar, { sx: { justifyContent: 'space-between' }, children: [_jsx(Typography, { variant: "h6", component: Link, to: isAuthenticated ? '/dashboard' : '/', color: "inherit", sx: { textDecoration: 'none', fontWeight: 600 }, children: "SmartCam Soccer" }), _jsxs(Box, { children: [isAuthenticated && (_jsxs(_Fragment, { children: [_jsx(Button, { color: "inherit", component: Link, to: "/dashboard", sx: { fontWeight: 500, mr: 1 }, children: "DASHBOARD" }), _jsx(Button, { color: "inherit", component: Link, to: "/calendar", sx: { fontWeight: 500, mr: 1 }, children: "BOOK FIELD" }), _jsx(Button, { color: "inherit", component: Link, to: "/recordings", sx: {
-                                        fontWeight: 500,
-                                        mr: 1,
-                                        border: location.pathname === '/recordings'
-                                            ? '1px solid #fff'
-                                            : 'none',
-                                    }, children: "RECORDINGS" }), _jsx(Button, { color: "inherit", component: Link, to: "/settings", sx: {
-                                        fontWeight: 500,
-                                        mr: 1,
-                                        border: location.pathname === '/settings'
-                                            ? '1px solid #fff'
-                                            : 'none',
-                                    }, children: "SETTINGS" })] })), _jsx(Button, { color: "inherit", component: Link, to: "/about", sx: {
-                                fontWeight: 500,
-                                border: location.pathname === '/about' ? '1px solid #fff' : 'none',
-                                mr: 1,
-                            }, children: "ABOUT" }), isAuthenticated ? (_jsx(Button, { color: "inherit", onClick: handleLogout, sx: { fontWeight: 500 }, children: "LOGOUT" })) : (_jsx(Button, { color: "inherit", component: Link, to: "/login", sx: {
-                                fontWeight: 500,
-                                border: location.pathname === '/login' ? '1px solid #fff' : 'none',
-                            }, children: "LOGIN" }))] })] }) }));
+    return (_jsx(AppBar, { position: "static", sx: { background: "#111", boxShadow: "none", py: 1 }, children: _jsxs(Toolbar, { sx: { justifyContent: "space-between", minHeight: 80 }, children: [_jsx(Box, { sx: { display: "flex", alignItems: "center" }, children: _jsxs(Typography, { variant: "h4", component: Link, to: "/", sx: {
+                            fontWeight: 900,
+                            letterSpacing: 1,
+                            color: "#fff",
+                            textDecoration: "none",
+                            fontFamily: "Montserrat, sans-serif",
+                            mr: 4,
+                            display: "flex",
+                            alignItems: "center",
+                        }, children: [_jsx(Box, { component: "span", sx: { color: "#fff" }, children: "EZ" }), _jsx(Box, { component: "span", sx: { color: "#F44336", ml: 0.5 }, children: "REC" })] }) }), _jsx(Box, { sx: { display: "flex", gap: 3, flex: 1, justifyContent: "center" }, children: navLinks.map((link) => (_jsx(Button, { component: Link, to: link.to, sx: {
+                            color: "#fff",
+                            fontWeight: 600,
+                            fontSize: "1.1rem",
+                            letterSpacing: 1,
+                            borderBottom: location.pathname === link.to
+                                ? "2px solid #F44336"
+                                : "2px solid transparent",
+                            borderRadius: 0,
+                            background: "none",
+                            px: 2,
+                            py: 1,
+                            textTransform: "none",
+                            fontFamily: "Montserrat, sans-serif",
+                            transition: "border-bottom 0.2s",
+                            "&:hover": {
+                                borderBottom: "2px solid #F44336",
+                                background: "none",
+                            },
+                        }, children: link.label }, link.to))) }), _jsx(Button, { variant: "outlined", component: Link, to: "/login", sx: {
+                        borderColor: "#fff",
+                        color: "#fff",
+                        fontWeight: 700,
+                        fontSize: "1.1rem",
+                        px: 3,
+                        py: 1.2,
+                        borderRadius: 2,
+                        boxShadow: "none",
+                        textTransform: "none",
+                        fontFamily: "Montserrat, sans-serif",
+                        borderWidth: 2,
+                        mr: 2,
+                        "&:hover": {
+                            background: "rgba(255,255,255,0.08)",
+                            borderColor: "#fff",
+                            boxShadow: "none",
+                        },
+                    }, children: "Login" }), _jsx(Button, { variant: "contained", component: Link, to: "/get-started", sx: {
+                        background: "#F44336",
+                        color: "#fff",
+                        fontWeight: 700,
+                        fontSize: "1.1rem",
+                        px: 3,
+                        py: 1.2,
+                        borderRadius: 2,
+                        boxShadow: "none",
+                        textTransform: "none",
+                        fontFamily: "Montserrat, sans-serif",
+                        "&:hover": {
+                            background: "#d32f2f",
+                            boxShadow: "none",
+                        },
+                    }, children: "Get Started" })] }) }));
 };
 export default Navigation;

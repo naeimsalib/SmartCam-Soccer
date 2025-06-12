@@ -1,6 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState } from "react";
-import { Box, Button, TextField, Typography, Paper, CircularProgress, Alert, } from "@mui/material";
+import { Box, Button, TextField, Typography, Paper, CircularProgress, Alert, Link, } from "@mui/material";
 import { supabase } from "../supabaseClient";
 import { useNavigate } from "react-router-dom";
 const LoginPage = ({ setIsAuthenticated, }) => {
@@ -18,18 +18,15 @@ const LoginPage = ({ setIsAuthenticated, }) => {
             password,
         });
         setLoading(false);
-        console.log("Supabase login response:", { data, error });
         if (error) {
             setError(error.message);
             return;
         }
         if (!data || !data.session || !data.user) {
             setError("Login failed: No session or user returned.");
-            console.log("Login failed: No session or user returned.", { data });
             return;
         }
         setIsAuthenticated();
-        console.log("Redirecting to dashboard...");
         navigate("/dashboard");
     };
     return (_jsx(Box, { sx: {
@@ -38,8 +35,48 @@ const LoginPage = ({ setIsAuthenticated, }) => {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%)",
-            pt: { xs: "96px", md: "104px" },
-        }, children: _jsxs(Paper, { elevation: 6, sx: { p: 5, minWidth: 350, maxWidth: 400 }, children: [_jsx(Typography, { variant: "h5", align: "center", mb: 3, fontWeight: 600, color: "primary", children: "Login to SmartCam Soccer" }), _jsxs("form", { onSubmit: handleLogin, children: [_jsx(TextField, { label: "Email", type: "email", value: email, onChange: (e) => setEmail(e.target.value), fullWidth: true, required: true, margin: "normal" }), _jsx(TextField, { label: "Password", type: "password", value: password, onChange: (e) => setPassword(e.target.value), fullWidth: true, required: true, margin: "normal" }), error && (_jsx(Alert, { severity: "error", sx: { mt: 2 }, children: error })), _jsx(Button, { type: "submit", variant: "contained", color: "primary", fullWidth: true, sx: { mt: 2, py: 1.5, fontWeight: 600 }, disabled: loading, children: loading ? _jsx(CircularProgress, { size: 24 }) : "LOGIN" })] }), _jsx(Typography, { align: "center", mt: 2, color: "primary", children: "Forgot Password?" })] }) }));
+            background: "#111",
+            pt: { xs: 10, md: 12 },
+            pb: 6,
+            boxSizing: "border-box",
+        }, children: _jsxs(Paper, { elevation: 8, sx: {
+                p: 5,
+                minWidth: 350,
+                maxWidth: 400,
+                background: "#181818",
+                borderRadius: 3,
+                boxShadow: "0 4px 32px 0 rgba(244,67,54,0.10)",
+            }, children: [_jsxs(Typography, { variant: "h4", align: "center", mb: 3, fontWeight: 900, sx: { color: "#fff", fontFamily: "Montserrat, sans-serif" }, children: ["Login to", " ", _jsx(Box, { component: "span", sx: { color: "#F44336" }, children: "EZREC" })] }), _jsxs("form", { onSubmit: handleLogin, style: { marginTop: 24 }, children: [_jsx(TextField, { label: "Email", type: "email", value: email, onChange: (e) => setEmail(e.target.value), fullWidth: true, required: true, margin: "normal", InputLabelProps: { style: { color: "#fff", opacity: 0.8 } }, InputProps: { style: { color: "#fff" } }, sx: {
+                                "& .MuiOutlinedInput-root": {
+                                    "& fieldset": { borderColor: "#fff", opacity: 0.5 },
+                                    "&:hover fieldset": { borderColor: "#F44336" },
+                                    "&.Mui-focused fieldset": { borderColor: "#F44336" },
+                                },
+                                "& .MuiInputLabel-root": { color: "#fff", opacity: 0.8 },
+                            } }), _jsx(TextField, { label: "Password", type: "password", value: password, onChange: (e) => setPassword(e.target.value), fullWidth: true, required: true, margin: "normal", InputLabelProps: { style: { color: "#fff", opacity: 0.8 } }, InputProps: { style: { color: "#fff" } }, sx: {
+                                "& .MuiOutlinedInput-root": {
+                                    "& fieldset": { borderColor: "#fff", opacity: 0.5 },
+                                    "&:hover fieldset": { borderColor: "#F44336" },
+                                    "&.Mui-focused fieldset": { borderColor: "#F44336" },
+                                },
+                                "& .MuiInputLabel-root": { color: "#fff", opacity: 0.8 },
+                            } }), error && (_jsx(Alert, { severity: "error", sx: { mt: 2 }, children: error })), _jsx(Button, { type: "submit", variant: "contained", fullWidth: true, sx: {
+                                mt: 3,
+                                py: 1.5,
+                                fontWeight: 700,
+                                fontSize: "1.1rem",
+                                background: "#F44336",
+                                color: "#fff",
+                                borderRadius: 2,
+                                fontFamily: "Montserrat, sans-serif",
+                                boxShadow: "none",
+                                "&:hover": { background: "#d32f2f", boxShadow: "none" },
+                            }, disabled: loading, children: loading ? (_jsx(CircularProgress, { size: 24, sx: { color: "#fff" } })) : ("Login") })] }), _jsx(Typography, { align: "center", mt: 3, children: _jsx(Link, { href: "#", underline: "hover", sx: {
+                            color: "#fff",
+                            opacity: 0.8,
+                            fontWeight: 500,
+                            fontFamily: "Montserrat, sans-serif",
+                            cursor: "pointer",
+                        }, onClick: () => alert("Password reset functionality coming soon!"), children: "Forgot Password?" }) })] }) }));
 };
 export default LoginPage;

@@ -1,82 +1,149 @@
 import React from "react";
-import { Box, Button, Typography } from "@mui/material";
+import { Box, Button, Typography, Stack } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
-const NAVBAR_HEIGHT = 64;
+const navLinks = [
+  { label: "Features", to: "/features" },
+  { label: "Pricing", to: "/pricing" },
+  { label: "About", to: "/about" },
+  { label: "Contact", to: "/contact" },
+];
 
 const LandingPage = () => {
   const navigate = useNavigate();
-
   return (
     <Box
       sx={{
         minHeight: "100vh",
         width: "100vw",
         display: "flex",
+        flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        background: "linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%)",
-        pt: { xs: "96px", md: "104px" },
+        background: "#111",
+        pt: { xs: 10, md: 12 },
         pb: 6,
         boxSizing: "border-box",
+        position: "relative",
       }}
     >
-      <Box sx={{ textAlign: "center", px: 2, width: "100%", maxWidth: 700 }}>
+      {/* Title & Subtitle */}
+      <Box sx={{ textAlign: "center", px: 2, width: "100%", maxWidth: 800 }}>
         <Typography
           variant="h2"
           component="h1"
           gutterBottom
-          sx={{ fontWeight: 700, fontSize: { xs: "2.2rem", md: "3.5rem" } }}
+          sx={{
+            fontWeight: 900,
+            fontSize: { xs: "2.5rem", md: "4rem" },
+            color: "#fff",
+            mb: 2,
+            fontFamily: "Montserrat, sans-serif",
+            lineHeight: 1.1,
+          }}
         >
-          Welcome to SmartCam Soccer
+          Set It. Stream It. Share It.
         </Typography>
         <Typography
           variant="h5"
           component="h2"
           gutterBottom
-          color="text.secondary"
-          sx={{ fontWeight: 400, fontSize: { xs: "1.1rem", md: "1.5rem" } }}
+          sx={{
+            fontWeight: 400,
+            fontSize: { xs: "1.2rem", md: "1.7rem" },
+            color: "#fff",
+            opacity: 0.85,
+            mb: 4,
+            fontFamily: "Montserrat, sans-serif",
+          }}
         >
-          Your intelligent soccer field recording solution
+          Powerful and easy-to-use streaming solution
         </Typography>
+        {/* Nav Links */}
+        <Stack
+          direction="row"
+          spacing={3}
+          justifyContent="center"
+          sx={{ mb: 5 }}
+        >
+          {navLinks.map((link) => (
+            <Button
+              key={link.to}
+              onClick={() => navigate(link.to)}
+              sx={{
+                color: "#fff",
+                fontWeight: 600,
+                fontSize: "1.1rem",
+                letterSpacing: 1,
+                borderBottom: "2px solid transparent",
+                borderRadius: 0,
+                background: "none",
+                px: 2,
+                py: 1,
+                textTransform: "none",
+                fontFamily: "Montserrat, sans-serif",
+                transition: "border-bottom 0.2s",
+                "&:hover": {
+                  borderBottom: "2px solid #F44336",
+                  background: "none",
+                },
+              }}
+            >
+              {link.label}
+            </Button>
+          ))}
+        </Stack>
+        <Button
+          variant="contained"
+          size="large"
+          onClick={() => navigate("/contact")}
+          sx={{
+            px: 6,
+            py: 2,
+            fontSize: "1.2rem",
+            fontWeight: 700,
+            background: "#F44336",
+            color: "#fff",
+            borderRadius: 2,
+            boxShadow: "none",
+            textTransform: "none",
+            fontFamily: "Montserrat, sans-serif",
+            "&:hover": {
+              background: "#d32f2f",
+              boxShadow: "none",
+            },
+            mt: 2,
+          }}
+        >
+          Get Started
+        </Button>
+      </Box>
+      {/* Powered by */}
+      <Box
+        sx={{
+          position: "absolute",
+          bottom: 32,
+          left: 0,
+          width: "100%",
+          textAlign: "center",
+        }}
+      >
         <Typography
           variant="body1"
-          paragraph
           sx={{
-            mt: 4,
-            fontSize: { xs: "1rem", md: "1.15rem" },
-            color: "text.secondary",
+            color: "#fff",
+            opacity: 0.7,
+            fontFamily: "Montserrat, sans-serif",
           }}
         >
-          Book your field, record your game, and relive your best moments with
-          our advanced AI-powered camera system.
+          Powered by:{" "}
+          <Box component="span" sx={{ color: "#fff", fontWeight: 700 }}>
+            EZ
+          </Box>
+          <Box component="span" sx={{ color: "#F44336", fontWeight: 700 }}>
+            REC
+          </Box>
         </Typography>
-        <Box
-          sx={{
-            mt: 5,
-            display: "flex",
-            justifyContent: "center",
-            gap: 2,
-            flexWrap: "wrap",
-          }}
-        >
-          <Button
-            variant="contained"
-            size="large"
-            onClick={() => navigate("/login")}
-            sx={{ px: 4, py: 1.5, fontSize: "1.1rem", fontWeight: 600 }}
-          >
-            Get Started
-          </Button>
-          <Button
-            variant="outlined"
-            size="large"
-            onClick={() => navigate("/about")}
-            sx={{ px: 4, py: 1.5, fontSize: "1.1rem", fontWeight: 600 }}
-          >
-            Learn More
-          </Button>
-        </Box>
       </Box>
     </Box>
   );

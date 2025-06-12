@@ -1,129 +1,133 @@
-import React from 'react';
-import AppBar from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
-import Typography from '@mui/material/Typography';
-import Button from '@mui/material/Button';
-import Box from '@mui/material/Box';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
+import React from "react";
+import { AppBar, Toolbar, Button, Box, Typography } from "@mui/material";
+import { Link, useLocation } from "react-router-dom";
 
-type NavigationProps = {
-  isAuthenticated: boolean;
-  setIsAuthenticated: (auth: boolean) => void;
-};
+const navLinks = [
+  { label: "Features", to: "/features" },
+  { label: "Pricing", to: "/pricing" },
+  { label: "About", to: "/about" },
+  { label: "Contact", to: "/contact" },
+];
 
-const Navigation = ({
-  isAuthenticated,
-  setIsAuthenticated,
-}: NavigationProps) => {
+const Navigation = () => {
   const location = useLocation();
-  const navigate = useNavigate();
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setIsAuthenticated(false);
-    navigate('/login');
-  };
-
   return (
-    <AppBar position="fixed" color="primary" sx={{ mb: 4 }}>
-      <Toolbar sx={{ justifyContent: 'space-between' }}>
-        <Typography
-          variant="h6"
-          component={Link}
-          to={isAuthenticated ? '/dashboard' : '/'}
-          color="inherit"
-          sx={{ textDecoration: 'none', fontWeight: 600 }}
-        >
-          SmartCam Soccer
-        </Typography>
-        <Box>
-          {isAuthenticated && (
-            <>
-              <Button
-                color="inherit"
-                component={Link}
-                to="/dashboard"
-                sx={{ fontWeight: 500, mr: 1 }}
-              >
-                DASHBOARD
-              </Button>
-              <Button
-                color="inherit"
-                component={Link}
-                to="/calendar"
-                sx={{ fontWeight: 500, mr: 1 }}
-              >
-                BOOK FIELD
-              </Button>
-              <Button
-                color="inherit"
-                component={Link}
-                to="/recordings"
-                sx={{
-                  fontWeight: 500,
-                  mr: 1,
-                  border:
-                    location.pathname === '/recordings'
-                      ? '1px solid #fff'
-                      : 'none',
-                }}
-              >
-                RECORDINGS
-              </Button>
-              <Button
-                color="inherit"
-                component={Link}
-                to="/settings"
-                sx={{
-                  fontWeight: 500,
-                  mr: 1,
-                  border:
-                    location.pathname === '/settings'
-                      ? '1px solid #fff'
-                      : 'none',
-                }}
-              >
-                SETTINGS
-              </Button>
-            </>
-          )}
-          <Button
-            color="inherit"
+    <AppBar
+      position="static"
+      sx={{ background: "#111", boxShadow: "none", py: 1 }}
+    >
+      <Toolbar sx={{ justifyContent: "space-between", minHeight: 80 }}>
+        {/* Logo */}
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <Typography
+            variant="h4"
             component={Link}
-            to="/about"
+            to="/"
             sx={{
-              fontWeight: 500,
-              border:
-                location.pathname === '/about' ? '1px solid #fff' : 'none',
-              mr: 1,
+              fontWeight: 900,
+              letterSpacing: 1,
+              color: "#fff",
+              textDecoration: "none",
+              fontFamily: "Montserrat, sans-serif",
+              mr: 4,
+              display: "flex",
+              alignItems: "center",
             }}
           >
-            ABOUT
-          </Button>
-          {isAuthenticated ? (
+            <Box component="span" sx={{ color: "#fff" }}>
+              EZ
+            </Box>
+            <Box component="span" sx={{ color: "#F44336", ml: 0.5 }}>
+              REC
+            </Box>
+          </Typography>
+        </Box>
+        {/* Nav Links */}
+        <Box
+          sx={{ display: "flex", gap: 3, flex: 1, justifyContent: "center" }}
+        >
+          {navLinks.map((link) => (
             <Button
-              color="inherit"
-              onClick={handleLogout}
-              sx={{ fontWeight: 500 }}
-            >
-              LOGOUT
-            </Button>
-          ) : (
-            <Button
-              color="inherit"
+              key={link.to}
               component={Link}
-              to="/login"
+              to={link.to}
               sx={{
-                fontWeight: 500,
-                border:
-                  location.pathname === '/login' ? '1px solid #fff' : 'none',
+                color: "#fff",
+                fontWeight: 600,
+                fontSize: "1.1rem",
+                letterSpacing: 1,
+                borderBottom:
+                  location.pathname === link.to
+                    ? "2px solid #F44336"
+                    : "2px solid transparent",
+                borderRadius: 0,
+                background: "none",
+                px: 2,
+                py: 1,
+                textTransform: "none",
+                fontFamily: "Montserrat, sans-serif",
+                transition: "border-bottom 0.2s",
+                "&:hover": {
+                  borderBottom: "2px solid #F44336",
+                  background: "none",
+                },
               }}
             >
-              LOGIN
+              {link.label}
             </Button>
-          )}
+          ))}
         </Box>
+        {/* Login Button */}
+        <Button
+          variant="outlined"
+          component={Link}
+          to="/login"
+          sx={{
+            borderColor: "#fff",
+            color: "#fff",
+            fontWeight: 700,
+            fontSize: "1.1rem",
+            px: 3,
+            py: 1.2,
+            borderRadius: 2,
+            boxShadow: "none",
+            textTransform: "none",
+            fontFamily: "Montserrat, sans-serif",
+            borderWidth: 2,
+            mr: 2,
+            "&:hover": {
+              background: "rgba(255,255,255,0.08)",
+              borderColor: "#fff",
+              boxShadow: "none",
+            },
+          }}
+        >
+          Login
+        </Button>
+        {/* Get Started Button */}
+        <Button
+          variant="contained"
+          component={Link}
+          to="/get-started"
+          sx={{
+            background: "#F44336",
+            color: "#fff",
+            fontWeight: 700,
+            fontSize: "1.1rem",
+            px: 3,
+            py: 1.2,
+            borderRadius: 2,
+            boxShadow: "none",
+            textTransform: "none",
+            fontFamily: "Montserrat, sans-serif",
+            "&:hover": {
+              background: "#d32f2f",
+              boxShadow: "none",
+            },
+          }}
+        >
+          Get Started
+        </Button>
       </Toolbar>
     </AppBar>
   );
