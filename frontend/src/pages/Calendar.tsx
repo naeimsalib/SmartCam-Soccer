@@ -28,6 +28,7 @@ import { supabase } from "../supabaseClient";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import Navbar from "../components/Navbar";
 
 const generateTimeOptions = () => {
   const times = [];
@@ -175,10 +176,10 @@ const Calendar = () => {
           alignItems: "center",
           background: "linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%)",
           py: 4,
-          mt: 10,
         }}
       >
-        <Container maxWidth="sm">
+        <Navbar />
+        <Container maxWidth="sm" sx={{ mt: 10 }}>
           <Grid container spacing={4} justifyContent="center">
             {/* Quick Book Button */}
             <Grid item xs={12}>

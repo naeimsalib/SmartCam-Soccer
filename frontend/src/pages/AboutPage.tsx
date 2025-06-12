@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Typography, Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import Navbar from "../components/Navbar";
 
 const AboutPage = () => {
   const navigate = useNavigate();
@@ -18,7 +19,16 @@ const AboutPage = () => {
         boxSizing: "border-box",
       }}
     >
-      <Box sx={{ textAlign: "center", px: 2, width: "100%", maxWidth: 900 }}>
+      <Navbar />
+      <Box
+        sx={{
+          textAlign: "center",
+          px: 2,
+          width: "100%",
+          maxWidth: 900,
+          mt: 10,
+        }}
+      >
         <Typography
           variant="h3"
           component="h1"

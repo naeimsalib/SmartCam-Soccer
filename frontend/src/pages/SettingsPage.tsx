@@ -11,6 +11,8 @@ import {
   CardMedia,
   CircularProgress,
   Alert,
+  TextField,
+  Divider,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
@@ -21,6 +23,7 @@ import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import WifiIcon from "@mui/icons-material/Wifi";
 import WifiOffIcon from "@mui/icons-material/WifiOff";
 import { useRealtimeSubscription } from "../hooks/useRealtimeSubscription";
+import Navbar from "../components/Navbar";
 
 const VisuallyHiddenInput = styled("input")({
   clip: "rect(0 0 0 0)",
@@ -379,176 +382,190 @@ const SettingsPage: React.FC = () => {
   );
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography
-        variant="h4"
-        component="h1"
-        gutterBottom
-        align="center"
-        fontWeight={600}
-      >
-        Video Settings
-      </Typography>
-      {error && (
-        <Alert severity="error" sx={{ mb: 2, maxWidth: 500, mx: "auto" }}>
-          {error}
-        </Alert>
-      )}
-      {success && (
-        <Alert severity="success" sx={{ mb: 2, maxWidth: 500, mx: "auto" }}>
-          {success}
-        </Alert>
-      )}
-      <Grid container spacing={4} alignItems="flex-start">
-        {/* Left: Uploaders */}
-        <Grid item xs={12} md={7}>
-          <Card
-            sx={{
-              p: { xs: 2, sm: 4 },
-              borderRadius: 4,
-              boxShadow: "0 4px 24px 0 rgba(0,0,0,0.07)",
-              background: "#f7fafc",
-              maxWidth: 900,
-              mx: "auto",
-              mt: 0,
-            }}
-          >
-            <Typography
-              variant="h6"
-              sx={{ mb: 3, fontWeight: 500, textAlign: "center" }}
+    <Box
+      sx={{
+        minHeight: "100vh",
+        width: "100vw",
+        background: "linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%)",
+        py: 4,
+      }}
+    >
+      <Navbar />
+      <Container maxWidth="lg" sx={{ mt: 10 }}>
+        <Typography
+          variant="h4"
+          component="h1"
+          gutterBottom
+          align="center"
+          fontWeight={600}
+        >
+          Video Settings
+        </Typography>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2, maxWidth: 500, mx: "auto" }}>
+            {error}
+          </Alert>
+        )}
+        {success && (
+          <Alert severity="success" sx={{ mb: 2, maxWidth: 500, mx: "auto" }}>
+            {success}
+          </Alert>
+        )}
+        <Grid container spacing={4} alignItems="flex-start">
+          {/* Left: Uploaders */}
+          <Grid item xs={12} md={7}>
+            <Card
+              sx={{
+                p: { xs: 2, sm: 4 },
+                borderRadius: 4,
+                boxShadow: "0 4px 24px 0 rgba(0,0,0,0.07)",
+                background: "#f7fafc",
+                maxWidth: 900,
+                mx: "auto",
+                mt: 0,
+              }}
             >
-              Upload and Manage Your Branding
-            </Typography>
-            <Grid container spacing={3}>
-              {renderUploader(
-                "Intro Video",
-                "intro_video_path",
-                previewUrl.intro
-              )}
-              {renderUploader("Main Logo", "logo_path", previewUrl.logo)}
-              {renderUploader(
-                "Sponsor Logo 1",
-                "sponsor_logo1_path",
-                previewUrl.sponsor_logo1
-              )}
-              {renderUploader(
-                "Sponsor Logo 2",
-                "sponsor_logo2_path",
-                previewUrl.sponsor_logo2
-              )}
-              {renderUploader(
-                "Sponsor Logo 3",
-                "sponsor_logo3_path",
-                previewUrl.sponsor_logo3
-              )}
-            </Grid>
-          </Card>
-        </Grid>
-        {/* Right: Status Card */}
-        <Grid item xs={12} md={5}>
-          <Card
-            sx={{
-              p: 4,
-              borderRadius: 4,
-              boxShadow: "0 4px 24px 0 rgba(0,0,0,0.10)",
-              background: "#fff",
-              minHeight: 320,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <Typography
-              variant="h6"
-              sx={{ mb: 2, fontWeight: 600, textAlign: "center" }}
-            >
-              System Status
-            </Typography>
-            {cameras.length > 0 ? (
-              cameras
-                .filter(
-                  (camera): camera is CameraRow =>
-                    typeof camera === "object" &&
-                    camera !== null &&
-                    typeof camera.id === "string"
-                )
-                .map((camera) => {
-                  const online = isCameraOnline(camera.last_seen);
-                  const hasInternet = online && !!camera.ip_address;
-                  return (
-                    <Box key={camera.id} sx={{ mb: 3, width: "100%" }}>
-                      <Typography
-                        variant="subtitle1"
-                        fontWeight={700}
-                        sx={{ mb: 1 }}
-                      >
-                        {camera.name}{" "}
-                        {camera.location ? `- ${camera.location}` : ""}
-                      </Typography>
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", mb: 1 }}
-                      >
-                        <FiberManualRecordIcon
-                          sx={{
-                            color: online ? "#43a047" : "#e53935",
-                            mr: 1,
-                          }}
-                        />
-                        <Typography variant="subtitle1" fontWeight={500}>
-                          Camera: {online ? "Online" : "Offline"}
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", mb: 1 }}
-                      >
-                        {hasInternet ? (
-                          <WifiIcon sx={{ color: "#43a047", mr: 1 }} />
-                        ) : (
-                          <WifiOffIcon sx={{ color: "#e53935", mr: 1 }} />
-                        )}
-                        <Typography variant="subtitle1" fontWeight={500}>
-                          Internet: {hasInternet ? "Connected" : "Disconnected"}
-                        </Typography>
-                      </Box>
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", mb: 1 }}
-                      >
-                        <FiberManualRecordIcon
-                          sx={{
-                            color: camera.is_recording ? "#43a047" : "#757575",
-                            mr: 1,
-                          }}
-                        />
-                        <Typography variant="subtitle1" fontWeight={500}>
-                          Recording:{" "}
-                          {camera.is_recording ? "In Progress" : "Idle"}
-                        </Typography>
-                      </Box>
-                      <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ mt: 1 }}
-                      >
-                        Last seen: {new Date(camera.last_seen).toLocaleString()}
-                      </Typography>
-                    </Box>
-                  );
-                })
-            ) : (
-              <Typography color="text.secondary">
-                No camera data found.
+              <Typography
+                variant="h6"
+                sx={{ mb: 3, fontWeight: 500, textAlign: "center" }}
+              >
+                Upload and Manage Your Branding
               </Typography>
-            )}
-          </Card>
+              <Grid container spacing={3}>
+                {renderUploader(
+                  "Intro Video",
+                  "intro_video_path",
+                  previewUrl.intro
+                )}
+                {renderUploader("Main Logo", "logo_path", previewUrl.logo)}
+                {renderUploader(
+                  "Sponsor Logo 1",
+                  "sponsor_logo1_path",
+                  previewUrl.sponsor_logo1
+                )}
+                {renderUploader(
+                  "Sponsor Logo 2",
+                  "sponsor_logo2_path",
+                  previewUrl.sponsor_logo2
+                )}
+                {renderUploader(
+                  "Sponsor Logo 3",
+                  "sponsor_logo3_path",
+                  previewUrl.sponsor_logo3
+                )}
+              </Grid>
+            </Card>
+          </Grid>
+          {/* Right: Status Card */}
+          <Grid item xs={12} md={5}>
+            <Card
+              sx={{
+                p: 4,
+                borderRadius: 4,
+                boxShadow: "0 4px 24px 0 rgba(0,0,0,0.10)",
+                background: "#fff",
+                minHeight: 320,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Typography
+                variant="h6"
+                sx={{ mb: 2, fontWeight: 600, textAlign: "center" }}
+              >
+                System Status
+              </Typography>
+              {cameras.length > 0 ? (
+                cameras
+                  .filter(
+                    (camera): camera is CameraRow =>
+                      typeof camera === "object" &&
+                      camera !== null &&
+                      typeof camera.id === "string"
+                  )
+                  .map((camera) => {
+                    const online = isCameraOnline(camera.last_seen);
+                    const hasInternet = online && !!camera.ip_address;
+                    return (
+                      <Box key={camera.id} sx={{ mb: 3, width: "100%" }}>
+                        <Typography
+                          variant="subtitle1"
+                          fontWeight={700}
+                          sx={{ mb: 1 }}
+                        >
+                          {camera.name}{" "}
+                          {camera.location ? `- ${camera.location}` : ""}
+                        </Typography>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", mb: 1 }}
+                        >
+                          <FiberManualRecordIcon
+                            sx={{
+                              color: online ? "#43a047" : "#e53935",
+                              mr: 1,
+                            }}
+                          />
+                          <Typography variant="subtitle1" fontWeight={500}>
+                            Camera: {online ? "Online" : "Offline"}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", mb: 1 }}
+                        >
+                          {hasInternet ? (
+                            <WifiIcon sx={{ color: "#43a047", mr: 1 }} />
+                          ) : (
+                            <WifiOffIcon sx={{ color: "#e53935", mr: 1 }} />
+                          )}
+                          <Typography variant="subtitle1" fontWeight={500}>
+                            Internet:{" "}
+                            {hasInternet ? "Connected" : "Disconnected"}
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{ display: "flex", alignItems: "center", mb: 1 }}
+                        >
+                          <FiberManualRecordIcon
+                            sx={{
+                              color: camera.is_recording
+                                ? "#43a047"
+                                : "#757575",
+                              mr: 1,
+                            }}
+                          />
+                          <Typography variant="subtitle1" fontWeight={500}>
+                            Recording:{" "}
+                            {camera.is_recording ? "In Progress" : "Idle"}
+                          </Typography>
+                        </Box>
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ mt: 1 }}
+                        >
+                          Last seen:{" "}
+                          {new Date(camera.last_seen).toLocaleString()}
+                        </Typography>
+                      </Box>
+                    );
+                  })
+              ) : (
+                <Typography color="text.secondary">
+                  No camera data found.
+                </Typography>
+              )}
+            </Card>
+          </Grid>
         </Grid>
-      </Grid>
-      {loading && (
-        <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
-          <CircularProgress />
-        </Box>
-      )}
-    </Container>
+        {loading && (
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+            <CircularProgress />
+          </Box>
+        )}
+      </Container>
+    </Box>
   );
 };
 

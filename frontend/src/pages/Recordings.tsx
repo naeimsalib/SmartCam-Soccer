@@ -22,6 +22,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import ShareIcon from "@mui/icons-material/Share";
 import { supabase } from "../supabaseClient";
 import Tooltip from "@mui/material/Tooltip";
+import Navbar from "../components/Navbar";
 
 interface VideoFile {
   name: string;
@@ -292,12 +293,13 @@ const Recordings = () => {
         py: 6,
       }}
     >
+      <Navbar />
       <Typography
         variant="h4"
         align="center"
         fontWeight={500}
         mb={4}
-        sx={{ mt: 8 }}
+        sx={{ mt: 10 }}
       >
         Your Recordings
       </Typography>
