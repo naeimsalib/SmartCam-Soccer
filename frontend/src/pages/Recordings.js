@@ -8,6 +8,7 @@ import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import ShareIcon from "@mui/icons-material/Share";
 import { supabase } from "../supabaseClient";
 import Tooltip from "@mui/material/Tooltip";
+import Navbar from "../components/Navbar";
 const Recordings = () => {
     const [videos, setVideos] = useState([]);
     const [userId, setUserId] = useState(null);
@@ -228,7 +229,7 @@ const Recordings = () => {
             alignItems: "center",
             background: "linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%)",
             py: 6,
-        }, children: [_jsx(Typography, { variant: "h4", align: "center", fontWeight: 500, mb: 4, sx: { mt: 8 }, children: "Your Recordings" }), loading ? (_jsx(CircularProgress, {})) : videos.length === 0 ? (_jsx(Typography, { color: "text.secondary", children: "No videos found in your folder." })) : (_jsx(Grid, { container: true, spacing: 3, justifyContent: "center", maxWidth: "md", children: Object.entries(groupedVideos).map(([date, dateVideos]) => (_jsxs(React.Fragment, { children: [_jsxs(Grid, { item: true, xs: 12, children: [_jsx(Typography, { variant: "h6", sx: {
+        }, children: [_jsx(Navbar, {}), _jsx(Typography, { variant: "h4", align: "center", fontWeight: 500, mb: 4, sx: { mt: 10 }, children: "Your Recordings" }), loading ? (_jsx(CircularProgress, {})) : videos.length === 0 ? (_jsx(Typography, { color: "text.secondary", children: "No videos found in your folder." })) : (_jsx(Grid, { container: true, spacing: 3, justifyContent: "center", maxWidth: "md", children: Object.entries(groupedVideos).map(([date, dateVideos]) => (_jsxs(React.Fragment, { children: [_jsxs(Grid, { item: true, xs: 12, children: [_jsx(Typography, { variant: "h6", sx: {
                                         mt: 4,
                                         mb: 2,
                                         color: "primary.main",

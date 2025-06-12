@@ -7,6 +7,7 @@ import {
 } from "react-router-dom";
 import LandingPage from "./pages/LandingPage";
 import AboutPage from "./pages/AboutPage";
+import AuthenticatedAboutPage from "./pages/AuthenticatedAboutPage";
 import LoginPage from "./pages/LoginPage";
 import Dashboard from "./pages/Dashboard";
 import Calendar from "./pages/Calendar";
@@ -47,6 +48,7 @@ function App() {
     <Router>
       <Navigation />
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/features" element={<FeaturesPage />} />
@@ -62,6 +64,8 @@ function App() {
             )
           }
         />
+
+        {/* Protected Routes */}
         <Route
           path="/dashboard"
           element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}
@@ -78,6 +82,16 @@ function App() {
           path="/settings"
           element={
             isAuthenticated ? <SettingsPage /> : <Navigate to="/login" />
+          }
+        />
+        <Route
+          path="/about-authenticated"
+          element={
+            isAuthenticated ? (
+              <AuthenticatedAboutPage />
+            ) : (
+              <Navigate to="/login" />
+            )
           }
         />
       </Routes>

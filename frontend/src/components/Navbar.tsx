@@ -17,7 +17,7 @@ const Navbar = () => {
     { label: "Book Field", path: "/calendar" },
     { label: "Recordings", path: "/recordings" },
     { label: "Settings", path: "/settings" },
-    { label: "About", path: "/about" },
+    { label: "About", path: "/about-authenticated" },
   ];
 
   return (

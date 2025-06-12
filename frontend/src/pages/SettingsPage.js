@@ -8,6 +8,7 @@ import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import WifiIcon from "@mui/icons-material/Wifi";
 import WifiOffIcon from "@mui/icons-material/WifiOff";
 import { useRealtimeSubscription } from "../hooks/useRealtimeSubscription";
+import Navbar from "../components/Navbar";
 const VisuallyHiddenInput = styled("input")({
     clip: "rect(0 0 0 0)",
     clipPath: "inset(50%)",
@@ -245,38 +246,45 @@ const SettingsPage = () => {
                                 if (file)
                                     handleFileUpload(file, type);
                             } })] }))] }) }));
-    return (_jsxs(Container, { maxWidth: "lg", sx: { py: 4 }, children: [_jsx(Typography, { variant: "h4", component: "h1", gutterBottom: true, align: "center", fontWeight: 600, children: "Video Settings" }), error && (_jsx(Alert, { severity: "error", sx: { mb: 2, maxWidth: 500, mx: "auto" }, children: error })), success && (_jsx(Alert, { severity: "success", sx: { mb: 2, maxWidth: 500, mx: "auto" }, children: success })), _jsxs(Grid, { container: true, spacing: 4, alignItems: "flex-start", children: [_jsx(Grid, { item: true, xs: 12, md: 7, children: _jsxs(Card, { sx: {
-                                p: { xs: 2, sm: 4 },
-                                borderRadius: 4,
-                                boxShadow: "0 4px 24px 0 rgba(0,0,0,0.07)",
-                                background: "#f7fafc",
-                                maxWidth: 900,
-                                mx: "auto",
-                                mt: 0,
-                            }, children: [_jsx(Typography, { variant: "h6", sx: { mb: 3, fontWeight: 500, textAlign: "center" }, children: "Upload and Manage Your Branding" }), _jsxs(Grid, { container: true, spacing: 3, children: [renderUploader("Intro Video", "intro_video_path", previewUrl.intro), renderUploader("Main Logo", "logo_path", previewUrl.logo), renderUploader("Sponsor Logo 1", "sponsor_logo1_path", previewUrl.sponsor_logo1), renderUploader("Sponsor Logo 2", "sponsor_logo2_path", previewUrl.sponsor_logo2), renderUploader("Sponsor Logo 3", "sponsor_logo3_path", previewUrl.sponsor_logo3)] })] }) }), _jsx(Grid, { item: true, xs: 12, md: 5, children: _jsxs(Card, { sx: {
-                                p: 4,
-                                borderRadius: 4,
-                                boxShadow: "0 4px 24px 0 rgba(0,0,0,0.10)",
-                                background: "#fff",
-                                minHeight: 320,
-                                display: "flex",
-                                flexDirection: "column",
-                                alignItems: "center",
-                                justifyContent: "center",
-                            }, children: [_jsx(Typography, { variant: "h6", sx: { mb: 2, fontWeight: 600, textAlign: "center" }, children: "System Status" }), cameras.length > 0 ? (cameras
-                                    .filter((camera) => typeof camera === "object" &&
-                                    camera !== null &&
-                                    typeof camera.id === "string")
-                                    .map((camera) => {
-                                    const online = isCameraOnline(camera.last_seen);
-                                    const hasInternet = online && !!camera.ip_address;
-                                    return (_jsxs(Box, { sx: { mb: 3, width: "100%" }, children: [_jsxs(Typography, { variant: "subtitle1", fontWeight: 700, sx: { mb: 1 }, children: [camera.name, " ", camera.location ? `- ${camera.location}` : ""] }), _jsxs(Box, { sx: { display: "flex", alignItems: "center", mb: 1 }, children: [_jsx(FiberManualRecordIcon, { sx: {
-                                                            color: online ? "#43a047" : "#e53935",
-                                                            mr: 1,
-                                                        } }), _jsxs(Typography, { variant: "subtitle1", fontWeight: 500, children: ["Camera: ", online ? "Online" : "Offline"] })] }), _jsxs(Box, { sx: { display: "flex", alignItems: "center", mb: 1 }, children: [hasInternet ? (_jsx(WifiIcon, { sx: { color: "#43a047", mr: 1 } })) : (_jsx(WifiOffIcon, { sx: { color: "#e53935", mr: 1 } })), _jsxs(Typography, { variant: "subtitle1", fontWeight: 500, children: ["Internet: ", hasInternet ? "Connected" : "Disconnected"] })] }), _jsxs(Box, { sx: { display: "flex", alignItems: "center", mb: 1 }, children: [_jsx(FiberManualRecordIcon, { sx: {
-                                                            color: camera.is_recording ? "#43a047" : "#757575",
-                                                            mr: 1,
-                                                        } }), _jsxs(Typography, { variant: "subtitle1", fontWeight: 500, children: ["Recording:", " ", camera.is_recording ? "In Progress" : "Idle"] })] }), _jsxs(Typography, { variant: "caption", color: "text.secondary", sx: { mt: 1 }, children: ["Last seen: ", new Date(camera.last_seen).toLocaleString()] })] }, camera.id));
-                                })) : (_jsx(Typography, { color: "text.secondary", children: "No camera data found." }))] }) })] }), loading && (_jsx(Box, { sx: { display: "flex", justifyContent: "center", mt: 2 }, children: _jsx(CircularProgress, {}) }))] }));
+    return (_jsxs(Box, { sx: {
+            minHeight: "100vh",
+            width: "100vw",
+            background: "linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%)",
+            py: 4,
+        }, children: [_jsx(Navbar, {}), _jsxs(Container, { maxWidth: "lg", sx: { mt: 10 }, children: [_jsx(Typography, { variant: "h4", component: "h1", gutterBottom: true, align: "center", fontWeight: 600, children: "Video Settings" }), error && (_jsx(Alert, { severity: "error", sx: { mb: 2, maxWidth: 500, mx: "auto" }, children: error })), success && (_jsx(Alert, { severity: "success", sx: { mb: 2, maxWidth: 500, mx: "auto" }, children: success })), _jsxs(Grid, { container: true, spacing: 4, alignItems: "flex-start", children: [_jsx(Grid, { item: true, xs: 12, md: 7, children: _jsxs(Card, { sx: {
+                                        p: { xs: 2, sm: 4 },
+                                        borderRadius: 4,
+                                        boxShadow: "0 4px 24px 0 rgba(0,0,0,0.07)",
+                                        background: "#f7fafc",
+                                        maxWidth: 900,
+                                        mx: "auto",
+                                        mt: 0,
+                                    }, children: [_jsx(Typography, { variant: "h6", sx: { mb: 3, fontWeight: 500, textAlign: "center" }, children: "Upload and Manage Your Branding" }), _jsxs(Grid, { container: true, spacing: 3, children: [renderUploader("Intro Video", "intro_video_path", previewUrl.intro), renderUploader("Main Logo", "logo_path", previewUrl.logo), renderUploader("Sponsor Logo 1", "sponsor_logo1_path", previewUrl.sponsor_logo1), renderUploader("Sponsor Logo 2", "sponsor_logo2_path", previewUrl.sponsor_logo2), renderUploader("Sponsor Logo 3", "sponsor_logo3_path", previewUrl.sponsor_logo3)] })] }) }), _jsx(Grid, { item: true, xs: 12, md: 5, children: _jsxs(Card, { sx: {
+                                        p: 4,
+                                        borderRadius: 4,
+                                        boxShadow: "0 4px 24px 0 rgba(0,0,0,0.10)",
+                                        background: "#fff",
+                                        minHeight: 320,
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                    }, children: [_jsx(Typography, { variant: "h6", sx: { mb: 2, fontWeight: 600, textAlign: "center" }, children: "System Status" }), cameras.length > 0 ? (cameras
+                                            .filter((camera) => typeof camera === "object" &&
+                                            camera !== null &&
+                                            typeof camera.id === "string")
+                                            .map((camera) => {
+                                            const online = isCameraOnline(camera.last_seen);
+                                            const hasInternet = online && !!camera.ip_address;
+                                            return (_jsxs(Box, { sx: { mb: 3, width: "100%" }, children: [_jsxs(Typography, { variant: "subtitle1", fontWeight: 700, sx: { mb: 1 }, children: [camera.name, " ", camera.location ? `- ${camera.location}` : ""] }), _jsxs(Box, { sx: { display: "flex", alignItems: "center", mb: 1 }, children: [_jsx(FiberManualRecordIcon, { sx: {
+                                                                    color: online ? "#43a047" : "#e53935",
+                                                                    mr: 1,
+                                                                } }), _jsxs(Typography, { variant: "subtitle1", fontWeight: 500, children: ["Camera: ", online ? "Online" : "Offline"] })] }), _jsxs(Box, { sx: { display: "flex", alignItems: "center", mb: 1 }, children: [hasInternet ? (_jsx(WifiIcon, { sx: { color: "#43a047", mr: 1 } })) : (_jsx(WifiOffIcon, { sx: { color: "#e53935", mr: 1 } })), _jsxs(Typography, { variant: "subtitle1", fontWeight: 500, children: ["Internet:", " ", hasInternet ? "Connected" : "Disconnected"] })] }), _jsxs(Box, { sx: { display: "flex", alignItems: "center", mb: 1 }, children: [_jsx(FiberManualRecordIcon, { sx: {
+                                                                    color: camera.is_recording
+                                                                        ? "#43a047"
+                                                                        : "#757575",
+                                                                    mr: 1,
+                                                                } }), _jsxs(Typography, { variant: "subtitle1", fontWeight: 500, children: ["Recording:", " ", camera.is_recording ? "In Progress" : "Idle"] })] }), _jsxs(Typography, { variant: "caption", color: "text.secondary", sx: { mt: 1 }, children: ["Last seen:", " ", new Date(camera.last_seen).toLocaleString()] })] }, camera.id));
+                                        })) : (_jsx(Typography, { color: "text.secondary", children: "No camera data found." }))] }) })] }), loading && (_jsx(Box, { sx: { display: "flex", justifyContent: "center", mt: 2 }, children: _jsx(CircularProgress, {}) }))] })] }));
 };
 export default SettingsPage;
