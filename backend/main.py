@@ -661,7 +661,6 @@ def main():
                     if elapsed >= 2.0:
                         measured_fps = frame_count / elapsed
                         log(f"Measured FPS: {measured_fps:.2f}", LogLevel.INFO)
-                        # Re-init video writer with measured FPS
                         if out:
                             out.release()
                         out = cv2.VideoWriter(current_filename, fourcc, measured_fps, (frame.shape[1], frame.shape[0]))
@@ -669,7 +668,6 @@ def main():
                 elif out:
                     out.write(output_frame)
                     frame_counter += 1
-                    # Log frame count every 1000 frames
                     if frame_counter % 1000 == 0:
                         elapsed = time.time() - last_frame_log_time
                         actual_fps = 1000 / elapsed
@@ -680,8 +678,8 @@ def main():
                 frame_count = 0
                 fps_measured = False
 
-            # Store current frame for next iteration
-            prev_frame = frame.copy()
+            # Store processed frame for next iteration (for tracking)
+            prev_frame = output_frame.copy()
             
             # Add timestamp
             frame = cv2.putText(frame, now.strftime("%Y-%m-%d %H:%M:%S"), (10, 30),
