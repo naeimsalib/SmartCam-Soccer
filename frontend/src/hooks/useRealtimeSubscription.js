@@ -1,8 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../supabaseClient';
 export function useRealtimeSubscription({ table, schema = 'public', filter, onInsert, onUpdate, onDelete, }) {
     const [channel, setChannel] = useState(null);
+    const handleInsert = useCallback((payload) => {
+        onInsert?.(payload);
+    }, [onInsert]);
+    const handleUpdate = useCallback((payload) => {
+        onUpdate?.(payload);
+    }, [onUpdate]);
+    const handleDelete = useCallback((payload) => {
+        onDelete?.(payload);
+    }, [onDelete]);
     useEffect(() => {
+        if (!table)
+            return;
         // Create the channel
         const newChannel = supabase
             .channel(`${table}-changes`)
@@ -14,13 +25,13 @@ export function useRealtimeSubscription({ table, schema = 'public', filter, onIn
         }, (payload) => {
             switch (payload.eventType) {
                 case 'INSERT':
-                    onInsert?.(payload.new);
+                    handleInsert(payload.new);
                     break;
                 case 'UPDATE':
-                    onUpdate?.(payload.new);
+                    handleUpdate(payload.new);
                     break;
                 case 'DELETE':
-                    onDelete?.(payload.old);
+                    handleDelete(payload.old);
                     break;
             }
         })
@@ -32,6 +43,6 @@ export function useRealtimeSubscription({ table, schema = 'public', filter, onIn
                 supabase.removeChannel(newChannel);
             }
         };
-    }, [table, schema, filter, onInsert, onUpdate, onDelete]);
+    }, [table, schema, filter, handleInsert, handleUpdate, handleDelete]);
     return channel;
 }

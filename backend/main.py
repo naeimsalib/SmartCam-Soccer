@@ -18,6 +18,20 @@ import socket
 import signal
 import sys
 import queue as pyqueue
+import multiprocessing
+from concurrent.futures import ThreadPoolExecutor
+import logging
+from logging.handlers import RotatingFileHandler
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        RotatingFileHandler('camera.log', maxBytes=1024*1024, backupCount=3),
+        logging.StreamHandler()
+    ]
+)
 
 class LogLevel(Enum):
     INFO = "INFO"
@@ -26,18 +40,27 @@ class LogLevel(Enum):
     SUCCESS = "SUCCESS"
 
 def log(message, level=LogLevel.INFO):
-    timestamp = datetime.datetime.now().strftime("%H:%M:%S")
-    color_codes = {
-        LogLevel.INFO: "\033[94m",  # Blue
-        LogLevel.WARNING: "\033[93m",  # Yellow
-        LogLevel.ERROR: "\033[91m",  # Red
-        LogLevel.SUCCESS: "\033[92m",  # Green
-    }
-    reset = "\033[0m"
-    print(f"{color_codes[level]}[{timestamp}] {level.value}: {message}{reset}")
+    if level == LogLevel.INFO:
+        logging.info(message)
+    elif level == LogLevel.WARNING:
+        logging.warning(message)
+    elif level == LogLevel.ERROR:
+        logging.error(message)
+    elif level == LogLevel.SUCCESS:
+        logging.info(f"SUCCESS: {message}")
 
+# Constants for video processing
 CAMERA_INDEX = 0
+PREVIEW_WIDTH = 640  # Reduced for preview
+PREVIEW_HEIGHT = 480
+RECORD_WIDTH = 1280  # Full resolution for recording
+RECORD_HEIGHT = 720
+PREVIEW_FPS = 24  # Reduced FPS for preview
+RECORD_FPS = 30  # Full FPS for recording
+HARDWARE_ENCODER = "h264_omx"  # Use hardware encoder
+MAX_WORKERS = 2  # Limit concurrent processes
 
+# Global variables
 load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
@@ -45,53 +68,47 @@ USER_ID = os.getenv("USER_ID")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 upload_queue = queue.Queue()
-
-# Add a global flag to indicate shutdown
 shutting_down = False
 
-# Add these global variables to track last printed states
-last_printed_booking_id = None
-last_printed_recording = None
-last_printed_camera_on = None
-last_printed_status = None
-
-def handle_shutdown(signum, frame):
-    global shutting_down
-    shutting_down = True
-    print("[INFO] Caught shutdown signal, marking camera offline...")
-    update_camera_status(camera_on=False, is_recording=False)
-    exit(0)
-
-# Register signal handlers
-signal.signal(signal.SIGINT, handle_shutdown)
-signal.signal(signal.SIGTERM, handle_shutdown)
+# Cache for logos and settings
+logo_cache = {}
+settings_cache = None
+last_settings_update = 0
+SETTINGS_CACHE_DURATION = 3600  # 1 hour
 
 def get_user_settings():
-    response = supabase.table("user_settings").select("*").eq("user_id", USER_ID).single().execute()
-    return response.data if response.data else {}
-
-def download_file_from_supabase(path, local_filename):
-    try:
-        file_data = supabase.storage.from_("usermedia").download(path)
-        with open(local_filename, "wb") as f:
-            f.write(file_data)
-        return True
-    except Exception as e:
-        log(f"Failed to download {path}: {str(e)}", LogLevel.ERROR)
-        return False
+    global settings_cache, last_settings_update
+    current_time = time.time()
+    
+    if settings_cache is None or (current_time - last_settings_update) > SETTINGS_CACHE_DURATION:
+        try:
+            response = supabase.table("user_settings").select("*").eq("user_id", USER_ID).single().execute()
+            settings_cache = response.data if response.data else {}
+            last_settings_update = current_time
+        except Exception as e:
+            log(f"Failed to fetch settings: {str(e)}", LogLevel.ERROR)
+            return settings_cache or {}
+    
+    return settings_cache
 
 def overlay_logo(frame, logo_path, position):
-    if not os.path.exists(logo_path):
-        return frame
-    logo = cv2.imread(logo_path, cv2.IMREAD_UNCHANGED)
-    if logo is None:
-        return frame
-
-    h_frame, w_frame = frame.shape[:2]
-    # Always use a fixed logo width (e.g., 180px or 15% of frame width, whichever is smaller)
-    fixed_logo_width = min(int(w_frame * 0.15), 180)
-    scale_factor = fixed_logo_width / logo.shape[1]
-    logo = cv2.resize(logo, (0, 0), fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_AREA)
+    global logo_cache
+    
+    if position not in logo_cache:
+        if not os.path.exists(logo_path):
+            return frame
+            
+        logo = cv2.imread(logo_path, cv2.IMREAD_UNCHANGED)
+        if logo is None:
+            return frame
+            
+        h_frame, w_frame = frame.shape[:2]
+        fixed_logo_width = min(int(w_frame * 0.15), 180)
+        scale_factor = fixed_logo_width / logo.shape[1]
+        logo = cv2.resize(logo, (0, 0), fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_AREA)
+        logo_cache[position] = logo
+    else:
+        logo = logo_cache[position]
 
     h_logo, w_logo = logo.shape[:2]
     x, y = {
@@ -101,7 +118,6 @@ def overlay_logo(frame, logo_path, position):
         "bottom-right": (w_frame - w_logo - 10, h_frame - h_logo - 10),
     }.get(position, (10, 10))
 
-    # Ensure the logo fits in the frame
     if x < 0 or y < 0 or x + w_logo > w_frame or y + h_logo > h_frame:
         return frame
 
@@ -116,26 +132,15 @@ def overlay_logo(frame, logo_path, position):
         overlay[y:y+h_logo, x:x+w_logo] = logo
     return overlay
 
-def format_video_filename(booking_date, booking_time, user_id):
-    # Convert date and time to a more readable format
-    date_obj = datetime.datetime.strptime(booking_date, "%Y-%m-%d")
-    time_obj = datetime.datetime.strptime(booking_time, "%H:%M")
-    
-    formatted_date = date_obj.strftime("%Y%m%d")
-    formatted_time = time_obj.strftime("%H%M")
-    
-    return f"recording_{formatted_date}_{formatted_time}_{user_id}.mp4"
-
-def encode_video_with_fixed_fps(input_path, output_path, target_fps=45):
-    """Encode video with fixed FPS and proper codec settings."""
+def encode_video_with_fixed_fps(input_path, output_path, target_fps=30):
+    """Encode video using hardware acceleration."""
     try:
-        # First, ensure the video has a constant frame rate
         cmd = [
             "ffmpeg", "-i", input_path,
             "-filter:v", f"fps={target_fps}",
-            "-c:v", "libx264",
-            "-preset", "medium",
-            "-crf", "23",
+            "-c:v", HARDWARE_ENCODER,  # Use hardware encoder
+            "-preset", "ultrafast",  # Faster encoding
+            "-b:v", "2M",  # Bitrate
             "-c:a", "aac",
             "-b:a", "128k",
             "-y", output_path
@@ -149,91 +154,32 @@ def encode_video_with_fixed_fps(input_path, output_path, target_fps=45):
         log(f"Failed to encode video: {str(e)}", LogLevel.ERROR)
         return False
 
-def ensure_video_has_audio(video_path):
-    """Ensure video has an audio track, add silent audio if needed."""
-    try:
-        # Check if video has audio
-        probe_cmd = ["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=codec_type", "-of", "json", video_path]
-        probe_result = subprocess.run(probe_cmd, capture_output=True, text=True)
-        has_audio = "codec_type" in probe_result.stdout
-
-        if not has_audio:
-            temp_path = f"{video_path}.temp.mp4"
-            cmd = [
-                "ffmpeg",
-                "-f", "lavfi", "-i", "anullsrc",
-                "-i", video_path,
-                "-shortest",
-                "-c:v", "copy",
-                "-c:a", "aac",
-                "-b:a", "128k",
-                "-y", temp_path
-            ]
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            if result.returncode == 0:
-                os.replace(temp_path, video_path)
-                return True
-            else:
-                log(f"Error adding audio: {result.stderr}", LogLevel.ERROR)
-                return False
-        return True
-    except Exception as e:
-        log(f"Failed to check/add audio: {str(e)}", LogLevel.ERROR)
-        return False
-
 def prepend_intro(intro_path, main_path, output_path):
-    """Improved version of prepend_intro with better error handling and encoding."""
+    """Optimized version using hardware acceleration."""
     temp_dir = "temp_processing"
     try:
-        # Create a temporary directory for processing
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
         os.makedirs(temp_dir, exist_ok=True)
         
-        # Prepare paths for temporary files
         temp_intro = os.path.join(temp_dir, "temp_intro.mp4")
         temp_main = os.path.join(temp_dir, "temp_main.mp4")
         
-        # Get video information
-        probe_cmd = ["ffprobe", "-v", "error", "-select_streams", "v:0",
-                    "-show_entries", "stream=width,height,r_frame_rate", "-of", "json", main_path]
-        probe_result = subprocess.run(probe_cmd, capture_output=True, text=True)
-        video_info = json.loads(probe_result.stdout)
-        width = video_info['streams'][0]['width']
-        height = video_info['streams'][0]['height']
-        
-        # Process intro video
-        log("Processing intro video...", LogLevel.INFO)
+        # Process intro video with hardware acceleration
         intro_cmd = [
             "ffmpeg", "-i", intro_path,
-            "-vf", f"scale={width}:{height}",
-            "-c:v", "libx264",
-            "-preset", "medium",
-            "-crf", "23",
+            "-c:v", HARDWARE_ENCODER,
+            "-preset", "ultrafast",
+            "-b:v", "2M",
             "-c:a", "aac",
             "-b:a", "128k",
             "-y", temp_intro
         ]
-        result = subprocess.run(intro_cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            log(f"Error processing intro: {result.stderr}", LogLevel.ERROR)
-            return False
-            
+        subprocess.run(intro_cmd, capture_output=True)
+        
         # Process main video
-        log("Processing main video...", LogLevel.INFO)
         if not encode_video_with_fixed_fps(main_path, temp_main):
             return False
-            
-        # Ensure both videos have audio
-        if not ensure_video_has_audio(temp_intro) or not ensure_video_has_audio(temp_main):
-            return False
-            
-        # Verify both videos are valid
-        for video in [temp_intro, temp_main]:
-            probe_cmd = ["ffprobe", "-v", "error", video]
-            if subprocess.run(probe_cmd, capture_output=True).returncode != 0:
-                log(f"Invalid video file: {video}", LogLevel.ERROR)
-                return False
         
         # Create file list for concatenation
         list_file = os.path.join(temp_dir, "list.txt")
@@ -241,119 +187,63 @@ def prepend_intro(intro_path, main_path, output_path):
             f.write(f"file '{os.path.abspath(temp_intro)}'\n")
             f.write(f"file '{os.path.abspath(temp_main)}'\n")
         
-        # Merge videos with proper encoding
-        log("Merging videos...", LogLevel.INFO)
+        # Merge videos
         merge_cmd = [
             "ffmpeg",
             "-f", "concat",
             "-safe", "0",
             "-i", list_file,
-            "-c:v", "libx264",
-            "-preset", "medium",
-            "-crf", "23",
+            "-c:v", HARDWARE_ENCODER,
+            "-preset", "ultrafast",
+            "-b:v", "2M",
             "-c:a", "aac",
             "-b:a", "128k",
             "-y", output_path
         ]
-        result = subprocess.run(merge_cmd, capture_output=True, text=True)
-        if result.returncode != 0:
-            log(f"Error merging videos: {result.stderr}", LogLevel.ERROR)
-            return False
-            
-        # Verify final output
-        probe_cmd = ["ffprobe", "-v", "error", output_path]
-        if subprocess.run(probe_cmd, capture_output=True).returncode != 0:
-            log("Final output video is invalid", LogLevel.ERROR)
-            return False
-            
-        log("Video processing completed successfully", LogLevel.SUCCESS)
+        subprocess.run(merge_cmd, capture_output=True)
+        
+        shutil.rmtree(temp_dir)
         return True
-        
     except Exception as e:
-        log(f"Failed to merge videos: {str(e)}", LogLevel.ERROR)
+        log(f"Failed to prepend intro: {str(e)}", LogLevel.ERROR)
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
         return False
-    finally:
-        # Cleanup
-        try:
-            if os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
-        except Exception as e:
-            log(f"Warning during cleanup: {str(e)}", LogLevel.WARNING)
-
-def get_upcoming_bookings():
-    now = datetime.datetime.now()
-    today = now.strftime("%Y-%m-%d")
-    current_time = now.strftime("%H:%M")
-    
-    try:
-        # Get today's bookings that haven't ended yet
-        response = supabase.table("bookings").select("*").eq("user_id", USER_ID).eq("date", today).gte("end_time", current_time).order("start_time").execute()
-        
-        # Get future bookings
-        future_response = supabase.table("bookings").select("*").eq("user_id", USER_ID).gt("date", today).order("date").order("start_time").execute()
-        
-        # Combine and sort all bookings
-        all_bookings = response.data + future_response.data
-        return sorted(all_bookings, key=lambda x: (x['date'], x['start_time']))
-    except Exception as e:
-        log(f"Error fetching bookings: {str(e)}", LogLevel.ERROR)
-        return []  # Return empty list on error
 
 def detect_moving_circle(frame, prev_frame):
+    """Optimized ball detection."""
     if prev_frame is None:
         return None, None
-    
-    # Convert frames to grayscale
+        
+    # Convert to grayscale
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     prev_gray = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
     
-    # Apply stronger Gaussian blur to reduce noise
-    gray = cv2.GaussianBlur(gray, (15, 15), 0)  # Increased blur for more stable detection
-    prev_gray = cv2.GaussianBlur(prev_gray, (15, 15), 0)
+    # Calculate absolute difference
+    diff = cv2.absdiff(gray, prev_gray)
     
-    # Calculate frame difference
-    frame_diff = cv2.absdiff(gray, prev_gray)
+    # Apply threshold
+    _, thresh = cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)
     
-    # Apply higher threshold to only detect significant movement
-    _, thresh = cv2.threshold(frame_diff, 40, 255, cv2.THRESH_BINARY)  # Increased threshold
-    
-    # Apply stronger morphological operations to reduce noise
-    kernel = np.ones((15,15), np.uint8)  # Larger kernel for more stable regions
-    thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
-    thresh = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
-    
-    # Find contours in the thresholded image
+    # Find contours
     contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     
-    # Sort contours by area and only process the largest ones
-    contours = sorted(contours, key=cv2.contourArea, reverse=True)[:2]  # Only look at top 2 largest movements
+    if not contours:
+        return None, None
+        
+    # Find the largest contour
+    largest_contour = max(contours, key=cv2.contourArea)
     
-    best_contour = None
-    best_score = 0
+    # Calculate circularity
+    area = cv2.contourArea(largest_contour)
+    perimeter = cv2.arcLength(largest_contour, True)
+    circularity = 4 * np.pi * area / (perimeter * perimeter) if perimeter > 0 else 0
     
-    for contour in contours:
-        area = cv2.contourArea(contour)
-        if 200 < area < 5000:  # Much larger area range for gameplay
-            # Get the bounding circle
-            (x, y), radius = cv2.minEnclosingCircle(contour)
-            center = (int(x), int(y))
-            radius = int(radius)
-            
-            # Calculate circularity
-            perimeter = cv2.arcLength(contour, True)
-            if perimeter > 0:
-                circularity = 4 * np.pi * area / (perimeter * perimeter)
-                
-                # Calculate score based on circularity and size
-                size_score = 1 - abs(area - 1000) / 5000  # Prefer larger areas
-                shape_score = circularity
-                score = size_score * shape_score
-                
-                if 0.5 < circularity < 1.5 and score > best_score:  # Much more relaxed circularity
-                    best_score = score
-                    best_contour = (center, radius)
+    if circularity > 0.7:  # More circular
+        (x, y), radius = cv2.minEnclosingCircle(largest_contour)
+        return (int(x), int(y)), int(radius)
     
-    return best_contour if best_contour else (None, None)
+    return None, None
 
 def create_focused_frame(frame, center, radius, zoom_factor=1.5):
     if center is None or radius is None:
@@ -391,41 +281,98 @@ def create_focused_frame(frame, center, radius, zoom_factor=1.5):
         log(f"Error in create_focused_frame: {str(e)}", LogLevel.ERROR)
         return frame
 
-class BallTracker:
-    def __init__(self):
-        self.kalman = cv2.KalmanFilter(4, 2)
-        self.kalman.measurementMatrix = np.array([[1, 0, 0, 0],
-                                                [0, 1, 0, 0]], np.float32)
-        self.kalman.transitionMatrix = np.array([[1, 0, 1, 0],
-                                               [0, 1, 0, 1],
-                                               [0, 0, 1, 0],
-                                               [0, 0, 0, 1]], np.float32)
-        self.kalman.processNoiseCov = np.array([[1, 0, 0, 0],
-                                              [0, 1, 0, 0],
-                                              [0, 0, 1, 0],
-                                              [0, 0, 0, 1]], np.float32) * 0.03
-        self.last_measurement = None
-        self.last_prediction = None
-        self.tracking_lost_count = 0
-        self.max_tracking_lost = 20
-        self.last_radius = 30
-        self.min_detection_confidence = 0.3
-        self.last_positions = []
-        self.max_positions = 10
-
-    def update(self, center, radius):
-        # Simple passthrough for now; you can add Kalman logic if needed
-        return center, radius
-
-def upload_video_to_supabase(local_path, user_id, filename):
-    storage_path = f"{user_id}/{filename}"
+def get_upcoming_bookings():
+    now = datetime.datetime.now()
+    today = now.strftime("%Y-%m-%d")
+    current_time = now.strftime("%H:%M")
+    
     try:
-        with open(local_path, "rb") as f:
-            supabase.storage.from_("videos").upload(storage_path, f, {"content-type": "video/mp4"})
-        log(f"Uploaded {filename}", LogLevel.SUCCESS)
-        return storage_path
+        # Get today's bookings that haven't ended yet
+        response = supabase.table("bookings").select("*").eq("user_id", USER_ID).eq("date", today).gte("end_time", current_time).order("start_time").execute()
+        
+        # Get future bookings
+        future_response = supabase.table("bookings").select("*").eq("user_id", USER_ID).gt("date", today).order("date").order("start_time").execute()
+        
+        # Combine and sort all bookings
+        all_bookings = response.data + future_response.data
+        return sorted(all_bookings, key=lambda x: (x['date'], x['start_time']))
     except Exception as e:
-        log(f"Upload failed: {str(e)}", LogLevel.ERROR)
+        log(f"Error fetching bookings: {str(e)}", LogLevel.ERROR)
+        return []  # Return empty list on error
+
+def upload_worker():
+    """Optimized upload worker with retry logic."""
+    while not shutting_down:
+        try:
+            local_path, user_id, filename = upload_queue.get(timeout=1)
+            if local_path is None:
+                continue
+                
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    with open(local_path, 'rb') as f:
+                        storage_path = f"videos/{user_id}/{filename}"
+                        supabase.storage.from_("videos").upload(storage_path, f)
+                        
+                    insert_video_reference(user_id, filename, storage_path, None)
+                    cleanup_local_file(local_path)
+                    break
+                except Exception as e:
+                    if attempt == max_retries - 1:
+                        log(f"Failed to upload after {max_retries} attempts: {str(e)}", LogLevel.ERROR)
+                    else:
+                        time.sleep(2 ** attempt)  # Exponential backoff
+                        
+        except queue.Empty:
+            continue
+        except Exception as e:
+            log(f"Upload worker error: {str(e)}", LogLevel.ERROR)
+            time.sleep(1)
+
+def start_recording():
+    """Start recording with hardware acceleration."""
+    try:
+        # Use libcamera-vid with hardware encoding
+        cmd = [
+            "libcamera-vid",
+            "-t", "0",
+            "--width", str(RECORD_WIDTH),
+            "--height", str(RECORD_HEIGHT),
+            "--framerate", str(RECORD_FPS),
+            "--codec", "h264",
+            "--inline",
+            "--nopreview",
+            "-o", "recording.h264"
+        ]
+        return subprocess.Popen(cmd)
+    except Exception as e:
+        log(f"Failed to start recording: {str(e)}", LogLevel.ERROR)
+        return None
+
+def update_camera_status(camera_on, is_recording):
+    data = {
+        "id": os.getenv("CAMERA_ID"),
+        "user_id": USER_ID,
+        "name": os.getenv("CAMERA_NAME", "Camera"),
+        "location": os.getenv("CAMERA_LOCATION", ""),
+        "camera_on": camera_on,
+        "is_recording": is_recording,
+        "last_seen": datetime.datetime.utcnow().isoformat(),
+        "ip_address": get_ip(),
+    }
+    # Commented out to reduce terminal output
+    # print(f"[{datetime.datetime.utcnow().isoformat()}] Upserting camera data: {data}")
+    supabase.table("cameras").upsert(data).execute()
+
+def get_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
         return None
 
 def insert_video_reference(user_id, filename, storage_path, booking_id):
@@ -453,381 +400,76 @@ def cleanup_local_file(file_path):
         log(f"Failed to cleanup local file {file_path}: {str(e)}", LogLevel.ERROR)
     return False
 
-def upload_worker():
-    while True:
-        try:
-            task = upload_queue.get()
-            if task is None:
-                break
-                
-            user_id, final_video_path, booking_id = task
-            if not all([user_id, final_video_path, booking_id]):
-                continue
-                
-            try:
-                # Upload the video
-                storage_path = upload_video_to_supabase(final_video_path, user_id, os.path.basename(final_video_path))
-                
-                if storage_path:
-                    # If upload was successful, add to database
-                    if insert_video_reference(user_id, os.path.basename(final_video_path), storage_path, booking_id):
-                        # Only cleanup local files after successful upload and database insert
-                        cleanup_local_file(final_video_path)
-                        
-                        # Also cleanup the original recording file if it exists
-                        original_recording = final_video_path.replace("final_", "")
-                        if os.path.exists(original_recording):
-                            cleanup_local_file(original_recording)
-                else:
-                    log(f"Keeping local file {final_video_path} due to failed upload", LogLevel.WARNING)
-                    
-            except Exception as e:
-                log(f"Upload worker error: {str(e)}", LogLevel.ERROR)
-            finally:
-                upload_queue.task_done()
-        except Exception as e:
-            log(f"Upload worker critical error: {str(e)}", LogLevel.ERROR)
-            time.sleep(1)  # Prevent tight loop on errors
-
-def update_camera_status(camera_on, is_recording):
-    data = {
-        "id": os.getenv("CAMERA_ID"),
-        "user_id": USER_ID,
-        "name": os.getenv("CAMERA_NAME", "Camera"),
-        "location": os.getenv("CAMERA_LOCATION", ""),
-        "camera_on": camera_on,
-        "is_recording": is_recording,
-        "last_seen": datetime.datetime.utcnow().isoformat(),
-        "ip_address": get_ip(),
-    }
-    # Commented out to reduce terminal output
-    # print(f"[{datetime.datetime.utcnow().isoformat()}] Upserting camera data: {data}")
-    supabase.table("cameras").upsert(data).execute()
-
-def get_ip():
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
-    except Exception:
-        return None
-
-def start_recording():
-    global recording_process
-    if recording_process is None:
-        try:
-            # Use raspivid for video capture and ffmpeg with h264_omx for hardware acceleration
-            cmd = f"raspivid -t 0 -w 1280 -h 720 -fps 30 -o - | ffmpeg -f h264 -i - -f v4l2 -vcodec h264_omx -pix_fmt yuv420p /dev/video36"
-            recording_process = subprocess.Popen(cmd, shell=True)
-            log("Recording started", LogLevel.INFO)
-        except Exception as e:
-            log(f"Error starting recording: {str(e)}", LogLevel.ERROR)
-            recording_process = None
-
 def main():
-    log("Initializing SmartCam...", LogLevel.INFO)
+    """Main function with optimized video processing."""
+    global shutting_down
     
-    # Start upload worker thread
+    # Start upload worker
     upload_thread = threading.Thread(target=upload_worker, daemon=True)
     upload_thread.start()
     
-    # Start the main camera process directly at 45 FPS
-    video_cmd = "libcamera-vid -t 0 --width 1280 --height 720 --framerate 45 --codec yuv420 --inline --nopreview -o - | ffmpeg -f rawvideo -pix_fmt yuv420p -s 1280x720 -i - -f rawvideo -pix_fmt bgr24 -"
-    try:
-        video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
-    except Exception as e:
-        log(f"Failed to start camera process: {e}", LogLevel.ERROR)
+    # Initialize camera
+    cap = cv2.VideoCapture(CAMERA_INDEX)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, PREVIEW_WIDTH)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, PREVIEW_HEIGHT)
+    cap.set(cv2.CAP_PROP_FPS, PREVIEW_FPS)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    
+    if not cap.isOpened():
+        log("Failed to open camera", LogLevel.ERROR)
         return
-    log("Camera connected successfully", LogLevel.SUCCESS)
-    time.sleep(2)  # Give the camera time to stabilize
+        
+    prev_frame = None
+    recording_process = None
+    last_booking_check = 0
+    BOOKING_CHECK_INTERVAL = 300  # 5 minutes
     
-    # Initialize ball tracker
-    ball_tracker = BallTracker()
-    
-    # Now that camera is initialized, clean up any leftover videos
-    # try:
-    #     log("Checking for leftover videos...", LogLevel.INFO)
-    #     cleanup_leftover_videos()
-    # except Exception as e:
-    #     log(f"Error during cleanup: {str(e)}", LogLevel.ERROR)
-    #     # Continue even if cleanup fails
-    
-    # Create user assets directory
-    os.makedirs("user_assets", exist_ok=True)
-    
-    # Load user settings and assets
     try:
-        user_settings = get_user_settings()
-        local_logos = {}
-
-        log("Loading user assets...", LogLevel.INFO)
-        for key, pos in zip(['logo_path', 'sponsor_logo1_path', 'sponsor_logo2_path', 'sponsor_logo3_path'],
-                            ['top-right', 'bottom-left', 'bottom-right', 'top-left']):
-            if user_settings.get(key):
-                filename = os.path.join("user_assets", f"media_{key}.png")
-                if download_file_from_supabase(user_settings[key], filename):
-                    local_logos[pos] = filename
-
-        intro_local = None
-        if user_settings.get("intro_video_path"):
-            intro_local = os.path.join("user_assets", "intro_video.mp4")
-            download_file_from_supabase(user_settings["intro_video_path"], intro_local)
-
-        log("SmartCam is ready", LogLevel.SUCCESS)
-    except Exception as e:
-        log(f"Error loading user assets: {str(e)}", LogLevel.ERROR)
-        # Continue with default settings if asset loading fails
-        user_settings = {}
-        local_logos = {}
-        intro_local = None
-    
-    # Initialize video writer with default FPS (will be updated after measurement)
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    fps = 45  # Default FPS
-    out, recording = None, False
-    
-    # Add frame counter for logging
-    frame_counter = 0
-    last_frame_log_time = time.time()
-    
-    appointments = []
-    active_appt_id = None
-    last_check_time = 0
-    current_filename = None
-    recording_start_time = None
-    buffer_time = datetime.timedelta(seconds=2)  # 2 second buffer
-    last_booking_log_time = 0
-    booking_log_interval = 5  # seconds
-    last_status_update = 0
-    last_booking_id = None
-    status_update_interval = 2  # seconds (was 5)
-    last_ball_time = time.time()
-
-    # --- FPS measurement variables ---
-    frame_count = 0
-    fps_measure_start = None
-    measured_fps = fps  # fallback to default if measurement fails
-    fps_measured = False
-
-    while True:
-        try:
-            # Read raw video data
-            raw_frame = video_process.stdout.read(1280 * 720 * 3)
-            if not raw_frame:
-                log("Camera disconnected. Attempting to reconnect...", LogLevel.ERROR)
-                video_process.terminate()
-                if out:
-                    out.release()
-                cv2.destroyAllWindows()
-                time.sleep(5)
-                video_process = subprocess.Popen(video_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        while not shutting_down:
+            ret, frame = cap.read()
+            if not ret:
+                log("Failed to read frame", LogLevel.ERROR)
                 continue
-
-            # Convert raw data to numpy array
-            frame = np.frombuffer(raw_frame, dtype=np.uint8).reshape((720, 1280, 3)).copy()
-            now = datetime.datetime.now()
-
-            # --- Ball tracking and zoom (if recording) ---
-            if recording:
-                center, radius = detect_moving_circle(frame, prev_frame)
-                tracked_position, tracked_radius = ball_tracker.update(center, radius)
-                if tracked_position:
-                    frame = create_focused_frame(frame, tracked_position, tracked_radius)
-
-            # --- Overlays: timer and logo (apply only once, after all processing) ---
-            output_frame = frame.copy()
-            timer_text = now.strftime("%Y-%m-%d %H:%M:%S")
-            cv2.putText(output_frame, timer_text, (15, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2, cv2.LINE_AA)
-            for pos, logo_file in local_logos.items():
-                output_frame = overlay_logo(output_frame, logo_file, pos)
-
-            # --- Show and write only output_frame ---
-            cv2.imshow("SmartCam Soccer", output_frame)
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord("q"):
-                if recording and out:
-                    out.release()
-                video_process.terminate()
-                cv2.destroyAllWindows()
-                upload_queue.put((None, None, None))  # Signal upload worker to stop
-                upload_thread.join(timeout=5)  # Wait for upload worker to finish
-                log("SmartCam shutdown complete", LogLevel.INFO)
-                return
-
-            # Write frame to video only after FPS is measured
-            if recording:
-                if not fps_measured:
-                    if fps_measure_start is None:
-                        fps_measure_start = time.time()
-                        frame_count = 0
-                    frame_count += 1
-                    elapsed = time.time() - fps_measure_start
-                    if elapsed >= 2.0:
-                        measured_fps = frame_count / elapsed
-                        log(f"Measured FPS: {measured_fps:.2f}", LogLevel.INFO)
-                        if out:
-                            out.release()
-                        out = cv2.VideoWriter(current_filename, fourcc, measured_fps, (frame.shape[1], frame.shape[0]))
-                        fps_measured = True
-                elif out:
-                    out.write(output_frame)
-                    frame_counter += 1
-                    if frame_counter % 1000 == 0:
-                        elapsed = time.time() - last_frame_log_time
-                        actual_fps = 1000 / elapsed
-                        log(f"Writing frames: {frame_counter} (Actual FPS: {actual_fps:.2f})", LogLevel.INFO)
-                        last_frame_log_time = time.time()
-            else:
-                fps_measure_start = None
-                frame_count = 0
-                fps_measured = False
-
-            # Store processed frame for next iteration (for tracking)
-            prev_frame = output_frame.copy()
+                
+            # Resize frame for preview
+            frame = cv2.resize(frame, (PREVIEW_WIDTH, PREVIEW_HEIGHT))
             
-            # Add timestamp
-            frame = cv2.putText(frame, now.strftime("%Y-%m-%d %H:%M:%S"), (10, 30),
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-
-            # Check for new bookings every 30 seconds
-            if time.time() - last_check_time > 30:
-                try:
-                    appointments = get_upcoming_bookings()
-                    log(f"Fetched appointments: {appointments}", LogLevel.INFO)
-                    last_check_time = time.time()
-                except Exception as e:
-                    log(f"Error fetching appointments: {str(e)}", LogLevel.ERROR)
-
-            # --- Status/booking change logging ---
-            # Find current booking
-            current_appt = next((a for a in appointments if
-                datetime.datetime.strptime(f"{a['date']} {a['start_time']}", "%Y-%m-%d %H:%M") <= now <=
-                datetime.datetime.strptime(f"{a['date']} {a['end_time']}", "%Y-%m-%d %H:%M")), None)
-
-            # Only log if booking changes
-            global last_printed_booking_id
-            if current_appt:
-                if last_printed_booking_id != current_appt['id']:
-                    log(f"Matched current booking: {current_appt}", LogLevel.INFO)
-                    last_printed_booking_id = current_appt['id']
-            else:
-                if last_printed_booking_id is not None:
-                    log("No current booking matched.", LogLevel.INFO)
-                    last_printed_booking_id = None
-
-            # Only log if recording status changes
-            global last_printed_recording
-            if last_printed_recording != recording:
-                log(f"Recording status changed: {'Started' if recording else 'Stopped'}", LogLevel.INFO)
-                last_printed_recording = recording
-
-            # Only log if camera status changes
-            global last_printed_camera_on
-            camera_on = True  # Always true in main loop unless shutting down
-            if last_printed_camera_on != camera_on:
-                log(f"Camera status changed: {'Online' if camera_on else 'Offline'}", LogLevel.INFO)
-                last_printed_camera_on = camera_on
-
-            # Only log errors/warnings as they occur (leave those as is)
-
-            # Handle booking transitions
-            if current_appt and (not recording or current_appt['id'] != active_appt_id):
-                # Stop current recording if any
-                if recording and out:
-                    log(f"Stopping recording for booking {active_appt_id}", LogLevel.INFO)
-                    out.release()
-                    if current_filename:
-                        try:
-                            final_output = current_filename
-                            if intro_local:
-                                merged = f"final_{current_filename}"
-                                if prepend_intro(intro_local, current_filename, merged):
-                                    if os.path.exists(current_filename):
-                                        os.remove(current_filename)
-                                    final_output = merged
-                            # Queue the upload task
-                            upload_queue.put((USER_ID, final_output, active_appt_id))
-                        except Exception as e:
-                            log(f"Error processing video: {str(e)}", LogLevel.ERROR)
-                    recording = False
-                    recording_start_time = None
-                    ball_tracking_active = False
-                    last_ball_detection = None
-
-                # Start new recording
-                log(f"Starting recording for booking {current_appt['id']}", LogLevel.SUCCESS)
-                active_appt_id = current_appt['id']
-                current_filename = format_video_filename(
-                    current_appt['date'],
-                    current_appt['start_time'],
-                    USER_ID
-                )
-                out = cv2.VideoWriter(current_filename, fourcc, fps, (frame.shape[1], frame.shape[0]))
-                recording = True
-                recording_start_time = now
-                ball_tracker = BallTracker()  # Reset tracker for new recording
-
-            # Handle end of booking
-            elif not current_appt and recording:
-                log("Stopping recording (no current appointment)", LogLevel.INFO)
-                out.release()
-                if current_filename:
-                    try:
-                        final_output = current_filename
-                        if intro_local:
-                            merged = f"final_{current_filename}"
-                            if prepend_intro(intro_local, current_filename, merged):
-                                if os.path.exists(current_filename):
-                                    os.remove(current_filename)
-                                final_output = merged
-                        # Queue the upload task
-                        upload_queue.put((USER_ID, final_output, active_appt_id))
-                        # Remove finished booking from Supabase
-                        try:
-                            if active_appt_id:
-                                supabase.table("bookings").delete().eq("id", active_appt_id).execute()
-                                log(f"Removed finished booking {active_appt_id} from DB", LogLevel.SUCCESS)
-                        except Exception as e:
-                            log(f"Error removing finished booking: {str(e)}", LogLevel.WARNING)
-                    except Exception as e:
-                        log(f"Error processing video: {str(e)}", LogLevel.ERROR)
-                recording = False
-                active_appt_id = None
-                current_filename = None
-                recording_start_time = None
-                ball_tracking_active = False
-                last_ball_detection = None
-
-            if recording and out:
-                out.write(frame)
-
-            # Update camera status every 2 seconds
-            if time.time() - last_status_update > status_update_interval:
-                # log(f"Current time: {now}", LogLevel.INFO)  # Optional: comment out to reduce output
-                update_camera_status(camera_on=True, is_recording=recording)
-                last_status_update = time.time()
-
-            if shutting_down:
-                break
-        except Exception as e:
-            log(f"Error in main loop: {str(e)}", LogLevel.ERROR)
-            time.sleep(1)  # Prevent tight loop on errors
-            continue
-
-    # On exit, mark camera offline
-    update_camera_status(camera_on=False, is_recording=False)
-
-    # If we get here, the camera was disconnected
-    video_process.terminate()
-    if out:
-        out.release()
-    cv2.destroyAllWindows()
-    upload_queue.put((None, None, None))  # Signal upload worker to stop
-    upload_thread.join(timeout=5)  # Wait for upload worker to finish
-    log("Attempting to reconnect to camera...", LogLevel.INFO)
-    time.sleep(5)  # Wait before attempting to reconnect
+            # Ball detection (only on preview resolution)
+            center, radius = detect_moving_circle(frame, prev_frame)
+            prev_frame = frame.copy()
+            
+            # Check bookings periodically
+            current_time = time.time()
+            if current_time - last_booking_check > BOOKING_CHECK_INTERVAL:
+                get_upcoming_bookings()
+                last_booking_check = current_time
+            
+            # Update camera status
+            update_camera_status(camera_on=True, is_recording=recording_process is not None)
+            
+            # Process frame (skip if not needed)
+            if center and radius:
+                frame = create_focused_frame(frame, center, radius)
+            
+            # Overlay logos (cached)
+            settings = get_user_settings()
+            for position, logo_path in settings.get("logos", {}).items():
+                frame = overlay_logo(frame, logo_path, position)
+            
+            # Show frame (only in debug mode)
+            if os.getenv("DEBUG", "false").lower() == "true":
+                cv2.imshow("Preview", frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+                    
+    except Exception as e:
+        log(f"Main loop error: {str(e)}", LogLevel.ERROR)
+    finally:
+        if recording_process:
+            recording_process.terminate()
+        cap.release()
+        cv2.destroyAllWindows()
+        update_camera_status(camera_on=False, is_recording=False)
 
 if __name__ == "__main__":
     main()

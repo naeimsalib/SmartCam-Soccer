@@ -27,9 +27,11 @@ import {
 } from "@mui/icons-material";
 import { supabase } from "../supabaseClient";
 import Navbar from "../components/Navbar";
+import { useNavigate } from "react-router-dom";
 
 interface Recording {
   id: string;
+  name: string;
   title: string;
   description: string;
   video_url: string;
@@ -39,6 +41,7 @@ interface Recording {
 }
 
 const Recordings = () => {
+  const navigate = useNavigate();
   const [recordings, setRecordings] = useState<Recording[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,50 +54,187 @@ const Recordings = () => {
   const [editDescription, setEditDescription] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
 
+  // Check authentication and fetch user ID
   useEffect(() => {
-    const fetchUserId = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setUserId(session?.user?.id || null);
-    };
-    fetchUserId();
-  }, []);
+    const checkAuth = async () => {
+      try {
+        console.log("Checking authentication...");
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession();
 
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          throw sessionError;
+        }
+
+        console.log("Session:", session);
+
+        if (!session) {
+          console.log("No session found, redirecting to login");
+          navigate("/login");
+          return;
+        }
+
+        console.log("Setting user ID:", session.user.id);
+        setUserId(session.user.id);
+      } catch (err) {
+        console.error("Error checking authentication:", err);
+        setError("Authentication error. Please try logging in again.");
+        navigate("/login");
+      }
+    };
+
+    checkAuth();
+  }, [navigate]);
+
+  // Fetch recordings when userId changes
   useEffect(() => {
-    fetchRecordings();
-  }, []);
+    if (userId) {
+      console.log("User ID changed, fetching recordings...");
+      fetchRecordings();
+    }
+  }, [userId]);
 
   const fetchRecordings = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("recordings")
-        .select("*")
-        .order("created_at", { ascending: false });
+    if (!userId) {
+      console.log("No user ID available, skipping fetch");
+      return;
+    }
 
-      if (error) throw error;
-      setRecordings(data || []);
+    try {
+      console.log("Fetching recordings for user:", userId);
+      setLoading(true);
+      setError(null);
+
+      // First, check if we can access the storage bucket
+      const { data: bucketData, error: bucketError } =
+        await supabase.storage.getBucket("videos");
+
+      if (bucketError) {
+        console.error("Error accessing storage bucket:", bucketError);
+        throw new Error(`Storage bucket error: ${bucketError.message}`);
+      }
+
+      console.log("Storage bucket access successful:", bucketData);
+
+      // List all files in the user's recordings folder
+      const { data: files, error: listError } = await supabase.storage
+        .from("videos")
+        .list(userId, {
+          limit: 100,
+          offset: 0,
+          sortBy: { column: "name", order: "asc" },
+        });
+
+      if (listError) {
+        console.error("Error listing files:", listError);
+        throw new Error(`Failed to list files: ${listError.message}`);
+      }
+
+      console.log("Files found:", files);
+
+      if (!files || files.length === 0) {
+        console.log("No files found in user's folder");
+        setRecordings([]);
+        return;
+      }
+
+      // Create signed URLs for each video and its thumbnail
+      const recordingsWithUrls = await Promise.all(
+        files
+          .filter((file) => file.name.endsWith(".mp4")) // Only process video files
+          .map(async (file) => {
+            try {
+              // Get signed URL for the video
+              const { data: videoData, error: videoError } =
+                await supabase.storage
+                  .from("videos")
+                  .createSignedUrl(`${userId}/${file.name}`, 3600);
+
+              if (videoError) {
+                console.error(
+                  `Error getting signed URL for ${file.name}:`,
+                  videoError
+                );
+                return null;
+              }
+
+              // Get signed URL for the thumbnail
+              const thumbnailName = file.name.replace(".mp4", ".jpg");
+              const { data: thumbnailData, error: thumbnailError } =
+                await supabase.storage
+                  .from("videos")
+                  .createSignedUrl(`${userId}/${thumbnailName}`, 3600);
+
+              if (thumbnailError) {
+                console.error(
+                  `Error getting signed URL for thumbnail ${thumbnailName}:`,
+                  thumbnailError
+                );
+                return null;
+              }
+
+              return {
+                id: file.id,
+                name: file.name,
+                title: file.name.replace(".mp4", ""),
+                description: "", // You might want to store this in a separate metadata file
+                video_url: videoData?.signedUrl || "",
+                thumbnail_url: thumbnailData?.signedUrl || "",
+                created_at: file.created_at,
+                user_id: userId,
+              };
+            } catch (err) {
+              console.error(`Error processing file ${file.name}:`, err);
+              return null;
+            }
+          })
+      );
+
+      // Filter out any null entries from failed processing
+      const validRecordings = recordingsWithUrls.filter(
+        (rec) => rec !== null
+      ) as Recording[];
+      console.log("Valid recordings with URLs:", validRecordings);
+      setRecordings(validRecordings);
     } catch (err) {
-      setError("Failed to fetch recordings");
-      console.error(err);
+      console.error("Error fetching recordings:", err);
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to fetch recordings. Please check your connection and try again."
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (recording: Recording) => {
     try {
       setError(null);
       setSuccess(null);
-      const { error } = await supabase.from("recordings").delete().eq("id", id);
 
-      if (error) throw error;
+      // Delete the video file
+      const { error: videoError } = await supabase.storage
+        .from("videos")
+        .remove([`${userId}/${recording.name}`]);
+
+      if (videoError) throw videoError;
+
+      // Delete the thumbnail file
+      const { error: thumbnailError } = await supabase.storage
+        .from("videos")
+        .remove([`${userId}/${recording.name.replace(".mp4", ".jpg")}`]);
+
+      if (thumbnailError) throw thumbnailError;
+
       setSuccess("Recording deleted successfully");
-      fetchRecordings();
+      await fetchRecordings();
     } catch (err) {
+      console.error("Error deleting recording:", err);
       setError("Failed to delete recording");
-      console.error(err);
     }
   };
 
@@ -106,48 +246,49 @@ const Recordings = () => {
   };
 
   const handleSaveEdit = async () => {
-    if (!selectedRecording) return;
+    if (!selectedRecording || !userId) return;
 
     try {
       setError(null);
       setSuccess(null);
-      const { error } = await supabase
-        .from("recordings")
-        .update({
-          title: editTitle,
-          description: editDescription,
-        })
-        .eq("id", selectedRecording.id);
 
-      if (error) throw error;
+      // Since we're storing files in storage, we'll need to handle metadata separately
+      // For now, we'll just update the local state
+      setRecordings((prev) =>
+        prev.map((rec) =>
+          rec.id === selectedRecording.id
+            ? { ...rec, title: editTitle, description: editDescription }
+            : rec
+        )
+      );
+
       setSuccess("Recording updated successfully");
       setEditDialogOpen(false);
-      fetchRecordings();
     } catch (err) {
+      console.error("Error updating recording:", err);
       setError("Failed to update recording");
-      console.error(err);
     }
   };
 
   const handleDownload = async (recording: Recording) => {
     try {
       const { data, error } = await supabase.storage
-        .from("recordings")
-        .download(recording.video_url);
+        .from("videos")
+        .download(`${userId}/${recording.name}`);
 
       if (error) throw error;
 
       const url = URL.createObjectURL(data);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `${recording.title}.mp4`;
+      a.download = recording.name;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (err) {
+      console.error("Error downloading recording:", err);
       setError("Failed to download recording");
-      console.error(err);
     }
   };
 
@@ -254,46 +395,31 @@ const Recordings = () => {
                   <CardActions sx={{ justifyContent: "space-between", p: 2 }}>
                     <Box>
                       <IconButton
-                        size="small"
                         onClick={() => handleEdit(recording)}
-                        sx={{ color: "#F44336" }}
+                        sx={{ color: "#fff" }}
                       >
                         <EditIcon />
                       </IconButton>
                       <IconButton
-                        size="small"
-                        onClick={() => handleDelete(recording.id)}
-                        sx={{ color: "#F44336" }}
+                        onClick={() => handleDelete(recording)}
+                        sx={{ color: "#fff" }}
                       >
                         <DeleteIcon />
                       </IconButton>
                     </Box>
-                    <Box>
-                      <IconButton
-                        size="small"
-                        onClick={() => handleDownload(recording)}
-                        sx={{ color: "#F44336" }}
-                      >
-                        <DownloadIcon />
-                      </IconButton>
-                      <Button
-                        variant="contained"
-                        size="small"
-                        startIcon={<PlayIcon />}
-                        onClick={() =>
-                          window.open(recording.video_url, "_blank")
-                        }
-                        sx={{
-                          ml: 1,
-                          background: "#F44336",
-                          "&:hover": {
-                            background: "#d32f2f",
-                          },
-                        }}
-                      >
-                        Play
-                      </Button>
-                    </Box>
+                    <Button
+                      variant="contained"
+                      startIcon={<DownloadIcon />}
+                      onClick={() => handleDownload(recording)}
+                      sx={{
+                        backgroundColor: "#F44336",
+                        "&:hover": {
+                          backgroundColor: "#D32F2F",
+                        },
+                      }}
+                    >
+                      Download
+                    </Button>
                   </CardActions>
                 </Card>
               </Grid>
@@ -301,7 +427,6 @@ const Recordings = () => {
           </Grid>
         )}
 
-        {/* Edit Dialog */}
         <Dialog
           open={editDialogOpen}
           onClose={() => setEditDialogOpen(false)}
@@ -309,61 +434,55 @@ const Recordings = () => {
             sx: {
               background: "#1a1a1a",
               color: "#fff",
-              minWidth: "400px",
             },
           }}
         >
           <DialogTitle>Edit Recording</DialogTitle>
           <DialogContent>
-            <Stack spacing={3} sx={{ mt: 2 }}>
-              <TextField
-                label="Title"
-                value={editTitle}
-                onChange={(e) => setEditTitle(e.target.value)}
-                fullWidth
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    color: "#fff",
-                    "& fieldset": {
-                      borderColor: "rgba(255, 255, 255, 0.23)",
-                    },
-                    "&:hover fieldset": {
-                      borderColor: "rgba(255, 255, 255, 0.5)",
-                    },
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Title"
+              fullWidth
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              sx={{
+                mt: 2,
+                "& .MuiInputLabel-root": { color: "rgba(255, 255, 255, 0.7)" },
+                "& .MuiOutlinedInput-root": {
+                  color: "#fff",
+                  "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
+                  "&:hover fieldset": {
+                    borderColor: "rgba(255, 255, 255, 0.5)",
                   },
-                  "& .MuiInputLabel-root": {
-                    color: "rgba(255, 255, 255, 0.7)",
+                },
+              }}
+            />
+            <TextField
+              margin="dense"
+              label="Description"
+              fullWidth
+              multiline
+              rows={4}
+              value={editDescription}
+              onChange={(e) => setEditDescription(e.target.value)}
+              sx={{
+                mt: 2,
+                "& .MuiInputLabel-root": { color: "rgba(255, 255, 255, 0.7)" },
+                "& .MuiOutlinedInput-root": {
+                  color: "#fff",
+                  "& fieldset": { borderColor: "rgba(255, 255, 255, 0.3)" },
+                  "&:hover fieldset": {
+                    borderColor: "rgba(255, 255, 255, 0.5)",
                   },
-                }}
-              />
-              <TextField
-                label="Description"
-                value={editDescription}
-                onChange={(e) => setEditDescription(e.target.value)}
-                fullWidth
-                multiline
-                rows={4}
-                sx={{
-                  "& .MuiOutlinedInput-root": {
-                    color: "#fff",
-                    "& fieldset": {
-                      borderColor: "rgba(255, 255, 255, 0.23)",
-                    },
-                    "&:hover fieldset": {
-                      borderColor: "rgba(255, 255, 255, 0.5)",
-                    },
-                  },
-                  "& .MuiInputLabel-root": {
-                    color: "rgba(255, 255, 255, 0.7)",
-                  },
-                }}
-              />
-            </Stack>
+                },
+              }}
+            />
           </DialogContent>
           <DialogActions>
             <Button
               onClick={() => setEditDialogOpen(false)}
-              sx={{ color: "#fff" }}
+              sx={{ color: "rgba(255, 255, 255, 0.7)" }}
             >
               Cancel
             </Button>
@@ -371,13 +490,13 @@ const Recordings = () => {
               onClick={handleSaveEdit}
               variant="contained"
               sx={{
-                background: "#F44336",
+                backgroundColor: "#F44336",
                 "&:hover": {
-                  background: "#d32f2f",
+                  backgroundColor: "#D32F2F",
                 },
               }}
             >
-              Save Changes
+              Save
             </Button>
           </DialogActions>
         </Dialog>

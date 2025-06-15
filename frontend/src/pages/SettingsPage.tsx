@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Container,
@@ -94,88 +94,7 @@ const SettingsPage: React.FC = () => {
   const [backupDialogOpen, setBackupDialogOpen] = useState(false);
   const [backupLoading, setBackupLoading] = useState(false);
 
-  const fetchSettings = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("user_settings")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
-      if (error) throw error;
-      setSettings(data);
-      if (data) {
-        await updatePreviewUrls(data);
-      }
-    } catch (err) {
-      setError("Failed to fetch settings");
-      console.error(err);
-    }
-  };
-
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUserId(session?.user?.id || null);
-    });
-  }, []);
-
-  // Initial fetch of cameras
-  useEffect(() => {
-    if (!userId) return;
-    supabase
-      .from("cameras")
-      .select("*")
-      .eq("user_id", userId)
-      .then(({ data }) => {
-        if (data) setCameras(data as CameraRow[]);
-      });
-  }, [userId]);
-
-  // Real-time subscription for cameras
-  useRealtimeSubscription<CameraRow>({
-    table: "cameras",
-    filter: `user_id=eq.${userId}`,
-    onInsert: (newCamera) => {
-      setCameras((prev) => [...prev, newCamera]);
-    },
-    onUpdate: (updatedCamera) => {
-      setCameras((prev) =>
-        prev.map((cam) => (cam.id === updatedCamera.id ? updatedCamera : cam))
-      );
-    },
-    onDelete: (deletedCamera) => {
-      setCameras((prev) => prev.filter((cam) => cam.id !== deletedCamera.id));
-    },
-  });
-
-  // Real-time subscription for user settings
-  useRealtimeSubscription<UserSettings>({
-    table: "user_settings",
-    filter: `user_id=eq.${userId}`,
-    onInsert: (newSettings) => {
-      setSettings(newSettings);
-      updatePreviewUrls(newSettings);
-    },
-    onUpdate: (updatedSettings) => {
-      setSettings(updatedSettings);
-      updatePreviewUrls(updatedSettings);
-    },
-    onDelete: () => {
-      setSettings(null);
-      setPreviewUrl({});
-    },
-  });
-
-  const updatePreviewUrls = async (newSettings: UserSettings) => {
+  const updatePreviewUrls = useCallback(async (newSettings: UserSettings) => {
     const newPreviewUrls: typeof previewUrl = {};
 
     if (newSettings?.intro_video_path) {
@@ -214,7 +133,88 @@ const SettingsPage: React.FC = () => {
     }
 
     setPreviewUrl(newPreviewUrls);
-  };
+  }, []);
+
+  const fetchSettings = useCallback(async () => {
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("user_settings")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (error) throw error;
+      setSettings(data);
+      if (data) {
+        await updatePreviewUrls(data);
+      }
+    } catch (err) {
+      setError("Failed to fetch settings");
+      console.error(err);
+    }
+  }, [updatePreviewUrls]);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id || null);
+    });
+  }, []);
+
+  // Initial fetch of cameras
+  useEffect(() => {
+    if (!userId) return;
+    supabase
+      .from("cameras")
+      .select("*")
+      .eq("user_id", userId)
+      .then(({ data }) => {
+        if (data) setCameras(data as CameraRow[]);
+      });
+  }, [userId]);
+
+  // Real-time subscription for cameras
+  useRealtimeSubscription<CameraRow>({
+    table: "cameras",
+    filter: userId ? `user_id=eq.${userId}` : undefined,
+    onInsert: (newCamera) => {
+      setCameras((prev) => [...prev, newCamera]);
+    },
+    onUpdate: (updatedCamera) => {
+      setCameras((prev) =>
+        prev.map((cam) => (cam.id === updatedCamera.id ? updatedCamera : cam))
+      );
+    },
+    onDelete: (deletedCamera) => {
+      setCameras((prev) => prev.filter((cam) => cam.id !== deletedCamera.id));
+    },
+  });
+
+  // Real-time subscription for user settings
+  useRealtimeSubscription<UserSettings>({
+    table: "user_settings",
+    filter: userId ? `user_id=eq.${userId}` : undefined,
+    onInsert: (newSettings) => {
+      setSettings(newSettings);
+      updatePreviewUrls(newSettings);
+    },
+    onUpdate: (updatedSettings) => {
+      setSettings(updatedSettings);
+      updatePreviewUrls(updatedSettings);
+    },
+    onDelete: () => {
+      setSettings(null);
+      setPreviewUrl({});
+    },
+  });
 
   const handleFileUpload = async (
     file: File,
@@ -249,27 +249,20 @@ const SettingsPage: React.FC = () => {
       if (existingError && existingError.code !== "PGRST116")
         throw existingError;
 
-      const updatePayload = {
-        user_id: user.id,
-        intro_video_path: existing?.intro_video_path ?? null,
-        logo_path: existing?.logo_path ?? null,
-        sponsor_logo1_path: existing?.sponsor_logo1_path ?? null,
-        sponsor_logo2_path: existing?.sponsor_logo2_path ?? null,
-        sponsor_logo3_path: existing?.sponsor_logo3_path ?? null,
-        [type]: filePath,
-      };
-
       const { error: updateError } = await supabase
         .from("user_settings")
-        .upsert(updatePayload, { onConflict: "user_id" });
+        .upsert({
+          user_id: user.id,
+          [type]: filePath,
+        });
 
       if (updateError) throw updateError;
 
-      setSuccess(`${type.replace("_", " ")} uploaded successfully`);
-      fetchSettings();
+      setSuccess("File uploaded successfully");
+      await fetchSettings();
     } catch (err) {
-      setError(`Failed to upload ${type.replace("_", " ")}`);
-      console.error(err);
+      console.error("Error uploading file:", err);
+      setError("Failed to upload file");
     } finally {
       setLoading(false);
     }
@@ -286,24 +279,18 @@ const SettingsPage: React.FC = () => {
       } = await supabase.auth.getUser();
       if (!user) throw new Error("User not authenticated");
 
-      const currentPath = settings?.[type];
-      if (currentPath) {
-        const { error: deleteError } = await supabase.storage
-          .from("usermedia")
-          .remove([currentPath]);
-        if (deleteError) throw deleteError;
-      }
-
       const { error: updateError } = await supabase
         .from("user_settings")
-        .upsert({ user_id: user.id, [type]: null }, { onConflict: "user_id" });
+        .update({ [type]: null })
+        .eq("user_id", user.id);
+
       if (updateError) throw updateError;
 
-      setSuccess(`${type.replace("_", " ")} removed successfully`);
-      fetchSettings();
+      setSuccess("File removed successfully");
+      await fetchSettings();
     } catch (err) {
-      setError(`Failed to remove ${type.replace("_", " ")}`);
-      console.error(err);
+      console.error("Error removing file:", err);
+      setError("Failed to remove file");
     } finally {
       setLoading(false);
     }
@@ -314,116 +301,111 @@ const SettingsPage: React.FC = () => {
     type: keyof UserSettings & string,
     preview?: string
   ) => (
-    <Grid item xs={12} sm={6}>
-      <Card
-        sx={{
-          p: 2,
-          borderRadius: 3,
-          boxShadow: "0 2px 8px 0 rgba(0,0,0,0.06)",
-          background: "#1a1a1a",
-          color: "#fff",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-        }}
-      >
-        <Typography
-          variant="subtitle1"
-          fontWeight={600}
-          sx={{ mb: 2, textAlign: "center", color: "#fff" }}
-        >
+    <Card
+      sx={{
+        background: "#1a1a1a",
+        color: "#fff",
+        borderRadius: 3,
+        mb: 3,
+      }}
+    >
+      <CardContent>
+        <Typography variant="h6" gutterBottom sx={{ color: "#fff" }}>
           {label}
         </Typography>
-        <Box
-          sx={{
-            mb: 2,
-            width: "100%",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-          }}
-        >
-          {preview ? (
-            <CardMedia
-              component={type === "intro_video_path" ? "video" : "img"}
-              controls={type === "intro_video_path"}
-              src={preview}
-              sx={{
-                height: 160,
-                width: "100%",
-                maxWidth: 240,
-                objectFit: "contain",
-                borderRadius: 2,
-                mb: 2,
-                background: "#2a2a2a",
-              }}
-              onError={() =>
-                console.error(`❌ Failed to load preview for: ${type}`, preview)
-              }
-            />
-          ) : null}
-        </Box>
-        {preview ? (
-          <Button
-            variant="outlined"
-            color="error"
-            onClick={() => handleRemoveFile(type)}
-            disabled={loading}
-            sx={{ width: "100%" }}
+        {preview && (
+          <Box
+            sx={{
+              width: "100%",
+              height: 200,
+              background: "#2a2a2a",
+              borderRadius: 2,
+              mb: 2,
+              overflow: "hidden",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
           >
-            Remove {label}
-          </Button>
-        ) : (
+            <img
+              src={preview}
+              alt={label}
+              style={{
+                maxWidth: "100%",
+                maxHeight: "100%",
+                objectFit: "contain",
+              }}
+            />
+          </Box>
+        )}
+        <Stack direction="row" spacing={2}>
           <Button
             component="label"
             variant="contained"
             startIcon={<CloudUploadIcon />}
             disabled={loading}
             sx={{
-              width: "100%",
-              background: "#F44336",
+              backgroundColor: "#F44336",
               "&:hover": {
-                background: "#d32f2f",
+                backgroundColor: "#D32F2F",
               },
             }}
           >
-            Upload {label}
+            Upload
             <input
               type="file"
-              accept={type === "intro_video_path" ? "video/*" : "image/*"}
+              hidden
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) handleFileUpload(file, type);
               }}
-              style={{ display: "none" }}
             />
           </Button>
-        )}
-      </Card>
-    </Grid>
+          {preview && (
+            <Button
+              variant="outlined"
+              startIcon={<DeleteIcon />}
+              onClick={() => handleRemoveFile(type)}
+              disabled={loading}
+              sx={{
+                color: "#F44336",
+                borderColor: "#F44336",
+                "&:hover": {
+                  borderColor: "#D32F2F",
+                  backgroundColor: "rgba(244, 67, 54, 0.04)",
+                },
+              }}
+            >
+              Remove
+            </Button>
+          )}
+        </Stack>
+      </CardContent>
+    </Card>
   );
 
   const fetchSystemStatus = async () => {
     try {
       setLoading(true);
-      // Fetch system status from your backend
+      setError(null);
+
       const { data, error } = await supabase
         .from("system_status")
         .select("*")
+        .eq("user_id", userId)
         .single();
 
       if (error) throw error;
-      setSystemStatus(
-        data || {
-          isRecording: false,
-          isStreaming: false,
-          storageUsed: 0,
-          lastBackup: "",
-        }
-      );
+
+      setSystemStatus({
+        isRecording: data.is_recording,
+        isStreaming: data.is_streaming,
+        storageUsed: data.storage_used,
+        lastBackup: data.last_backup,
+      });
     } catch (err) {
+      console.error("Error fetching system status:", err);
       setError("Failed to fetch system status");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -435,46 +417,57 @@ const SettingsPage: React.FC = () => {
       setError(null);
       setSuccess(null);
 
-      // Implement backup logic here
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulated backup
-      setSuccess("Backup completed successfully");
+      const { error } = await supabase.functions.invoke("create-backup", {
+        body: { userId },
+      });
+
+      if (error) throw error;
+
+      setSuccess("Backup created successfully");
       setBackupDialogOpen(false);
+      await fetchSystemStatus();
     } catch (err) {
+      console.error("Error creating backup:", err);
       setError("Failed to create backup");
-      console.error(err);
     } finally {
       setBackupLoading(false);
     }
   };
 
   const handleDeleteAllData = async () => {
-    if (
-      !window.confirm(
-        "Are you sure you want to delete all data? This action cannot be undone."
-      )
-    ) {
-      return;
-    }
-
     try {
       setLoading(true);
       setError(null);
       setSuccess(null);
 
-      // Implement delete all data logic here
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Simulated deletion
+      const { error } = await supabase.functions.invoke("delete-all-data", {
+        body: { userId },
+      });
+
+      if (error) throw error;
+
       setSuccess("All data deleted successfully");
+      await fetchSettings();
+      await fetchSystemStatus();
     } catch (err) {
+      console.error("Error deleting data:", err);
       setError("Failed to delete data");
-      console.error(err);
     } finally {
       setLoading(false);
     }
   };
 
   const formatStorage = (bytes: number) => {
-    const gb = bytes / (1024 * 1024 * 1024);
-    return `${gb.toFixed(2)} GB`;
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    let size = bytes;
+    let unitIndex = 0;
+
+    while (size >= 1024 && unitIndex < units.length - 1) {
+      size /= 1024;
+      unitIndex++;
+    }
+
+    return `${size.toFixed(2)} ${units[unitIndex]}`;
   };
 
   return (
@@ -515,143 +508,112 @@ const SettingsPage: React.FC = () => {
         )}
 
         <Grid container spacing={4}>
-          {/* System Status */}
           <Grid item xs={12} md={6}>
             <Card
               sx={{
                 background: "#1a1a1a",
                 color: "#fff",
                 borderRadius: 3,
-                height: "100%",
+                mb: 3,
               }}
             >
               <CardContent>
-                <Typography
-                  variant="h5"
-                  gutterBottom
-                  sx={{ color: "#fff", fontWeight: 600 }}
-                >
+                <Typography variant="h6" gutterBottom sx={{ color: "#fff" }}>
                   System Status
                 </Typography>
-                {loading ? (
-                  <Box display="flex" justifyContent="center" my={4}>
-                    <CircularProgress sx={{ color: "#F44336" }} />
+                <Stack spacing={2}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                      Recording Status
+                    </Typography>
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      {systemStatus.isRecording ? (
+                        <CheckCircleIcon sx={{ color: "#4CAF50" }} />
+                      ) : (
+                        <CancelIcon sx={{ color: "#F44336" }} />
+                      )}
+                    </Box>
                   </Box>
-                ) : (
-                  <Stack spacing={2}>
-                    <Box
-                      display="flex"
-                      justifyContent="space-between"
-                      alignItems="center"
-                    >
-                      <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
-                        Recording Status
-                      </Typography>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={systemStatus.isRecording}
-                            color="error"
-                          />
-                        }
-                        label=""
-                      />
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                      Streaming Status
+                    </Typography>
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      {systemStatus.isStreaming ? (
+                        <CheckCircleIcon sx={{ color: "#4CAF50" }} />
+                      ) : (
+                        <CancelIcon sx={{ color: "#F44336" }} />
+                      )}
                     </Box>
-                    <Box
-                      display="flex"
-                      justifyContent="space-between"
-                      alignItems="center"
-                    >
-                      <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
-                        Streaming Status
-                      </Typography>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={systemStatus.isStreaming}
-                            color="error"
-                          />
-                        }
-                        label=""
-                      />
-                    </Box>
-                    <Box
-                      display="flex"
-                      justifyContent="space-between"
-                      alignItems="center"
-                    >
-                      <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
-                        Storage Used
-                      </Typography>
-                      <Typography sx={{ color: "#fff" }}>
-                        {formatStorage(systemStatus.storageUsed)}
-                      </Typography>
-                    </Box>
-                    <Box
-                      display="flex"
-                      justifyContent="space-between"
-                      alignItems="center"
-                    >
-                      <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
-                        Last Backup
-                      </Typography>
-                      <Typography sx={{ color: "#fff" }}>
-                        {systemStatus.lastBackup
-                          ? new Date(
-                              systemStatus.lastBackup
-                            ).toLocaleDateString()
-                          : "Never"}
-                      </Typography>
-                    </Box>
-                    <Button
-                      variant="outlined"
-                      startIcon={<RefreshIcon />}
-                      onClick={fetchSystemStatus}
-                      sx={{
-                        mt: 2,
-                        color: "#F44336",
-                        borderColor: "#F44336",
-                        "&:hover": {
-                          borderColor: "#d32f2f",
-                          background: "rgba(244, 67, 54, 0.08)",
-                        },
-                      }}
-                    >
-                      Refresh Status
-                    </Button>
-                  </Stack>
-                )}
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                      Storage Used
+                    </Typography>
+                    <Typography sx={{ color: "#fff" }}>
+                      {formatStorage(systemStatus.storageUsed)}
+                    </Typography>
+                  </Box>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                    }}
+                  >
+                    <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                      Last Backup
+                    </Typography>
+                    <Typography sx={{ color: "#fff" }}>
+                      {systemStatus.lastBackup
+                        ? new Date(systemStatus.lastBackup).toLocaleString()
+                        : "Never"}
+                    </Typography>
+                  </Box>
+                </Stack>
               </CardContent>
             </Card>
-          </Grid>
 
-          {/* Data Management */}
-          <Grid item xs={12} md={6}>
             <Card
               sx={{
                 background: "#1a1a1a",
                 color: "#fff",
                 borderRadius: 3,
-                height: "100%",
+                mb: 3,
               }}
             >
               <CardContent>
-                <Typography
-                  variant="h5"
-                  gutterBottom
-                  sx={{ color: "#fff", fontWeight: 600 }}
-                >
+                <Typography variant="h6" gutterBottom sx={{ color: "#fff" }}>
                   Data Management
                 </Typography>
-                <Stack spacing={3}>
+                <Stack spacing={2}>
                   <Button
                     variant="contained"
                     startIcon={<CloudUploadIcon />}
                     onClick={() => setBackupDialogOpen(true)}
+                    disabled={loading || backupLoading}
                     sx={{
-                      background: "#F44336",
+                      backgroundColor: "#F44336",
                       "&:hover": {
-                        background: "#d32f2f",
+                        backgroundColor: "#D32F2F",
                       },
                     }}
                   >
@@ -661,12 +623,13 @@ const SettingsPage: React.FC = () => {
                     variant="outlined"
                     startIcon={<DeleteIcon />}
                     onClick={handleDeleteAllData}
+                    disabled={loading}
                     sx={{
                       color: "#F44336",
                       borderColor: "#F44336",
                       "&:hover": {
-                        borderColor: "#d32f2f",
-                        background: "rgba(244, 67, 54, 0.08)",
+                        borderColor: "#D32F2F",
+                        backgroundColor: "rgba(244, 67, 54, 0.04)",
                       },
                     }}
                   >
@@ -676,9 +639,32 @@ const SettingsPage: React.FC = () => {
               </CardContent>
             </Card>
           </Grid>
+
+          <Grid item xs={12} md={6}>
+            {renderUploader(
+              "Intro Video",
+              "intro_video_path",
+              previewUrl.intro
+            )}
+            {renderUploader("Logo", "logo_path", previewUrl.logo)}
+            {renderUploader(
+              "Sponsor Logo 1",
+              "sponsor_logo1_path",
+              previewUrl.sponsor_logo1
+            )}
+            {renderUploader(
+              "Sponsor Logo 2",
+              "sponsor_logo2_path",
+              previewUrl.sponsor_logo2
+            )}
+            {renderUploader(
+              "Sponsor Logo 3",
+              "sponsor_logo3_path",
+              previewUrl.sponsor_logo3
+            )}
+          </Grid>
         </Grid>
 
-        {/* Backup Dialog */}
         <Dialog
           open={backupDialogOpen}
           onClose={() => setBackupDialogOpen(false)}
@@ -686,21 +672,20 @@ const SettingsPage: React.FC = () => {
             sx: {
               background: "#1a1a1a",
               color: "#fff",
-              minWidth: "400px",
             },
           }}
         >
           <DialogTitle>Create Backup</DialogTitle>
           <DialogContent>
-            <Typography sx={{ color: "rgba(255, 255, 255, 0.7)", mt: 2 }}>
-              This will create a backup of all your recordings and settings. The
-              backup will be stored securely in the cloud.
+            <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
+              Are you sure you want to create a backup of all your data? This
+              may take a few minutes.
             </Typography>
           </DialogContent>
           <DialogActions>
             <Button
               onClick={() => setBackupDialogOpen(false)}
-              sx={{ color: "#fff" }}
+              sx={{ color: "rgba(255, 255, 255, 0.7)" }}
             >
               Cancel
             </Button>
@@ -709,13 +694,13 @@ const SettingsPage: React.FC = () => {
               variant="contained"
               disabled={backupLoading}
               sx={{
-                background: "#F44336",
+                backgroundColor: "#F44336",
                 "&:hover": {
-                  background: "#d32f2f",
+                  backgroundColor: "#D32F2F",
                 },
               }}
             >
-              {backupLoading ? "Creating Backup..." : "Create Backup"}
+              {backupLoading ? "Creating..." : "Create Backup"}
             </Button>
           </DialogActions>
         </Dialog>
