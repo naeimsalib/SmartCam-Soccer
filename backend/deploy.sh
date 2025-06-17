@@ -28,51 +28,43 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# Get the directory where the script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+cd "$SCRIPT_DIR"
+
 # Create necessary directories
 print_status "Creating directories..."
-mkdir -p /home/pi/SmartCam-Soccer/backend
-mkdir -p /home/pi/SmartCam-Soccer/backend/temp
-mkdir -p /home/pi/SmartCam-Soccer/backend/recordings
-mkdir -p /home/pi/SmartCam-Soccer/backend/logs
+mkdir -p temp
+mkdir -p recordings
+mkdir -p logs
+mkdir -p user_assets
 
-# Copy service files
+# Set permissions
+print_status "Setting permissions..."
+chown -R $SUDO_USER:$SUDO_USER .
+chmod -R 755 .
+chmod -R 777 temp recordings logs user_assets
+
+# Install systemd services
 print_status "Installing systemd services..."
 cp systemd/*.service /etc/systemd/system/
-
-# Set proper permissions
-print_status "Setting permissions..."
-chown -R pi:pi /home/pi/SmartCam-Soccer
-chmod -R 755 /home/pi/SmartCam-Soccer
-chmod 644 /etc/systemd/system/*.service
 
 # Reload systemd
 print_status "Reloading systemd..."
 systemctl daemon-reload
 
-# Enable services
-print_status "Enabling services..."
-systemctl enable scheduler.service
-systemctl enable camera.service
-systemctl enable orchestrator.service
+# Enable and start services
+print_status "Enabling and starting services..."
+systemctl enable smartcam.service
+systemctl enable smartcam-manager.service
+systemctl enable smartcam-status.service
 
-# Start services
-print_status "Starting services..."
-systemctl start scheduler.service
-systemctl start camera.service
-systemctl start orchestrator.service
-
-# Check service status
-print_status "Checking service status..."
-echo
-echo "Scheduler Service:"
-systemctl status scheduler.service --no-pager
-echo
-echo "Camera Service:"
-systemctl status camera.service --no-pager
-echo
-echo "Orchestrator Service:"
-systemctl status orchestrator.service --no-pager
+systemctl start smartcam.service
+systemctl start smartcam-manager.service
+systemctl start smartcam-status.service
 
 print_status "Deployment completed successfully!"
-print_warning "Please check the service statuses above for any errors."
-print_warning "You can view logs using: journalctl -u <service-name>" 
+print_status "Services are now running. You can check their status with:"
+print_status "  sudo systemctl status smartcam.service"
+print_status "  sudo systemctl status smartcam-manager.service"
+print_status "  sudo systemctl status smartcam-status.service" 
