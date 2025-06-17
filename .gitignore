@@ -1,0 +1,108 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+myenv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+logs/
+log/
+
+# Local development settings
+.env
+.env.local
+.env.*.local
+
+# Database
+*.sqlite3
+*.db
+
+# Media and large files
+media/
+uploads/
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.flv
+*.mkv
+
+# Temporary files
+*.tmp
+*.temp
+.coverage
+htmlcov/
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Project specific
+node_modules/
+.next/
+out/
+.cache/
+
+# Large library files
+*.so
+*.dylib
+*.dll
+*.lib
+*.a
+*.la
+*.lo
+*.def
+*.exp
+*.lib
+*.so.*
+*.dylib.*
+*.dll.*
+*.lib.*
+*.a.*
+*.la.*
+*.lo.*
+*.def.*
+*.exp.*
+*.lib.*
+
+# CUDA and PyTorch specific
+*.cu
+*.cuh
+*.pt
+*.pth
+*.onnx
+*.engine
+*.trt
+*.uff
+*.uff.*
+*.uff.*.* 

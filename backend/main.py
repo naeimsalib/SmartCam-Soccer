@@ -1,0 +1,475 @@
+# This to fi
+# transition between intro video and recordings is not working
+
+import os
+import cv2
+import numpy as np
+import time
+import datetime
+import subprocess
+from supabase import create_client, Client
+from dotenv import load_dotenv
+import threading
+import queue
+import json
+from enum import Enum
+import shutil
+import socket
+import signal
+import sys
+import queue as pyqueue
+import multiprocessing
+from concurrent.futures import ThreadPoolExecutor
+import logging
+from logging.handlers import RotatingFileHandler
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        RotatingFileHandler('camera.log', maxBytes=1024*1024, backupCount=3),
+        logging.StreamHandler()
+    ]
+)
+
+class LogLevel(Enum):
+    INFO = "INFO"
+    WARNING = "WARNING"
+    ERROR = "ERROR"
+    SUCCESS = "SUCCESS"
+
+def log(message, level=LogLevel.INFO):
+    if level == LogLevel.INFO:
+        logging.info(message)
+    elif level == LogLevel.WARNING:
+        logging.warning(message)
+    elif level == LogLevel.ERROR:
+        logging.error(message)
+    elif level == LogLevel.SUCCESS:
+        logging.info(f"SUCCESS: {message}")
+
+# Constants for video processing
+CAMERA_INDEX = 0
+PREVIEW_WIDTH = 640  # Reduced for preview
+PREVIEW_HEIGHT = 480
+RECORD_WIDTH = 1280  # Full resolution for recording
+RECORD_HEIGHT = 720
+PREVIEW_FPS = 24  # Reduced FPS for preview
+RECORD_FPS = 30  # Full FPS for recording
+HARDWARE_ENCODER = "h264_omx"  # Use hardware encoder
+MAX_WORKERS = 2  # Limit concurrent processes
+
+# Global variables
+load_dotenv()
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+USER_ID = os.getenv("USER_ID")
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+upload_queue = queue.Queue()
+shutting_down = False
+
+# Cache for logos and settings
+logo_cache = {}
+settings_cache = None
+last_settings_update = 0
+SETTINGS_CACHE_DURATION = 3600  # 1 hour
+
+def get_user_settings():
+    global settings_cache, last_settings_update
+    current_time = time.time()
+    
+    if settings_cache is None or (current_time - last_settings_update) > SETTINGS_CACHE_DURATION:
+        try:
+            response = supabase.table("user_settings").select("*").eq("user_id", USER_ID).single().execute()
+            settings_cache = response.data if response.data else {}
+            last_settings_update = current_time
+        except Exception as e:
+            log(f"Failed to fetch settings: {str(e)}", LogLevel.ERROR)
+            return settings_cache or {}
+    
+    return settings_cache
+
+def overlay_logo(frame, logo_path, position):
+    global logo_cache
+    
+    if position not in logo_cache:
+        if not os.path.exists(logo_path):
+            return frame
+            
+        logo = cv2.imread(logo_path, cv2.IMREAD_UNCHANGED)
+        if logo is None:
+            return frame
+            
+        h_frame, w_frame = frame.shape[:2]
+        fixed_logo_width = min(int(w_frame * 0.15), 180)
+        scale_factor = fixed_logo_width / logo.shape[1]
+        logo = cv2.resize(logo, (0, 0), fx=scale_factor, fy=scale_factor, interpolation=cv2.INTER_AREA)
+        logo_cache[position] = logo
+    else:
+        logo = logo_cache[position]
+
+    h_logo, w_logo = logo.shape[:2]
+    x, y = {
+        "top-left": (10, 10),
+        "top-right": (w_frame - w_logo - 10, 10),
+        "bottom-left": (10, h_frame - h_logo - 10),
+        "bottom-right": (w_frame - w_logo - 10, h_frame - h_logo - 10),
+    }.get(position, (10, 10))
+
+    if x < 0 or y < 0 or x + w_logo > w_frame or y + h_logo > h_frame:
+        return frame
+
+    overlay = frame.copy()
+    if logo.shape[2] == 4:
+        alpha = logo[:, :, 3] / 255.0
+        for c in range(3):
+            overlay[y:y+h_logo, x:x+w_logo, c] = (
+                alpha * logo[:, :, c] + (1 - alpha) * overlay[y:y+h_logo, x:x+w_logo, c]
+            )
+    else:
+        overlay[y:y+h_logo, x:x+w_logo] = logo
+    return overlay
+
+def encode_video_with_fixed_fps(input_path, output_path, target_fps=30):
+    """Encode video using hardware acceleration."""
+    try:
+        cmd = [
+            "ffmpeg", "-i", input_path,
+            "-filter:v", f"fps={target_fps}",
+            "-c:v", HARDWARE_ENCODER,  # Use hardware encoder
+            "-preset", "ultrafast",  # Faster encoding
+            "-b:v", "2M",  # Bitrate
+            "-c:a", "aac",
+            "-b:a", "128k",
+            "-y", output_path
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            log(f"Error encoding video: {result.stderr}", LogLevel.ERROR)
+            return False
+        return True
+    except Exception as e:
+        log(f"Failed to encode video: {str(e)}", LogLevel.ERROR)
+        return False
+
+def prepend_intro(intro_path, main_path, output_path):
+    """Optimized version using hardware acceleration."""
+    temp_dir = "temp_processing"
+    try:
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        temp_intro = os.path.join(temp_dir, "temp_intro.mp4")
+        temp_main = os.path.join(temp_dir, "temp_main.mp4")
+        
+        # Process intro video with hardware acceleration
+        intro_cmd = [
+            "ffmpeg", "-i", intro_path,
+            "-c:v", HARDWARE_ENCODER,
+            "-preset", "ultrafast",
+            "-b:v", "2M",
+            "-c:a", "aac",
+            "-b:a", "128k",
+            "-y", temp_intro
+        ]
+        subprocess.run(intro_cmd, capture_output=True)
+        
+        # Process main video
+        if not encode_video_with_fixed_fps(main_path, temp_main):
+            return False
+        
+        # Create file list for concatenation
+        list_file = os.path.join(temp_dir, "list.txt")
+        with open(list_file, "w") as f:
+            f.write(f"file '{os.path.abspath(temp_intro)}'\n")
+            f.write(f"file '{os.path.abspath(temp_main)}'\n")
+        
+        # Merge videos
+        merge_cmd = [
+            "ffmpeg",
+            "-f", "concat",
+            "-safe", "0",
+            "-i", list_file,
+            "-c:v", HARDWARE_ENCODER,
+            "-preset", "ultrafast",
+            "-b:v", "2M",
+            "-c:a", "aac",
+            "-b:a", "128k",
+            "-y", output_path
+        ]
+        subprocess.run(merge_cmd, capture_output=True)
+        
+        shutil.rmtree(temp_dir)
+        return True
+    except Exception as e:
+        log(f"Failed to prepend intro: {str(e)}", LogLevel.ERROR)
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        return False
+
+def detect_moving_circle(frame, prev_frame):
+    """Optimized ball detection."""
+    if prev_frame is None:
+        return None, None
+        
+    # Convert to grayscale
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    prev_gray = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
+    
+    # Calculate absolute difference
+    diff = cv2.absdiff(gray, prev_gray)
+    
+    # Apply threshold
+    _, thresh = cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)
+    
+    # Find contours
+    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    
+    if not contours:
+        return None, None
+        
+    # Find the largest contour
+    largest_contour = max(contours, key=cv2.contourArea)
+    
+    # Calculate circularity
+    area = cv2.contourArea(largest_contour)
+    perimeter = cv2.arcLength(largest_contour, True)
+    circularity = 4 * np.pi * area / (perimeter * perimeter) if perimeter > 0 else 0
+    
+    if circularity > 0.7:  # More circular
+        (x, y), radius = cv2.minEnclosingCircle(largest_contour)
+        return (int(x), int(y)), int(radius)
+    
+    return None, None
+
+def create_focused_frame(frame, center, radius, zoom_factor=1.5):
+    if center is None or radius is None:
+        return frame
+    
+    height, width = frame.shape[:2]
+    
+    # Calculate the region of interest with wider view
+    roi_size = int(radius * zoom_factor * 3)  # Increased multiplier for wider view
+    
+    # Ensure ROI size is not too small
+    min_roi_size = 400  # Increased minimum size for better gameplay view
+    roi_size = max(roi_size, min_roi_size)
+    
+    # Calculate ROI boundaries with smooth transitions
+    x1 = max(0, center[0] - roi_size)
+    y1 = max(0, center[1] - roi_size)
+    x2 = min(width, center[0] + roi_size)
+    y2 = min(height, center[1] + roi_size)
+    
+    # Ensure ROI has valid dimensions
+    if x2 <= x1 or y2 <= y1:
+        return frame
+    
+    # Extract the region of interest
+    try:
+        roi = frame[y1:y2, x1:x2]
+        if roi.size == 0:
+            return frame
+            
+        # Resize the ROI to the original frame size with smooth interpolation
+        focused_frame = cv2.resize(roi, (width, height), interpolation=cv2.INTER_LINEAR)
+        return focused_frame
+    except Exception as e:
+        log(f"Error in create_focused_frame: {str(e)}", LogLevel.ERROR)
+        return frame
+
+def get_upcoming_bookings():
+    now = datetime.datetime.now()
+    today = now.strftime("%Y-%m-%d")
+    current_time = now.strftime("%H:%M")
+    
+    try:
+        # Get today's bookings that haven't ended yet
+        response = supabase.table("bookings").select("*").eq("user_id", USER_ID).eq("date", today).gte("end_time", current_time).order("start_time").execute()
+        
+        # Get future bookings
+        future_response = supabase.table("bookings").select("*").eq("user_id", USER_ID).gt("date", today).order("date").order("start_time").execute()
+        
+        # Combine and sort all bookings
+        all_bookings = response.data + future_response.data
+        return sorted(all_bookings, key=lambda x: (x['date'], x['start_time']))
+    except Exception as e:
+        log(f"Error fetching bookings: {str(e)}", LogLevel.ERROR)
+        return []  # Return empty list on error
+
+def upload_worker():
+    """Optimized upload worker with retry logic."""
+    while not shutting_down:
+        try:
+            local_path, user_id, filename = upload_queue.get(timeout=1)
+            if local_path is None:
+                continue
+                
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    with open(local_path, 'rb') as f:
+                        storage_path = f"videos/{user_id}/{filename}"
+                        supabase.storage.from_("videos").upload(storage_path, f)
+                        
+                    insert_video_reference(user_id, filename, storage_path, None)
+                    cleanup_local_file(local_path)
+                    break
+                except Exception as e:
+                    if attempt == max_retries - 1:
+                        log(f"Failed to upload after {max_retries} attempts: {str(e)}", LogLevel.ERROR)
+                    else:
+                        time.sleep(2 ** attempt)  # Exponential backoff
+                        
+        except queue.Empty:
+            continue
+        except Exception as e:
+            log(f"Upload worker error: {str(e)}", LogLevel.ERROR)
+            time.sleep(1)
+
+def start_recording():
+    """Start recording with hardware acceleration."""
+    try:
+        # Use libcamera-vid with hardware encoding
+        cmd = [
+            "libcamera-vid",
+            "-t", "0",
+            "--width", str(RECORD_WIDTH),
+            "--height", str(RECORD_HEIGHT),
+            "--framerate", str(RECORD_FPS),
+            "--codec", "h264",
+            "--inline",
+            "--nopreview",
+            "-o", "recording.h264"
+        ]
+        return subprocess.Popen(cmd)
+    except Exception as e:
+        log(f"Failed to start recording: {str(e)}", LogLevel.ERROR)
+        return None
+
+def update_camera_status(camera_on, is_recording):
+    data = {
+        "id": os.getenv("CAMERA_ID"),
+        "user_id": USER_ID,
+        "name": os.getenv("CAMERA_NAME", "Camera"),
+        "location": os.getenv("CAMERA_LOCATION", ""),
+        "camera_on": camera_on,
+        "is_recording": is_recording,
+        "last_seen": datetime.datetime.utcnow().isoformat(),
+        "ip_address": get_ip(),
+    }
+    # Commented out to reduce terminal output
+    # print(f"[{datetime.datetime.utcnow().isoformat()}] Upserting camera data: {data}")
+    supabase.table("cameras").upsert(data).execute()
+
+def get_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return None
+
+def insert_video_reference(user_id, filename, storage_path, booking_id):
+    now = datetime.datetime.now().isoformat()
+    try:
+        supabase.table("videos").insert({
+            "user_id": user_id,
+            "filename": filename,
+            "storage_path": storage_path,
+            "created_at": now
+        }).execute()
+        log(f"Added video reference for {filename}", LogLevel.SUCCESS)
+        return True
+    except Exception as e:
+        log(f"Database insert failed: {str(e)}", LogLevel.WARNING)
+        return True
+
+def cleanup_local_file(file_path):
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            log(f"Cleaned up local file: {file_path}", LogLevel.SUCCESS)
+            return True
+    except Exception as e:
+        log(f"Failed to cleanup local file {file_path}: {str(e)}", LogLevel.ERROR)
+    return False
+
+def main():
+    """Main function with optimized video processing."""
+    global shutting_down
+    
+    # Start upload worker
+    upload_thread = threading.Thread(target=upload_worker, daemon=True)
+    upload_thread.start()
+    
+    # Initialize camera
+    cap = cv2.VideoCapture(CAMERA_INDEX)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, PREVIEW_WIDTH)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, PREVIEW_HEIGHT)
+    cap.set(cv2.CAP_PROP_FPS, PREVIEW_FPS)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    
+    if not cap.isOpened():
+        log("Failed to open camera", LogLevel.ERROR)
+        return
+        
+    prev_frame = None
+    recording_process = None
+    last_booking_check = 0
+    BOOKING_CHECK_INTERVAL = 300  # 5 minutes
+    
+    try:
+        while not shutting_down:
+            ret, frame = cap.read()
+            if not ret:
+                log("Failed to read frame", LogLevel.ERROR)
+                continue
+                
+            # Resize frame for preview
+            frame = cv2.resize(frame, (PREVIEW_WIDTH, PREVIEW_HEIGHT))
+            
+            # Ball detection (only on preview resolution)
+            center, radius = detect_moving_circle(frame, prev_frame)
+            prev_frame = frame.copy()
+            
+            # Check bookings periodically
+            current_time = time.time()
+            if current_time - last_booking_check > BOOKING_CHECK_INTERVAL:
+                get_upcoming_bookings()
+                last_booking_check = current_time
+            
+            # Update camera status
+            update_camera_status(camera_on=True, is_recording=recording_process is not None)
+            
+            # Process frame (skip if not needed)
+            if center and radius:
+                frame = create_focused_frame(frame, center, radius)
+            
+            # Overlay logos (cached)
+            settings = get_user_settings()
+            for position, logo_path in settings.get("logos", {}).items():
+                frame = overlay_logo(frame, logo_path, position)
+            
+            # Show frame (only in debug mode)
+            if os.getenv("DEBUG", "false").lower() == "true":
+                cv2.imshow("Preview", frame)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+                    
+    except Exception as e:
+        log(f"Main loop error: {str(e)}", LogLevel.ERROR)
+    finally:
+        if recording_process:
+            recording_process.terminate()
+        cap.release()
+        cv2.destroyAllWindows()
+        update_camera_status(camera_on=False, is_recording=False)
+
+if __name__ == "__main__":
+    main()
