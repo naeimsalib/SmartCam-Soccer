@@ -67,6 +67,10 @@ install_backend() {
     print_status "Starting installation..."
     print_status "Detected Raspberry Pi model: $(detect_pi_model)"
 
+    # Get the directory where the script is located
+    SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+    cd "$SCRIPT_DIR"
+
     # Update package lists
     print_status "Updating package lists..."
     apt-get update
@@ -104,6 +108,10 @@ install_backend() {
 
     # Create Python virtual environment
     print_status "Creating Python virtual environment..."
+    if [ -d "venv" ]; then
+        print_status "Removing existing virtual environment..."
+        rm -rf venv
+    fi
     python3 -m venv venv
     source venv/bin/activate
 
