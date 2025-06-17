@@ -84,7 +84,7 @@ install_backend() {
         libhdf5-dev \
         libhdf5-serial-dev \
         libopenjp2-7 \
-        libtiff5 \
+        libtiff-dev \
         libavcodec-dev \
         libavformat-dev \
         libswscale-dev \
@@ -93,13 +93,11 @@ install_backend() {
         libx264-dev \
         libjpeg-dev \
         libpng-dev \
-        libtiff-dev \
         gfortran \
         libopenblas-dev \
         liblapack-dev \
         libatlas-base-dev \
-        libjasper-dev \
-        libilmbase-dev \
+        libimath-dev \
         libopenexr-dev \
         libgstreamer1.0-dev \
         libgstreamer-plugins-base1.0-dev
