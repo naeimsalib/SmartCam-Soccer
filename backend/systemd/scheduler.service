@@ -1,0 +1,15 @@
+[Unit]
+Description=SmartCam Soccer Scheduler Service
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/SmartCam-Soccer/backend
+Environment=PYTHONPATH=/home/pi/SmartCam-Soccer/backend
+ExecStart=/usr/bin/python3 -m src.scheduler
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target 
