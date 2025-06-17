@@ -7,18 +7,6 @@ export default defineConfig({
     'window.Popper': '{}',
   },
   optimizeDeps: {
-    include: [
-      '@popperjs/core',
-      '@emotion/react',
-      '@emotion/styled',
-      '@mui/material',
-      '@mui/system',
-      '@mui/icons-material'
-    ],
-  },
-  resolve: {
-    alias: {
-      '@': '/src',
-    },
+    include: ['@popperjs/core'],
   },
 });

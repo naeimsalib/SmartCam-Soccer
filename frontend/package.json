@@ -28,6 +28,7 @@
     "@mui/material": "^5.15.10",
     "@mui/system": "^5.15.10",
     "@mui/x-date-pickers": "^6.19.4",
+    "@popperjs/core": "^2.11.8",
     "@supabase/supabase-js": "^2.39.7",
 >>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
     "date-fns": "^3.3.1",
