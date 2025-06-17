@@ -5,10 +5,11 @@ After=network.target
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/home/michomanoly14892/code/SmartCam-Soccer/backend
-Environment=PATH=/home/michomanoly14892/code/SmartCam-Soccer/backend/venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-Environment=PYTHONPATH=/home/michomanoly14892/code/SmartCam-Soccer/backend
-ExecStart=/home/michomanoly14892/code/SmartCam-Soccer/backend/venv/bin/python update_system_status.py
+WorkingDirectory=/home/michomanoly14892/code/SmartCam-Soccer/backend/SmartCam-Soccer/backend
+Environment="VIRTUAL_ENV=/home/michomanoly14892/code/SmartCam-Soccer/backend/SmartCam-Soccer/backend/venv"
+Environment="PYTHONPATH=/home/michomanoly14892/code/SmartCam-Soccer/backend/SmartCam-Soccer/backend"
+EnvironmentFile=/home/michomanoly14892/code/SmartCam-Soccer/backend/SmartCam-Soccer/backend/.env
+ExecStart=/home/michomanoly14892/code/SmartCam-Soccer/backend/SmartCam-Soccer/backend/venv/bin/python update_system_status.py
 Restart=always
 RestartSec=5
 

@@ -22,6 +22,8 @@ wheels/
 
 # Virtual Environment
 venv/
+venv/*
+!venv/.gitkeep
 env/
 ENV/
 
