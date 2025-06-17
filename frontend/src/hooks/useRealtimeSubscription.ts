@@ -20,7 +20,41 @@ export function useRealtimeSubscription<T>({
   onDelete,
 }: RealtimeSubscriptionOptions) {
   const [channel, setChannel] = useState<RealtimeChannel | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
 
+<<<<<<< HEAD
+  const setupSubscription = useCallback(async () => {
+    if (!filter) {
+      return null;
+    }
+
+    try {
+      const channelName = `${table}-changes-${filter}`;
+      
+      const newChannel = supabase
+        .channel(channelName)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema,
+            table,
+            filter,
+          },
+          (payload) => {
+            switch (payload.eventType) {
+              case 'INSERT':
+                onInsert?.(payload.new);
+                break;
+              case 'UPDATE':
+                onUpdate?.(payload.new);
+                break;
+              case 'DELETE':
+                onDelete?.(payload.old);
+                break;
+            }
+=======
   const handleInsert = useCallback((payload: any) => {
     onInsert?.(payload);
   }, [onInsert]);
@@ -58,11 +92,32 @@ export function useRealtimeSubscription<T>({
             case 'DELETE':
               handleDelete(payload.old);
               break;
+>>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
           }
-        }
-      )
-      .subscribe();
+        )
+        .on('subscription_error', (error) => {
+          setError(error);
+          setIsConnected(false);
+        })
+        .subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            setError(null);
+            setIsConnected(true);
+            setChannel(newChannel);
+          } else if (status === 'CLOSED') {
+            setIsConnected(false);
+          }
+        });
 
+<<<<<<< HEAD
+      return newChannel;
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error(String(err)));
+      setIsConnected(false);
+      return null;
+    }
+  }, [table, schema, filter, onInsert, onUpdate, onDelete]);
+=======
     setChannel(newChannel);
 
     // Cleanup subscription
@@ -72,6 +127,39 @@ export function useRealtimeSubscription<T>({
       }
     };
   }, [table, schema, filter, handleInsert, handleUpdate, handleDelete]);
+>>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
 
-  return channel;
+  useEffect(() => {
+    let mounted = true;
+    let currentChannel: RealtimeChannel | null = null;
+    let reconnectTimeout: NodeJS.Timeout;
+
+    const connect = async () => {
+      if (!mounted) return;
+
+      if (currentChannel) {
+        await supabase.removeChannel(currentChannel);
+      }
+
+      currentChannel = await setupSubscription();
+
+      if (!currentChannel && mounted) {
+        reconnectTimeout = setTimeout(connect, 5000);
+      }
+    };
+
+    connect();
+
+    return () => {
+      mounted = false;
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      if (currentChannel) {
+        supabase.removeChannel(currentChannel);
+      }
+    };
+  }, [setupSubscription]);
+
+  return { channel, error, isConnected };
 } 

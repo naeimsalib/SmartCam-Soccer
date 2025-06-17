@@ -34,15 +34,11 @@ import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import WifiIcon from "@mui/icons-material/Wifi";
 import WifiOffIcon from "@mui/icons-material/WifiOff";
 import { useRealtimeSubscription } from "../hooks/useRealtimeSubscription";
-import Navbar from "../components/Navbar";
-
-interface UserSettings {
-  intro_video_path: string | null;
-  logo_path: string | null;
-  sponsor_logo1_path: string | null;
-  sponsor_logo2_path: string | null;
-  sponsor_logo3_path: string | null;
-}
+import Navigation from "../components/Navigation";
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { shallowEqual } from '../utils/objectUtils';
+import type { SystemStatus, UserSettings } from '../types';
 
 interface StatusRow {
   camera_on: boolean;
@@ -60,82 +56,263 @@ interface CameraRow {
   error?: string | null;
 }
 
-interface SystemStatus {
-  isRecording: boolean;
-  isStreaming: boolean;
-  storageUsed: number;
-  lastBackup: string;
-}
-
 function isCameraOnline(lastSeen: string, thresholdSec = 6) {
   return (Date.now() - new Date(lastSeen).getTime()) / 1000 < thresholdSec;
 }
 
+// Add buildPreviewUrlMap function
+const buildPreviewUrlMap = async (settings: UserSettings): Promise<Record<string, string>> => {
+  const newPreviewUrls: Record<string, string> = {};
+
+  if (settings?.intro_video_path) {
+    const { data: introData } = await supabase.storage
+      .from("usermedia")
+      .createSignedUrl(settings.intro_video_path, 3600);
+    if (introData?.signedUrl) {
+      newPreviewUrls.intro = introData.signedUrl;
+    }
+  }
+
+  if (settings?.logo_path) {
+    const { data: logoData } = await supabase.storage
+      .from("usermedia")
+      .createSignedUrl(settings.logo_path, 3600);
+    if (logoData?.signedUrl) {
+      newPreviewUrls.logo = logoData.signedUrl;
+    }
+  }
+
+  for (const key of [
+    "sponsor_logo1_path",
+    "sponsor_logo2_path",
+    "sponsor_logo3_path",
+  ] as const) {
+    if (settings?.[key]) {
+      const { data: signedData } = await supabase.storage
+        .from("usermedia")
+        .createSignedUrl(settings[key], 3600);
+      if (signedData?.signedUrl) {
+        newPreviewUrls[key.replace("_path", "")] = signedData.signedUrl;
+      }
+    }
+  }
+
+  return newPreviewUrls;
+};
+
 const SettingsPage: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [userId, setUserId] = useState<string | null>(user?.id || null);
+  const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null);
   const [settings, setSettings] = useState<UserSettings | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<{
-    intro?: string;
-    logo?: string;
-    sponsor_logo1?: string;
-    sponsor_logo2?: string;
-    sponsor_logo3?: string;
-  }>({});
-  const [cameras, setCameras] = useState<CameraRow[]>([]);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [systemStatus, setSystemStatus] = useState<SystemStatus>({
-    isRecording: false,
-    isStreaming: false,
-    storageUsed: 0,
-    lastBackup: "",
-  });
   const [backupDialogOpen, setBackupDialogOpen] = useState(false);
   const [backupLoading, setBackupLoading] = useState(false);
+  const [backupError, setBackupError] = useState<string | null>(null);
+  const [backupSuccess, setBackupSuccess] = useState(false);
+  const [cameras, setCameras] = useState<CameraRow[]>([]);
+  const [previewUrl, setPreviewUrl] = useState<Record<string, string>>({});
 
-  const updatePreviewUrls = useCallback(async (newSettings: UserSettings) => {
-    const newPreviewUrls: typeof previewUrl = {};
+  type MediaType = 'intro_video_path' | 'logo_path' | 'sponsor_logo1_path' | 'sponsor_logo2_path' | 'sponsor_logo3_path';
 
-    if (newSettings?.intro_video_path) {
-      const { data: introData } = await supabase.storage
-        .from("usermedia")
-        .createSignedUrl(newSettings.intro_video_path, 3600);
-      if (introData?.signedUrl) {
-        newPreviewUrls.intro = introData.signedUrl;
-      }
-    }
+  const mediaCards: {
+    label: string;
+    type: MediaType;
+    previewKey: keyof typeof previewUrl;
+    accept: string;
+    isVideo: boolean;
+  }[] = [
+    {
+      label: 'Intro Video',
+      type: 'intro_video_path',
+      previewKey: 'intro',
+      accept: 'video/*',
+      isVideo: true,
+    },
+    {
+      label: 'Logo',
+      type: 'logo_path',
+      previewKey: 'logo',
+      accept: 'image/*',
+      isVideo: false,
+    },
+    {
+      label: 'Sponsor Logo 1',
+      type: 'sponsor_logo1_path',
+      previewKey: 'sponsor_logo1',
+      accept: 'image/*',
+      isVideo: false,
+    },
+    {
+      label: 'Sponsor Logo 2',
+      type: 'sponsor_logo2_path',
+      previewKey: 'sponsor_logo2',
+      accept: 'image/*',
+      isVideo: false,
+    },
+    {
+      label: 'Sponsor Logo 3',
+      type: 'sponsor_logo3_path',
+      previewKey: 'sponsor_logo3',
+      accept: 'image/*',
+      isVideo: false,
+    },
+  ];
 
-    if (newSettings?.logo_path) {
-      const { data: logoData } = await supabase.storage
-        .from("usermedia")
-        .createSignedUrl(newSettings.logo_path, 3600);
-      if (logoData?.signedUrl) {
-        newPreviewUrls.logo = logoData.signedUrl;
-      }
-    }
-
-    for (const key of [
-      "sponsor_logo1_path",
-      "sponsor_logo2_path",
-      "sponsor_logo3_path",
-    ] as const) {
-      if (newSettings?.[key]) {
-        const { data: signedData } = await supabase.storage
-          .from("usermedia")
-          .createSignedUrl(newSettings[key], 3600);
-        if (signedData?.signedUrl) {
-          newPreviewUrls[
-            key.replace("_path", "") as keyof typeof newPreviewUrls
-          ] = signedData.signedUrl;
-        }
-      }
-    }
-
-    setPreviewUrl(newPreviewUrls);
+  // Memoize all handlers
+  const handleSystemStatusUpdate = useCallback((updatedStatus: SystemStatus) => {
+    setSystemStatus(prev => {
+      if (shallowEqual(prev, updatedStatus)) return prev;
+      return updatedStatus;
+    });
   }, []);
 
-  const fetchSettings = useCallback(async () => {
+  const handleSettingsUpdate = useCallback((updatedSettings: UserSettings) => {
+    setSettings(prev => {
+      if (shallowEqual(prev, updatedSettings)) return prev;
+      return updatedSettings;
+    });
+  }, []);
+
+  const handleCameraInsert = useCallback((newCamera: CameraRow) => {
+    setCameras(prev => [...prev, newCamera]);
+  }, []);
+
+  const handleCameraUpdate = useCallback((updatedCamera: CameraRow) => {
+    setCameras(prev => prev.map(cam => 
+      cam.id === updatedCamera.id ? updatedCamera : cam
+    ));
+  }, []);
+
+  const handleCameraDelete = useCallback((deletedCamera: CameraRow) => {
+    setCameras(prev => prev.filter(cam => cam.id !== deletedCamera.id));
+  }, []);
+
+  const handleSettingsInsert = useCallback((newSettings: UserSettings) => {
+    setSettings(newSettings);
+  }, []);
+
+  const handleSettingsDelete = useCallback((deletedSettings: UserSettings) => {
+    setSettings(null);
+  }, []);
+
+  // System status subscription
+  const { channel: systemStatusChannel, error: systemStatusError, isConnected: systemStatusConnected } = useRealtimeSubscription<SystemStatus>({
+    table: "system_status",
+    filter: userId ? `user_id=eq.${userId}` : undefined,
+    onUpdate: handleSystemStatusUpdate,
+    onInsert: handleSystemStatusUpdate,
+  });
+
+  // Settings subscription
+  const { channel: settingsChannel, error: settingsError, isConnected: settingsConnected } = useRealtimeSubscription<UserSettings>({
+    table: "user_settings",
+    filter: userId ? `user_id=eq.${userId}` : undefined,
+    onUpdate: handleSettingsUpdate,
+    onInsert: handleSettingsInsert,
+    onDelete: handleSettingsDelete,
+  });
+
+  // Cameras subscription
+  const { channel: camerasChannel, error: camerasError, isConnected: camerasConnected } = useRealtimeSubscription<CameraRow>({
+    table: "cameras",
+    filter: userId ? `user_id=eq.${userId}` : undefined,
+    onInsert: handleCameraInsert,
+    onUpdate: handleCameraUpdate,
+    onDelete: handleCameraDelete,
+  });
+
+  // Log subscription errors and connection status
+  useEffect(() => {
+    if (systemStatusError || settingsError || camerasError) {
+      setError('Connection error. Please refresh the page.');
+    }
+  }, [systemStatusError, settingsError, camerasError]);
+
+  // Cleanup subscriptions when component unmounts
+  useEffect(() => {
+    return () => {
+      if (systemStatusChannel) {
+        supabase.removeChannel(systemStatusChannel);
+      }
+      if (settingsChannel) {
+        supabase.removeChannel(settingsChannel);
+      }
+      if (camerasChannel) {
+        supabase.removeChannel(camerasChannel);
+      }
+    };
+  }, [systemStatusChannel, settingsChannel, camerasChannel]);
+
+  // Memoize the fetch system status function
+  const fetchSystemStatus = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("system_status")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (!data) {
+        // If no status exists, create one
+        const { data: newStatus, error: insertError } = await supabase
+          .from("system_status")
+          .insert({
+            user_id: userId,
+            is_recording: false,
+            is_streaming: false,
+            storage_used: 0,
+            last_backup: null
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+        setSystemStatus(newStatus);
+      } else {
+        setSystemStatus(prev => {
+          if (shallowEqual(prev, data)) return prev;
+          return data;
+        });
+      }
+    } catch (err) {
+      setError("Failed to fetch system status");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  // Memoize the updatePreviewUrls function
+  const updatePreviewUrls = useCallback(async (newSettings: UserSettings | null) => {
+    if (!newSettings) return;
+    const newUrls = await buildPreviewUrlMap(newSettings);
+    setPreviewUrl(prev => {
+      if (shallowEqual(prev, newUrls)) return prev;
+      return newUrls;
+    });
+  }, []);
+
+  // Single useEffect for initial data fetching
+  useEffect(() => {
+    if (!userId) return;
+    fetchSystemStatus();
+  }, [userId, fetchSystemStatus]);
+
+  // Update preview URLs when settings change
+  useEffect(() => {
+    updatePreviewUrls(settings);
+  }, [settings, updatePreviewUrls]);
+
+  const fetchSettings = async () => {
     try {
       const {
         data: { user },
@@ -157,11 +334,11 @@ const SettingsPage: React.FC = () => {
       setError("Failed to fetch settings");
       console.error(err);
     }
-  }, [updatePreviewUrls]);
+  };
 
   useEffect(() => {
     fetchSettings();
-  }, [fetchSettings]);
+  }, []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -218,7 +395,7 @@ const SettingsPage: React.FC = () => {
 
   const handleFileUpload = async (
     file: File,
-    type: keyof UserSettings & string
+    type: MediaType
   ) => {
     try {
       setLoading(true);
@@ -268,7 +445,7 @@ const SettingsPage: React.FC = () => {
     }
   };
 
-  const handleRemoveFile = async (type: keyof UserSettings & string) => {
+  const handleRemoveFile = async (type: MediaType) => {
     try {
       setLoading(true);
       setError(null);
@@ -384,33 +561,6 @@ const SettingsPage: React.FC = () => {
     </Card>
   );
 
-  const fetchSystemStatus = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const { data, error } = await supabase
-        .from("system_status")
-        .select("*")
-        .eq("user_id", userId)
-        .single();
-
-      if (error) throw error;
-
-      setSystemStatus({
-        isRecording: data.is_recording,
-        isStreaming: data.is_streaming,
-        storageUsed: data.storage_used,
-        lastBackup: data.last_backup,
-      });
-    } catch (err) {
-      console.error("Error fetching system status:", err);
-      setError("Failed to fetch system status");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleBackup = async () => {
     try {
       setBackupLoading(true);
@@ -481,7 +631,7 @@ const SettingsPage: React.FC = () => {
         boxSizing: "border-box",
       }}
     >
-      <Navbar />
+      <Navigation />
       <Container maxWidth="lg" sx={{ mt: 10 }}>
         <Typography
           variant="h3"
@@ -518,6 +668,93 @@ const SettingsPage: React.FC = () => {
               }}
             >
               <CardContent>
+                <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                  <Typography
+                    variant="h5"
+                    sx={{ color: "#fff", fontWeight: 600 }}
+                  >
+                    System Status
+                  </Typography>
+                  <IconButton 
+                    onClick={fetchSystemStatus} 
+                    sx={{ color: "#fff" }}
+                    disabled={loading}
+                  >
+                    <RefreshIcon />
+                  </IconButton>
+                </Box>
+                {loading ? (
+                  <Box display="flex" justifyContent="center" my={4}>
+                    <CircularProgress sx={{ color: "#F44336" }} />
+                  </Box>
+                ) : (
+                  <Stack spacing={2}>
+                    <Box
+                      display="flex"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                        Recording Status
+                      </Typography>
+                      <Box display="flex" alignItems="center">
+                        {systemStatus?.is_recording ? (
+                          <FiberManualRecordIcon sx={{ color: "#F44336", mr: 1 }} />
+                        ) : (
+                          <CancelIcon sx={{ color: "rgba(255, 255, 255, 0.7)", mr: 1 }} />
+                        )}
+                        <Typography sx={{ color: "#fff" }}>
+                          {systemStatus?.is_recording ? "Recording" : "Not Recording"}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Box
+                      display="flex"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                        Streaming Status
+                      </Typography>
+                      <Box display="flex" alignItems="center">
+                        {systemStatus?.is_streaming ? (
+                          <WifiIcon sx={{ color: "#4CAF50", mr: 1 }} />
+                        ) : (
+                          <WifiOffIcon sx={{ color: "rgba(255, 255, 255, 0.7)", mr: 1 }} />
+                        )}
+                        <Typography sx={{ color: "#fff" }}>
+                          {systemStatus?.is_streaming ? "Streaming" : "Not Streaming"}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Box
+                      display="flex"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                        Storage Used
+                      </Typography>
+                      <Typography sx={{ color: "#fff" }}>
+                        {formatStorage(systemStatus?.storage_used || 0)}
+                      </Typography>
+                    </Box>
+                    <Box
+                      display="flex"
+                      justifyContent="space-between"
+                      alignItems="center"
+                    >
+                      <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                        Last Backup
+                      </Typography>
+                      <Typography sx={{ color: "#fff" }}>
+                        {systemStatus?.last_backup
+                          ? new Date(systemStatus.last_backup).toLocaleString()
+                          : "Never"}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                )}
                 <Typography variant="h6" gutterBottom sx={{ color: "#fff" }}>
                   System Status
                 </Typography>
@@ -533,7 +770,7 @@ const SettingsPage: React.FC = () => {
                       Recording Status
                     </Typography>
                     <Box sx={{ display: "flex", alignItems: "center" }}>
-                      {systemStatus.isRecording ? (
+                      {systemStatus?.is_recording ? (
                         <CheckCircleIcon sx={{ color: "#4CAF50" }} />
                       ) : (
                         <CancelIcon sx={{ color: "#F44336" }} />
@@ -551,7 +788,7 @@ const SettingsPage: React.FC = () => {
                       Streaming Status
                     </Typography>
                     <Box sx={{ display: "flex", alignItems: "center" }}>
-                      {systemStatus.isStreaming ? (
+                      {systemStatus?.is_streaming ? (
                         <CheckCircleIcon sx={{ color: "#4CAF50" }} />
                       ) : (
                         <CancelIcon sx={{ color: "#F44336" }} />
@@ -569,7 +806,7 @@ const SettingsPage: React.FC = () => {
                       Storage Used
                     </Typography>
                     <Typography sx={{ color: "#fff" }}>
-                      {formatStorage(systemStatus.storageUsed)}
+                      {formatStorage(systemStatus?.storage_used || 0)}
                     </Typography>
                   </Box>
                   <Box
@@ -583,8 +820,8 @@ const SettingsPage: React.FC = () => {
                       Last Backup
                     </Typography>
                     <Typography sx={{ color: "#fff" }}>
-                      {systemStatus.lastBackup
-                        ? new Date(systemStatus.lastBackup).toLocaleString()
+                      {systemStatus?.last_backup
+                        ? new Date(systemStatus.last_backup).toLocaleString()
                         : "Never"}
                     </Typography>
                   </Box>
@@ -704,6 +941,119 @@ const SettingsPage: React.FC = () => {
             </Button>
           </DialogActions>
         </Dialog>
+
+        <Grid container spacing={4} sx={{ mt: 2 }}>
+          {mediaCards.map((card) => (
+            <Grid item xs={12} sm={6} md={4} key={card.type}>
+              <Card
+                sx={{
+                  background: '#1a1a1a',
+                  color: '#fff',
+                  borderRadius: 3,
+                  minHeight: 280,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  p: 2,
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  fontWeight={700}
+                  sx={{ color: '#fff', mb: 2, textAlign: 'center' }}
+                >
+                  {card.label}
+                </Typography>
+                <Box
+                  sx={{
+                    mb: 2,
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    minHeight: 120,
+                    justifyContent: 'center',
+                  }}
+                >
+                  {previewUrl[card.previewKey] ? (
+                    <CardMedia
+                      component={card.isVideo ? 'video' : 'img'}
+                      controls={card.isVideo}
+                      src={previewUrl[card.previewKey]}
+                      sx={{
+                        height: 120,
+                        width: '100%',
+                        maxWidth: 240,
+                        objectFit: 'contain',
+                        borderRadius: 2,
+                        mb: 2,
+                        background: '#2a2a2a',
+                      }}
+                      onError={() =>
+                        console.error(`❌ Failed to load preview for: ${card.type}`, previewUrl[card.previewKey])
+                      }
+                    />
+                  ) : (
+                    <Box
+                      sx={{
+                        height: 120,
+                        width: '100%',
+                        maxWidth: 240,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: '#222',
+                        borderRadius: 2,
+                        mb: 2,
+                        color: '#888',
+                        fontSize: 18,
+                      }}
+                    >
+                      {card.label}
+                    </Box>
+                  )}
+                </Box>
+                <Stack direction="row" spacing={2} sx={{ width: '100%' }}>
+                  <Button
+                    component="label"
+                    variant="contained"
+                    startIcon={<CloudUploadIcon />}
+                    disabled={loading}
+                    sx={{
+                      background: '#F44336',
+                      color: '#fff',
+                      fontWeight: 700,
+                      flex: 1,
+                      '&:hover': { background: '#d32f2f' },
+                    }}
+                  >
+                    Upload
+                    <input
+                      type="file"
+                      accept={card.accept}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(file, card.type as MediaType);
+                      }}
+                      style={{ display: 'none' }}
+                    />
+                  </Button>
+                  {previewUrl[card.previewKey] && (
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      onClick={() => handleRemoveFile(card.type as MediaType)}
+                      disabled={loading}
+                      sx={{ flex: 1, color: '#fff', borderColor: '#F44336', '&:hover': { borderColor: '#d32f2f', background: 'rgba(244,67,54,0.08)' } }}
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </Stack>
+              </Card>
+            </Grid>
+          ))}
+        </Grid>
       </Container>
     </Box>
   );

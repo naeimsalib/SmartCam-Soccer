@@ -1,7 +1,7 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { Box, Typography, Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
+import Navigation from "../components/Navigation";
 const AuthenticatedAboutPage = () => {
     const navigate = useNavigate();
     return (_jsxs(Box, { sx: {
@@ -14,7 +14,7 @@ const AuthenticatedAboutPage = () => {
             pt: { xs: 10, md: 12 },
             pb: 6,
             boxSizing: "border-box",
-        }, children: [_jsx(Navbar, {}), _jsxs(Box, { sx: {
+        }, children: [_jsx(Navigation, {}), _jsxs(Box, { sx: {
                     textAlign: "center",
                     px: 2,
                     width: "100%",

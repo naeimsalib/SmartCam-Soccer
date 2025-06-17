@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Typography, Button } from "@mui/material";
 import { useNavigate } from "react-router-dom";
-import Navbar from "../components/Navbar";
+import Navigation from "../components/Navigation";
 
 const AuthenticatedAboutPage = () => {
   const navigate = useNavigate();
@@ -19,7 +19,7 @@ const AuthenticatedAboutPage = () => {
         boxSizing: "border-box",
       }}
     >
-      <Navbar />
+      <Navigation />
       <Box
         sx={{
           textAlign: "center",

@@ -1,298 +1,250 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState, useEffect } from "react";
-import { Box, Paper, Typography, Button, TextField, MenuItem, CircularProgress, Container, Grid, Card, CardContent, CardActions, IconButton, Stack, Dialog, DialogTitle, DialogContent, DialogActions, Alert, } from "@mui/material";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import dayjs from "dayjs";
 import { supabase } from "../supabaseClient";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import Navbar from "../components/Navbar";
-const generateTimeOptions = () => {
-    const times = [];
-    for (let hour = 0; hour < 24; hour++) {
-        for (let min = 0; min < 60; min += 5) {
-            const hour12 = hour % 12 === 0 ? 12 : hour % 12;
-            const ampm = hour < 12 ? "AM" : "PM";
-            const label = `${hour12.toString().padStart(2, "0")}:${min
-                .toString()
-                .padStart(2, "0")} ${ampm}`;
-            const value = `${hour.toString().padStart(2, "0")}:${min
-                .toString()
-                .padStart(2, "0")}`;
-            times.push({ label, value });
-        }
-    }
-    return times;
+import { useAuth } from "../contexts/AuthContext";
+import dayjs from "dayjs";
+import { Box, Paper, Typography, Button, CircularProgress, Stack, Alert, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, } from "@mui/material";
+import { DatePicker, TimePicker } from "@mui/x-date-pickers";
+import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+const convertTo24Hour = (time12h) => {
+    const [time, modifier] = time12h.split(" ");
+    let [hours, minutes] = time.split(":");
+    if (hours === "12")
+        hours = "00";
+    if (modifier === "PM")
+        hours = (parseInt(hours, 10) + 12).toString();
+    return `${hours.padStart(2, "0")}:${minutes}`;
 };
-const timeOptions = generateTimeOptions();
+const formatTime = (time24h) => {
+    const [hours, minutes] = time24h.split(":");
+    const hour = parseInt(hours, 10);
+    const period = hour >= 12 ? "PM" : "AM";
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${period}`;
+};
 const Calendar = () => {
+    const { user } = useAuth();
+    const userId = user?.id;
     const [selectedDate, setSelectedDate] = useState(dayjs());
-    const [startTime, setStartTime] = useState("");
-    const [endTime, setEndTime] = useState("");
+    const [startTime, setStartTime] = useState(null);
+    const [endTime, setEndTime] = useState(null);
     const [booking, setBooking] = useState(false);
     const [upcoming, setUpcoming] = useState([]);
-    const [loading, setLoading] = useState(false);
-    const [editId, setEditId] = useState(null);
-    const [userId, setUserId] = useState(null);
-    const [quickBookOpen, setQuickBookOpen] = useState(false);
-    const [quickBookDuration, setQuickBookDuration] = useState("60");
     const [error, setError] = useState(null);
     const [success, setSuccess] = useState(null);
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    const [editingBooking, setEditingBooking] = useState(null);
+    const [editDate, setEditDate] = useState(null);
+    const [editStartTime, setEditStartTime] = useState(null);
+    const [editEndTime, setEditEndTime] = useState(null);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [bookingToDelete, setBookingToDelete] = useState(null);
     useEffect(() => {
-        setLoading(true);
-        const fetchUpcoming = async () => {
-            const { data } = await supabase
+        if (userId)
+            fetchUpcoming();
+        // eslint-disable-next-line
+    }, [userId]);
+    const fetchUpcoming = async () => {
+        if (!userId)
+            return;
+        try {
+            const { data, error } = await supabase
                 .from("bookings")
-                .select()
+                .select("*")
+                .eq("user_id", userId)
                 .gte("date", dayjs().format("YYYY-MM-DD"))
-                .order("date", { ascending: true })
-                .order("start_time", { ascending: true });
+                .order("date", { ascending: true });
+            if (error)
+                throw error;
             setUpcoming(data || []);
-            setLoading(false);
-        };
-        fetchUpcoming();
-    }, [booking]);
-    useEffect(() => {
-        const fetchUserId = async () => {
-            const { data: { session }, } = await supabase.auth.getSession();
-            setUserId(session?.user?.id || null);
-        };
-        fetchUserId();
-    }, []);
+        }
+        catch (err) {
+            setUpcoming([]);
+        }
+    };
     const handleBook = async () => {
-        if (!selectedDate ||
-            !startTime ||
-            !endTime ||
-            startTime >= endTime ||
-            !userId) {
-            setError("Please fill in all fields correctly");
+        setError(null);
+        setSuccess(null);
+        if (!selectedDate || !startTime || !endTime || !userId) {
+            setError("Please fill in all fields.");
+            return;
+        }
+        const start24 = startTime.format("HH:mm");
+        const end24 = endTime.format("HH:mm");
+        if (start24 >= end24) {
+            setError("End time must be after start time.");
             return;
         }
         setBooking(true);
-        setError(null);
-        setSuccess(null);
-        const dateStr = selectedDate.format("YYYY-MM-DD");
         try {
-            if (editId) {
-                await supabase
-                    .from("bookings")
-                    .update({
-                    date: dateStr,
-                    start_time: startTime,
-                    end_time: endTime,
-                    user_id: userId,
-                })
-                    .eq("id", editId);
-                setSuccess("Booking updated successfully");
-            }
-            else {
-                await supabase.from("bookings").insert({
-                    date: dateStr,
-                    start_time: startTime,
-                    end_time: endTime,
-                    user_id: userId,
-                });
-                setSuccess("Field booked successfully");
-            }
-            setEditId(null);
-            setStartTime("");
-            setEndTime("");
+            await supabase.from("bookings").insert({
+                date: selectedDate.format("YYYY-MM-DD"),
+                start_time: start24,
+                end_time: end24,
+                user_id: userId,
+            });
+            setSuccess("Field booked successfully.");
+            setStartTime(null);
+            setEndTime(null);
+            fetchUpcoming();
         }
         catch (err) {
             setError("Failed to book field. Please try again.");
-            console.error(err);
         }
         finally {
             setBooking(false);
         }
     };
-    const handleDelete = async (id) => {
-        setBooking(true);
+    const handleEdit = (booking) => {
+        setEditingBooking(booking);
+        setEditDate(dayjs(booking.date));
+        setEditStartTime(dayjs(`2000-01-01T${booking.start_time}`));
+        setEditEndTime(dayjs(`2000-01-01T${booking.end_time}`));
+        setEditDialogOpen(true);
+    };
+    const handleUpdateBooking = async () => {
         setError(null);
         setSuccess(null);
+        if (!editingBooking || !editDate || !editStartTime || !editEndTime) {
+            setError("Please fill in all fields for update.");
+            return;
+        }
+        const start24 = editStartTime.format("HH:mm");
+        const end24 = editEndTime.format("HH:mm");
+        if (start24 >= end24) {
+            setError("End time must be after start time for update.");
+            return;
+        }
+        setBooking(true);
         try {
-            await supabase.from("bookings").delete().eq("id", id);
-            setSuccess("Booking deleted successfully");
+            const { error } = await supabase
+                .from("bookings")
+                .update({
+                date: editDate.format("YYYY-MM-DD"),
+                start_time: start24,
+                end_time: end24,
+            })
+                .eq("id", editingBooking.id);
+            if (error)
+                throw error;
+            setSuccess("Booking updated successfully.");
+            setEditDialogOpen(false);
+            fetchUpcoming();
+        }
+        catch (err) {
+            setError("Failed to update booking. Please try again.");
+        }
+        finally {
+            setBooking(false);
+        }
+    };
+    const handleDeleteConfirm = (booking) => {
+        setBookingToDelete(booking);
+        setDeleteConfirmOpen(true);
+    };
+    const handleDeleteBooking = async () => {
+        setError(null);
+        setSuccess(null);
+        if (!bookingToDelete)
+            return;
+        setBooking(true);
+        try {
+            const { error } = await supabase
+                .from("bookings")
+                .delete()
+                .eq("id", bookingToDelete.id);
+            if (error)
+                throw error;
+            setSuccess("Booking deleted successfully.");
+            setDeleteConfirmOpen(false);
+            setBookingToDelete(null);
+            fetchUpcoming();
         }
         catch (err) {
             setError("Failed to delete booking. Please try again.");
-            console.error(err);
         }
         finally {
             setBooking(false);
         }
     };
-    const handleEdit = (row) => {
-        setSelectedDate(dayjs(row.date));
-        setStartTime(row.start_time);
-        setEndTime(row.end_time);
-        setEditId(row.id);
-    };
-    function formatTime12(time24) {
-        const [hourStr, minStr] = time24.split(":");
-        let hour = parseInt(hourStr, 10);
-        const min = minStr;
-        const ampm = hour < 12 ? "AM" : "PM";
-        hour = hour % 12 === 0 ? 12 : hour % 12;
-        return `${hour.toString().padStart(2, "0")}:${min} ${ampm}`;
-    }
-    const handleQuickBook = async () => {
-        if (!selectedDate || !userId) {
-            setError("Please select a date");
-            return;
-        }
-        setBooking(true);
-        setError(null);
-        setSuccess(null);
-        try {
-            const dateStr = selectedDate.format("YYYY-MM-DD");
-            const now = dayjs();
-            const startTimeStr = now.format("HH:mm");
-            const endTimeStr = now
-                .add(parseInt(quickBookDuration), "minutes")
-                .format("HH:mm");
-            await supabase.from("bookings").insert({
-                date: dateStr,
-                start_time: startTimeStr,
-                end_time: endTimeStr,
-                user_id: userId,
-            });
-            setSuccess("Field booked successfully");
-            setQuickBookOpen(false);
-        }
-        catch (err) {
-            setError("Failed to book field. Please try again.");
-            console.error(err);
-        }
-        finally {
-            setBooking(false);
-        }
-    };
-    return (_jsx(LocalizationProvider, { dateAdapter: AdapterDayjs, children: _jsxs(Box, { sx: {
-                minHeight: "100vh",
-                width: "100vw",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                background: "#111",
-                pt: { xs: 10, md: 12 },
-                pb: 6,
-                boxSizing: "border-box",
-            }, children: [_jsx(Navbar, {}), _jsxs(Container, { maxWidth: "md", sx: { mt: 10 }, children: [_jsx(Typography, { variant: "h3", fontWeight: 900, sx: {
-                                color: "#fff",
-                                mb: 6,
-                                fontFamily: "Montserrat, sans-serif",
-                                textAlign: "center",
-                            }, children: "Book a Field" }), error && (_jsx(Alert, { severity: "error", sx: { mb: 2 }, children: error })), success && (_jsx(Alert, { severity: "success", sx: { mb: 2 }, children: success })), _jsxs(Grid, { container: true, spacing: 4, justifyContent: "center", children: [_jsx(Grid, { item: true, xs: 12, children: _jsx(Button, { variant: "contained", color: "secondary", fullWidth: true, onClick: () => setQuickBookOpen(true), sx: {
-                                            py: 2,
-                                            fontWeight: 600,
-                                            fontSize: 18,
-                                            background: "#F44336",
-                                            "&:hover": {
-                                                background: "#d32f2f",
-                                            },
-                                        }, children: "Quick Book Now" }) }), _jsxs(Dialog, { open: quickBookOpen, onClose: () => setQuickBookOpen(false), PaperProps: {
+    return (_jsxs(Box, { sx: { display: "flex", flexDirection: "column", alignItems: "center", width: "100%", py: 6, mt: 8 }, children: [_jsxs(Paper, { elevation: 3, sx: { p: 4, width: "100%", maxWidth: 500, mb: 4, background: "rgba(255,255,255,0.05)", borderRadius: 2 }, children: [_jsx(Typography, { variant: "h5", sx: { color: "#fff", mb: 3, textAlign: "center" }, children: "Book a Field" }), _jsxs(Stack, { spacing: 3, children: [_jsx(DatePicker, { label: "Select Date", value: selectedDate, onChange: setSelectedDate, disablePast: true, slotProps: {
+                                    textField: {
+                                        fullWidth: true,
+                                        variant: "outlined",
                                         sx: {
-                                            background: "#1a1a1a",
-                                            color: "#fff",
+                                            "& .MuiOutlinedInput-root": {
+                                                color: "#fff",
+                                                "& fieldset": { borderColor: "rgba(255,255,255,0.23)" },
+                                                "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
+                                            },
+                                            "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
                                         },
-                                    }, children: [_jsx(DialogTitle, { children: "Quick Book" }), _jsx(DialogContent, { children: _jsx(Stack, { spacing: 3, sx: { mt: 2 }, children: _jsxs(TextField, { select: true, label: "Duration", value: quickBookDuration, onChange: (e) => setQuickBookDuration(e.target.value), fullWidth: true, sx: {
-                                                        "& .MuiOutlinedInput-root": {
-                                                            color: "#fff",
-                                                            "& fieldset": {
-                                                                borderColor: "rgba(255, 255, 255, 0.23)",
-                                                            },
-                                                            "&:hover fieldset": {
-                                                                borderColor: "rgba(255, 255, 255, 0.5)",
-                                                            },
-                                                        },
-                                                        "& .MuiInputLabel-root": {
-                                                            color: "rgba(255, 255, 255, 0.7)",
-                                                        },
-                                                    }, children: [_jsx(MenuItem, { value: "30", children: "30 minutes" }), _jsx(MenuItem, { value: "60", children: "1 hour" }), _jsx(MenuItem, { value: "90", children: "1.5 hours" }), _jsx(MenuItem, { value: "120", children: "2 hours" })] }) }) }), _jsxs(DialogActions, { children: [_jsx(Button, { onClick: () => setQuickBookOpen(false), sx: { color: "#fff" }, children: "Cancel" }), _jsx(Button, { onClick: handleQuickBook, variant: "contained", disabled: booking, sx: {
-                                                        background: "#F44336",
-                                                        "&:hover": {
-                                                            background: "#d32f2f",
-                                                        },
-                                                    }, children: booking ? "Booking..." : "Book Now" })] })] }), _jsx(Grid, { item: true, xs: 12, children: _jsxs(Paper, { elevation: 3, sx: {
-                                            p: 4,
-                                            borderRadius: 4,
-                                            background: "#1a1a1a",
-                                            color: "#fff",
-                                        }, children: [_jsx(Typography, { variant: "h5", align: "center", mb: 3, fontWeight: 500, sx: { color: "#fff" }, children: "Schedule a Booking" }), _jsxs(Stack, { spacing: 3, children: [_jsx(DatePicker, { label: "Date", value: selectedDate, onChange: setSelectedDate, disablePast: true, slotProps: {
-                                                            textField: {
-                                                                fullWidth: true,
-                                                                variant: "outlined",
-                                                                sx: {
-                                                                    "& .MuiOutlinedInput-root": {
-                                                                        color: "#fff",
-                                                                        "& fieldset": {
-                                                                            borderColor: "rgba(255, 255, 255, 0.23)",
-                                                                        },
-                                                                        "&:hover fieldset": {
-                                                                            borderColor: "rgba(255, 255, 255, 0.5)",
-                                                                        },
-                                                                    },
-                                                                    "& .MuiInputLabel-root": {
-                                                                        color: "rgba(255, 255, 255, 0.7)",
-                                                                    },
-                                                                },
-                                                            },
-                                                        } }), _jsx(TextField, { select: true, label: "Start Time", value: startTime, onChange: (e) => setStartTime(e.target.value), fullWidth: true, variant: "outlined", sx: {
-                                                            "& .MuiOutlinedInput-root": {
-                                                                color: "#fff",
-                                                                "& fieldset": {
-                                                                    borderColor: "rgba(255, 255, 255, 0.23)",
-                                                                },
-                                                                "&:hover fieldset": {
-                                                                    borderColor: "rgba(255, 255, 255, 0.5)",
-                                                                },
-                                                            },
-                                                            "& .MuiInputLabel-root": {
-                                                                color: "rgba(255, 255, 255, 0.7)",
-                                                            },
-                                                        }, children: timeOptions.map((option) => (_jsx(MenuItem, { value: option.value, children: option.label }, option.value))) }), _jsx(TextField, { select: true, label: "End Time", value: endTime, onChange: (e) => setEndTime(e.target.value), fullWidth: true, variant: "outlined", sx: {
-                                                            "& .MuiOutlinedInput-root": {
-                                                                color: "#fff",
-                                                                "& fieldset": {
-                                                                    borderColor: "rgba(255, 255, 255, 0.23)",
-                                                                },
-                                                                "&:hover fieldset": {
-                                                                    borderColor: "rgba(255, 255, 255, 0.5)",
-                                                                },
-                                                            },
-                                                            "& .MuiInputLabel-root": {
-                                                                color: "rgba(255, 255, 255, 0.7)",
-                                                            },
-                                                        }, children: timeOptions.map((option) => (_jsx(MenuItem, { value: option.value, children: option.label }, option.value))) }), _jsx(Button, { variant: "contained", color: "primary", fullWidth: true, disabled: !selectedDate ||
-                                                            !startTime ||
-                                                            !endTime ||
-                                                            startTime >= endTime ||
-                                                            booking, onClick: handleBook, sx: {
-                                                            mt: 2,
-                                                            py: 1.5,
-                                                            fontWeight: 600,
-                                                            fontSize: 18,
-                                                            background: "#F44336",
-                                                            "&:hover": {
-                                                                background: "#d32f2f",
-                                                            },
-                                                        }, children: booking
-                                                            ? "Booking..."
-                                                            : editId
-                                                                ? "Update Booking"
-                                                                : "Book Field" })] })] }) }), _jsx(Grid, { item: true, xs: 12, mt: 4, children: _jsxs(Paper, { elevation: 3, sx: {
-                                            p: 4,
-                                            borderRadius: 4,
-                                            background: "#1a1a1a",
-                                            color: "#fff",
-                                        }, children: [_jsx(Typography, { variant: "h5", align: "center", mb: 3, fontWeight: 500, sx: { color: "#fff" }, children: "Upcoming Appointments" }), loading ? (_jsx(Box, { display: "flex", justifyContent: "center", my: 4, children: _jsx(CircularProgress, { sx: { color: "#F44336" } }) })) : upcoming.length === 0 ? (_jsx(Typography, { color: "text.secondary", align: "center", children: "No upcoming bookings." })) : (_jsx(Stack, { spacing: 2, children: upcoming.map((row) => (_jsxs(Card, { elevation: 2, sx: {
-                                                        borderRadius: 3,
-                                                        background: "#2a2a2a",
-                                                        color: "#fff",
-                                                    }, children: [_jsxs(CardContent, { children: [_jsx(Typography, { variant: "subtitle1", fontWeight: 600, gutterBottom: true, sx: { color: "#fff" }, children: dayjs(row.date).format("MMMM D, YYYY") }), _jsxs(Box, { display: "flex", alignItems: "center", gap: 1, children: [_jsx(AccessTimeIcon, { sx: { color: "#F44336" } }), _jsxs(Typography, { fontWeight: 500, sx: { color: "#fff" }, children: [formatTime12(row.start_time), " -", " ", formatTime12(row.end_time)] })] })] }), _jsxs(CardActions, { children: [_jsx(IconButton, { size: "small", onClick: () => handleEdit(row), sx: { color: "#F44336" }, children: _jsx(EditIcon, {}) }), _jsx(IconButton, { size: "small", onClick: () => handleDelete(row.id), sx: { color: "#F44336" }, children: _jsx(DeleteIcon, {}) })] })] }, row.id))) }))] }) })] })] })] }) }));
+                                    },
+                                } }), _jsx(TimePicker, { label: "Start Time", value: startTime, onChange: setStartTime, ampm: true, slotProps: {
+                                    textField: {
+                                        fullWidth: true,
+                                        variant: "outlined",
+                                        sx: {
+                                            "& .MuiOutlinedInput-root": {
+                                                color: "#fff",
+                                                "& fieldset": { borderColor: "rgba(255,255,255,0.23)" },
+                                                "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
+                                            },
+                                            "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
+                                        },
+                                    },
+                                } }), _jsx(TimePicker, { label: "End Time", value: endTime, onChange: setEndTime, ampm: true, slotProps: {
+                                    textField: {
+                                        fullWidth: true,
+                                        variant: "outlined",
+                                        sx: {
+                                            "& .MuiOutlinedInput-root": {
+                                                color: "#fff",
+                                                "& fieldset": { borderColor: "rgba(255,255,255,0.23)" },
+                                                "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
+                                            },
+                                            "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
+                                        },
+                                    },
+                                } }), _jsx(Button, { variant: "contained", onClick: handleBook, disabled: booking, sx: { mt: 2, background: "#F44336", '&:hover': { background: "#d32f2f" } }, fullWidth: true, children: booking ? _jsx(CircularProgress, { size: 24, color: "inherit" }) : "Book Field" }), error && _jsx(Alert, { severity: "error", children: error }), success && _jsx(Alert, { severity: "success", children: success })] })] }), _jsxs(Paper, { elevation: 1, sx: { p: 3, width: "100%", maxWidth: 500, background: "rgba(255,255,255,0.03)", borderRadius: 2 }, children: [_jsx(Typography, { variant: "h6", sx: { color: "#fff", mb: 2, textAlign: "center" }, children: "Your Upcoming Bookings" }), _jsx(Stack, { spacing: 2, children: upcoming.length === 0 ? (_jsx(Typography, { sx: { color: "rgba(255,255,255,0.7)", textAlign: "center" }, children: "No upcoming bookings" })) : (upcoming.map(booking => (_jsxs(Box, { sx: { background: "rgba(255,255,255,0.06)", borderRadius: 1, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }, children: [_jsxs(Typography, { sx: { color: "#fff" }, children: [dayjs(booking.date).format("MMMM D, YYYY"), _jsx("br", {}), formatTime(booking.start_time), " - ", formatTime(booking.end_time)] }), _jsxs(Box, { children: [_jsx(IconButton, { onClick: () => handleEdit(booking), color: "inherit", children: _jsx(EditIcon, {}) }), _jsx(IconButton, { onClick: () => handleDeleteConfirm(booking), color: "inherit", children: _jsx(DeleteIcon, {}) })] })] }, booking.id)))) })] }), _jsxs(Dialog, { open: editDialogOpen, onClose: () => setEditDialogOpen(false), PaperProps: { sx: { background: '#1e1e1e', color: '#fff' } }, children: [_jsx(DialogTitle, { sx: { color: '#fff' }, children: "Edit Booking" }), _jsx(DialogContent, { children: _jsxs(Stack, { spacing: 2, sx: { mt: 2 }, children: [_jsx(DatePicker, { label: "Date", value: editDate, onChange: setEditDate, slotProps: {
+                                        textField: {
+                                            fullWidth: true,
+                                            variant: "outlined",
+                                            sx: {
+                                                "& .MuiOutlinedInput-root": {
+                                                    color: "#fff",
+                                                    "& fieldset": { borderColor: "rgba(255,255,255,0.23)" },
+                                                    "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
+                                                },
+                                                "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
+                                            },
+                                        },
+                                    } }), _jsx(TimePicker, { label: "Start Time", value: editStartTime, onChange: setEditStartTime, ampm: true, slotProps: {
+                                        textField: {
+                                            fullWidth: true,
+                                            variant: "outlined",
+                                            sx: {
+                                                "& .MuiOutlinedInput-root": {
+                                                    color: "#fff",
+                                                    "& fieldset": { borderColor: "rgba(255,255,255,0.23)" },
+                                                    "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
+                                                },
+                                                "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
+                                            },
+                                        },
+                                    } }), _jsx(TimePicker, { label: "End Time", value: editEndTime, onChange: setEditEndTime, ampm: true, slotProps: {
+                                        textField: {
+                                            fullWidth: true,
+                                            variant: "outlined",
+                                            sx: {
+                                                "& .MuiOutlinedInput-root": {
+                                                    color: "#fff",
+                                                    "& fieldset": { borderColor: "rgba(255,255,255,0.23)" },
+                                                    "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
+                                                },
+                                                "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
+                                            },
+                                        },
+                                    } }), error && _jsx(Alert, { severity: "error", children: error })] }) }), _jsxs(DialogActions, { children: [_jsx(Button, { onClick: () => setEditDialogOpen(false), sx: { color: '#fff' }, children: "Cancel" }), _jsx(Button, { onClick: handleUpdateBooking, variant: "contained", sx: { background: "#F44336", '&:hover': { background: "#d32f2f" } }, children: "Save" })] })] }), _jsxs(Dialog, { open: deleteConfirmOpen, onClose: () => setDeleteConfirmOpen(false), PaperProps: { sx: { background: '#1e1e1e', color: '#fff' } }, children: [_jsx(DialogTitle, { sx: { color: '#fff' }, children: "Confirm Deletion" }), _jsx(DialogContent, { children: _jsx(Typography, { sx: { color: '#fff' }, children: "Are you sure you want to delete this booking?" }) }), _jsxs(DialogActions, { children: [_jsx(Button, { onClick: () => setDeleteConfirmOpen(false), sx: { color: '#fff' }, children: "Cancel" }), _jsx(Button, { onClick: handleDeleteBooking, variant: "contained", sx: { background: "#F44336", '&:hover': { background: "#d32f2f" } }, children: "Delete" })] })] })] }));
 };
 export default Calendar;

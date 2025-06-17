@@ -1,69 +1,123 @@
-import React from "react";
+import React from 'react';
 import {
   Box,
+  Container,
   Typography,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-} from "@mui/material";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+  Grid,
+  Card,
+  CardContent,
+  CardMedia,
+} from '@mui/material';
+import Navigation from '../components/Navigation';
 
 const features = [
-  "Instant setup and streaming",
-  "Full HD and 4K video support",
-  "Cloud recording and playback",
-  "Easy sharing to social media",
-  "Secure and private streams",
-  "Mobile and desktop access",
-  "Custom branding options",
-  "24/7 support",
+  {
+    title: 'Smart Recording',
+    description: 'Automatically record your soccer games with our intelligent camera system. No manual intervention needed.',
+    icon: '🎥',
+  },
+  {
+    title: 'Live Streaming',
+    description: 'Stream your games live to friends, family, and fans. Share your moments in real-time.',
+    icon: '📡',
+  },
+  {
+    title: 'Cloud Storage',
+    description: 'All your recordings are safely stored in the cloud. Access them anytime, anywhere.',
+    icon: '☁️',
+  },
+  {
+    title: 'Easy Sharing',
+    description: 'Share your recordings with a single click. Generate shareable links instantly.',
+    icon: '🔗',
+  },
+  {
+    title: 'Smart Analytics',
+    description: 'Get insights about your games with our advanced analytics and statistics.',
+    icon: '📊',
+  },
+  {
+    title: 'Mobile Access',
+    description: 'Access your recordings and control your camera from your mobile device.',
+    icon: '📱',
+  },
 ];
 
-const FeaturesPage = () => (
-  <Box
+const FeaturesPage: React.FC = () => {
+  return (
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      <Navigation />
+      <Container maxWidth="lg" sx={{ pt: 12, pb: 8 }}>
+        <Typography
+          variant="h2"
+          component="h1"
+          align="center"
     sx={{
-      minHeight: "100vh",
-      width: "100vw",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      background: "#111",
-      pt: { xs: 10, md: 12 },
-      pb: 6,
-      boxSizing: "border-box",
-    }}
-  >
-    <Box sx={{ textAlign: "center", px: 2, width: "100%", maxWidth: 800 }}>
-      <Typography
-        variant="h3"
-        fontWeight={900}
-        sx={{ color: "#fff", mb: 4, fontFamily: "Montserrat, sans-serif" }}
+            fontWeight: 900,
+            mb: 6,
+            color: 'text.primary',
+            fontFamily: 'Montserrat, sans-serif',
+          }}
       >
         Features
       </Typography>
-      <List>
-        {features.map((feature) => (
-          <ListItem key={feature} sx={{ justifyContent: "center" }}>
-            <ListItemIcon sx={{ minWidth: 40 }}>
-              <CheckCircleIcon sx={{ color: "#F44336", fontSize: 32 }} />
-            </ListItemIcon>
-            <ListItemText
-              primary={feature}
-              primaryTypographyProps={{
-                sx: {
-                  color: "#fff",
-                  fontWeight: 600,
-                  fontSize: "1.3rem",
-                  fontFamily: "Montserrat, sans-serif",
-                },
-              }}
-            />
-          </ListItem>
+
+        <Grid container spacing={4}>
+          {features.map((feature, index) => (
+            <Grid item xs={12} sm={6} md={4} key={index}>
+              <Card
+                sx={{
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  bgcolor: 'background.paper',
+                  borderRadius: 2,
+                  boxShadow: 3,
+                  transition: 'transform 0.2s',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                  },
+                }}
+              >
+                <CardContent sx={{ flexGrow: 1, textAlign: 'center', p: 4 }}>
+                  <Typography
+                    variant="h1"
+                    sx={{
+                      fontSize: '3rem',
+                      mb: 2,
+                    }}
+                  >
+                    {feature.icon}
+                  </Typography>
+                  <Typography
+                    variant="h5"
+                    component="h2"
+                    sx={{
+                      fontWeight: 700,
+                      mb: 2,
+                      color: 'text.primary',
+                      fontFamily: 'Montserrat, sans-serif',
+                    }}
+                  >
+                    {feature.title}
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    color="text.secondary"
+                    sx={{
+                      fontFamily: 'Montserrat, sans-serif',
+                    }}
+                  >
+                    {feature.description}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
         ))}
-      </List>
-    </Box>
+        </Grid>
+      </Container>
   </Box>
 );
+};
 
 export default FeaturesPage;

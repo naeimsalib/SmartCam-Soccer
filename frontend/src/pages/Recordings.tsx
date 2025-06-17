@@ -26,8 +26,12 @@ import {
   Download as DownloadIcon,
 } from "@mui/icons-material";
 import { supabase } from "../supabaseClient";
+<<<<<<< HEAD
+import Navigation from "../components/Navigation";
+=======
 import Navbar from "../components/Navbar";
 import { useNavigate } from "react-router-dom";
+>>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
 
 interface Recording {
   id: string;
@@ -35,9 +39,9 @@ interface Recording {
   title: string;
   description: string;
   video_url: string;
-  thumbnail_url: string;
   created_at: string;
   user_id: string;
+  filename: string;
 }
 
 const Recordings = () => {
@@ -46,9 +50,7 @@ const Recordings = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [selectedRecording, setSelectedRecording] = useState<Recording | null>(
-    null
-  );
+  const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -92,12 +94,96 @@ const Recordings = () => {
   // Fetch recordings when userId changes
   useEffect(() => {
     if (userId) {
+<<<<<<< HEAD
+=======
       console.log("User ID changed, fetching recordings...");
+>>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
       fetchRecordings();
     }
   }, [userId]);
 
   const fetchRecordings = async () => {
+<<<<<<< HEAD
+    try {
+      setLoading(true);
+      setError(null);
+
+      // First, get the list of actual files in storage
+      const { data: storageFiles, error: storageError } = await supabase.storage
+        .from("videos")
+        .list(userId || "", {
+          limit: 100,
+          offset: 0,
+          sortBy: { column: "name", order: "desc" },
+        });
+
+      if (storageError) {
+        console.error("Storage error:", storageError);
+        throw storageError;
+      }
+
+      // Filter for only .mp4 files
+      const videoFiles = storageFiles?.filter(file => file.name.endsWith('.mp4')) || [];
+
+      // Now fetch the metadata from the database
+      const { data: dbRecordings, error: dbError } = await supabase
+        .from("videos")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (dbError) {
+        console.error("Database error:", dbError);
+        throw dbError;
+      }
+
+      // Match database records with actual files in storage
+      const recordingsWithUrls = await Promise.all(
+        dbRecordings.map(async (recording) => {
+          // Check if the file exists in storage
+          const fileExists = videoFiles.some(file => file.name === recording.filename);
+          
+          if (!fileExists) {
+            return {
+              ...recording,
+              video_url: "",
+            };
+          }
+
+          try {
+            const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+              .from("videos")
+              .createSignedUrl(`${userId}/${recording.filename}`, 3600);
+
+            if (signedUrlError) {
+              console.error(`Error getting signed URL for ${recording.filename}:`, signedUrlError);
+              return {
+                ...recording,
+                video_url: "",
+              };
+            }
+
+            return {
+              ...recording,
+              video_url: signedUrlData?.signedUrl || "",
+            };
+          } catch (err) {
+            console.error(`Error processing ${recording.filename}:`, err);
+            return {
+              ...recording,
+              video_url: "",
+            };
+          }
+        })
+      );
+
+      // Filter out recordings that don't have a valid video URL
+      const validRecordings = recordingsWithUrls.filter(recording => recording.video_url !== "");
+      setRecordings(validRecordings);
+    } catch (err) {
+      console.error("Error in fetchRecordings:", err);
+      setError("Failed to fetch recordings");
+=======
     if (!userId) {
       console.log("No user ID available, skipping fetch");
       return;
@@ -206,6 +292,7 @@ const Recordings = () => {
           ? err.message
           : "Failed to fetch recordings. Please check your connection and try again."
       );
+>>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
     } finally {
       setLoading(false);
     }
@@ -216,6 +303,33 @@ const Recordings = () => {
       setError(null);
       setSuccess(null);
 
+<<<<<<< HEAD
+      // Get the recording to find its filename
+      const { data: recording, error: fetchError } = await supabase
+        .from("videos")
+        .select("filename")
+        .eq("id", id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Delete from storage
+      if (recording?.filename) {
+        const { error: storageError } = await supabase.storage
+          .from("videos")
+          .remove([`${userId}/${recording.filename}`]);
+
+        if (storageError) throw storageError;
+      }
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from("videos")
+        .delete()
+        .eq("id", id);
+
+      if (dbError) throw dbError;
+=======
       // Delete the video file
       const { error: videoError } = await supabase.storage
         .from("videos")
@@ -229,6 +343,7 @@ const Recordings = () => {
         .remove([`${userId}/${recording.name.replace(".mp4", ".jpg")}`]);
 
       if (thumbnailError) throw thumbnailError;
+>>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
 
       setSuccess("Recording deleted successfully");
       await fetchRecordings();
@@ -240,8 +355,8 @@ const Recordings = () => {
 
   const handleEdit = (recording: Recording) => {
     setSelectedRecording(recording);
-    setEditTitle(recording.title);
-    setEditDescription(recording.description);
+    setEditTitle(recording.title || "");
+    setEditDescription(recording.description || "");
     setEditDialogOpen(true);
   };
 
@@ -251,6 +366,18 @@ const Recordings = () => {
     try {
       setError(null);
       setSuccess(null);
+<<<<<<< HEAD
+
+      const { error } = await supabase
+        .from("videos")
+        .update({
+          title: editTitle,
+          description: editDescription,
+        })
+        .eq("id", selectedRecording.id);
+
+      if (error) throw error;
+=======
 
       // Since we're storing files in storage, we'll need to handle metadata separately
       // For now, we'll just update the local state
@@ -261,6 +388,7 @@ const Recordings = () => {
             : rec
         )
       );
+>>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
 
       setSuccess("Recording updated successfully");
       setEditDialogOpen(false);
@@ -274,6 +402,49 @@ const Recordings = () => {
     try {
       const { data, error } = await supabase.storage
         .from("videos")
+<<<<<<< HEAD
+        .createSignedUrl(`${userId}/${recording.filename}`, 3600);
+
+      if (error) throw error;
+
+      if (data?.signedUrl) {
+        // Show loading state
+        setLoading(true);
+        
+        try {
+          // Fetch the video file
+          const response = await fetch(data.signedUrl);
+          if (!response.ok) throw new Error('Network response was not ok');
+          
+          // Get the blob from the response
+          const blob = await response.blob();
+          
+          // Create a blob URL
+          const blobUrl = window.URL.createObjectURL(blob);
+          
+          // Create a temporary link element
+          const link = document.createElement("a");
+          link.href = blobUrl;
+          
+          // Set the download attribute with the proper filename
+          const filename = recording.filename.split('/').pop() || recording.title;
+          link.download = filename;
+          
+          // Append to body, click, and remove
+          document.body.appendChild(link);
+          link.click();
+          
+          // Clean up
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(blobUrl);
+        } catch (fetchError) {
+          console.error("Error downloading file:", fetchError);
+          throw fetchError;
+        } finally {
+          setLoading(false);
+        }
+      }
+=======
         .download(`${userId}/${recording.name}`);
 
       if (error) throw error;
@@ -286,9 +457,15 @@ const Recordings = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+>>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
     } catch (err) {
       console.error("Error downloading recording:", err);
       setError("Failed to download recording");
+<<<<<<< HEAD
+      console.error("Download error:", err);
+      setLoading(false);
+=======
+>>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
     }
   };
 
@@ -303,8 +480,8 @@ const Recordings = () => {
         boxSizing: "border-box",
       }}
     >
-      <Navbar />
-      <Container maxWidth="lg" sx={{ mt: 10 }}>
+      <Navigation />
+      <Container maxWidth="lg" sx={{ mt: 10, mb: 4 }}>
         <Typography
           variant="h3"
           fontWeight={900}
@@ -356,10 +533,10 @@ const Recordings = () => {
                   }}
                 >
                   <CardMedia
-                    component="img"
+                    component="video"
                     height="200"
-                    image={recording.thumbnail_url}
-                    alt={recording.title}
+                    src={recording.video_url}
+                    controls
                     sx={{
                       objectFit: "cover",
                       borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
@@ -407,6 +584,32 @@ const Recordings = () => {
                         <DeleteIcon />
                       </IconButton>
                     </Box>
+<<<<<<< HEAD
+                    <Box>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleDownload(recording)}
+                        sx={{ color: "#F44336" }}
+                      >
+                        <DownloadIcon />
+                      </IconButton>
+                      <Button
+                        variant="contained"
+                        size="small"
+                        startIcon={<PlayIcon />}
+                        onClick={() => window.open(recording.video_url, "_blank")}
+                        sx={{
+                          ml: 1,
+                          background: "#F44336",
+                          "&:hover": {
+                            background: "#d32f2f",
+                          },
+                        }}
+                      >
+                        Play
+                      </Button>
+                    </Box>
+=======
                     <Button
                       variant="contained"
                       startIcon={<DownloadIcon />}
@@ -420,6 +623,7 @@ const Recordings = () => {
                     >
                       Download
                     </Button>
+>>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
                   </CardActions>
                 </Card>
               </Grid>
@@ -439,6 +643,30 @@ const Recordings = () => {
         >
           <DialogTitle>Edit Recording</DialogTitle>
           <DialogContent>
+<<<<<<< HEAD
+            <Stack spacing={3} sx={{ mt: 2 }}>
+              <TextField
+                autoFocus
+                margin="dense"
+                label="Title"
+                type="text"
+                fullWidth
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                sx={{ mb: 2 }}
+              />
+              <TextField
+                margin="dense"
+                label="Description"
+                type="text"
+                fullWidth
+                multiline
+                rows={4}
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+              />
+            </Stack>
+=======
             <TextField
               autoFocus
               margin="dense"
@@ -478,6 +706,7 @@ const Recordings = () => {
                 },
               }}
             />
+>>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
           </DialogContent>
           <DialogActions>
             <Button

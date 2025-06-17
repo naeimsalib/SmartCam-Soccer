@@ -1,5 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
-import { Box, Typography, Grid, Card, CardContent, Button, } from "@mui/material";
+import { Box, Typography, Grid, Card, CardContent, Button, Container, } from "@mui/material";
+import Navigation from "../components/Navigation";
 const plans = [
     {
         name: "Basic",
@@ -29,47 +30,55 @@ const plans = [
         accent: false,
     },
 ];
-const PricingPage = () => (_jsx(Box, { sx: {
-        minHeight: "100vh",
-        width: "100vw",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "#111",
-        pt: { xs: 10, md: 12 },
-        pb: 6,
-        boxSizing: "border-box",
-    }, children: _jsxs(Box, { sx: { textAlign: "center", px: 2, width: "100%", maxWidth: 1100 }, children: [_jsx(Typography, { variant: "h3", fontWeight: 900, sx: { color: "#fff", mb: 4, fontFamily: "Montserrat, sans-serif" }, children: "Pricing" }), _jsx(Grid, { container: true, spacing: 4, justifyContent: "center", children: plans.map((plan) => (_jsx(Grid, { item: true, xs: 12, sm: 6, md: 4, children: _jsx(Card, { sx: {
-                            background: plan.accent ? "#1a1a1a" : "#181818",
-                            border: plan.accent ? "2px solid #F44336" : "1px solid #333",
-                            color: "#fff",
-                            borderRadius: 3,
-                            boxShadow: plan.accent
-                                ? "0 4px 32px 0 rgba(244,67,54,0.15)"
-                                : "0 2px 12px 0 rgba(0,0,0,0.10)",
-                            fontFamily: "Montserrat, sans-serif",
-                        }, children: _jsxs(CardContent, { sx: { textAlign: "center", p: 4 }, children: [_jsx(Typography, { variant: "h5", fontWeight: 700, sx: { color: plan.accent ? "#F44336" : "#fff", mb: 2 }, children: plan.name }), _jsx(Typography, { variant: "h4", fontWeight: 900, sx: { mb: 2 }, children: plan.price }), _jsx(Box, { sx: { mb: 3 }, children: plan.features.map((f) => (_jsxs(Typography, { sx: {
-                                            color: "#fff",
-                                            opacity: 0.85,
-                                            fontSize: "1.1rem",
-                                            mb: 1,
-                                        }, children: ["\u2022 ", f] }, f))) }), _jsx(Button, { variant: plan.accent ? "contained" : "outlined", sx: {
-                                        background: plan.accent ? "#F44336" : "none",
-                                        color: plan.accent ? "#fff" : "#fff",
-                                        borderColor: plan.accent ? "#F44336" : "#fff",
-                                        fontWeight: 700,
-                                        fontSize: "1.1rem",
-                                        px: 4,
-                                        py: 1.5,
-                                        borderRadius: 2,
-                                        fontFamily: "Montserrat, sans-serif",
-                                        boxShadow: "none",
-                                        "&:hover": {
-                                            background: plan.accent
-                                                ? "#d32f2f"
-                                                : "rgba(255,255,255,0.08)",
-                                            borderColor: plan.accent ? "#d32f2f" : "#fff",
-                                            boxShadow: "none",
-                                        },
-                                    }, children: plan.name === "Enterprise" ? "Contact Us" : "Choose Plan" })] }) }) }, plan.name))) })] }) }));
+const PricingPage = () => {
+    return (_jsxs(Box, { sx: { minHeight: '100vh', bgcolor: 'background.default' }, children: [_jsx(Navigation, {}), _jsxs(Container, { maxWidth: "lg", sx: { pt: 12, pb: 8 }, children: [_jsx(Typography, { variant: "h2", component: "h1", align: "center", sx: {
+                            fontWeight: 900,
+                            mb: 6,
+                            color: 'text.primary',
+                            fontFamily: 'Montserrat, sans-serif',
+                        }, children: "Pricing" }), _jsx(Grid, { container: true, spacing: 4, justifyContent: "center", children: plans.map((plan) => (_jsx(Grid, { item: true, xs: 12, sm: 6, md: 4, children: _jsx(Card, { sx: {
+                                    height: '100%',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    bgcolor: plan.accent ? 'primary.dark' : 'background.paper',
+                                    border: plan.accent ? '2px solid #F44336' : '1px solid rgba(255, 255, 255, 0.12)',
+                                    borderRadius: 2,
+                                    boxShadow: plan.accent
+                                        ? '0 4px 32px 0 rgba(244,67,54,0.15)'
+                                        : 3,
+                                    transition: 'transform 0.2s',
+                                    '&:hover': {
+                                        transform: 'translateY(-4px)',
+                                    },
+                                }, children: _jsxs(CardContent, { sx: { flexGrow: 1, textAlign: 'center', p: 4 }, children: [_jsx(Typography, { variant: "h5", component: "h2", sx: {
+                                                fontWeight: 700,
+                                                mb: 2,
+                                                color: plan.accent ? '#F44336' : 'text.primary',
+                                                fontFamily: 'Montserrat, sans-serif',
+                                            }, children: plan.name }), _jsx(Typography, { variant: "h4", sx: {
+                                                fontWeight: 900,
+                                                mb: 2,
+                                                color: 'text.primary',
+                                                fontFamily: 'Montserrat, sans-serif',
+                                            }, children: plan.price }), _jsx(Box, { sx: { mb: 3 }, children: plan.features.map((feature) => (_jsxs(Typography, { sx: {
+                                                    color: 'text.secondary',
+                                                    fontSize: '1.1rem',
+                                                    mb: 1,
+                                                    fontFamily: 'Montserrat, sans-serif',
+                                                }, children: ["\u2022 ", feature] }, feature))) }), _jsx(Button, { variant: plan.accent ? "contained" : "outlined", sx: {
+                                                background: plan.accent ? '#F44336' : 'transparent',
+                                                color: plan.accent ? '#fff' : 'primary.main',
+                                                borderColor: plan.accent ? '#F44336' : 'primary.main',
+                                                fontWeight: 700,
+                                                fontSize: '1.1rem',
+                                                px: 4,
+                                                py: 1.5,
+                                                borderRadius: 2,
+                                                fontFamily: 'Montserrat, sans-serif',
+                                                '&:hover': {
+                                                    background: plan.accent ? '#d32f2f' : 'rgba(144, 202, 249, 0.08)',
+                                                    borderColor: plan.accent ? '#d32f2f' : 'primary.main',
+                                                },
+                                            }, children: plan.name === "Enterprise" ? "Contact Us" : "Choose Plan" })] }) }) }, plan.name))) })] })] }));
+};
 export default PricingPage;

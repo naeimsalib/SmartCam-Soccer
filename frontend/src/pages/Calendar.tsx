@@ -1,553 +1,386 @@
 import React, { useState, useEffect } from "react";
+import { supabase } from "../supabaseClient";
+import { useAuth } from "../contexts/AuthContext";
+import dayjs, { Dayjs } from "dayjs";
 import {
   Box,
   Paper,
   Typography,
   Button,
-  TextField,
-  MenuItem,
   CircularProgress,
-  Container,
-  Grid,
-  Card,
-  CardContent,
-  CardActions,
-  IconButton,
   Stack,
-  InputAdornment,
+  Alert,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
+  IconButton,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Divider,
-  Alert,
 } from "@mui/material";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import dayjs, { Dayjs } from "dayjs";
-import { supabase } from "../supabaseClient";
-import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import Navbar from "../components/Navbar";
+import { DatePicker, TimePicker } from "@mui/x-date-pickers";
+import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 
-const generateTimeOptions = () => {
-  const times = [];
-  for (let hour = 0; hour < 24; hour++) {
-    for (let min = 0; min < 60; min += 5) {
-      const hour12 = hour % 12 === 0 ? 12 : hour % 12;
-      const ampm = hour < 12 ? "AM" : "PM";
-      const label = `${hour12.toString().padStart(2, "0")}:${min
-        .toString()
-        .padStart(2, "0")} ${ampm}`;
-      const value = `${hour.toString().padStart(2, "0")}:${min
-        .toString()
-        .padStart(2, "0")}`;
-      times.push({ label, value });
-    }
-  }
-  return times;
+interface Booking {
+  id: string;
+  date: string;
+  start_time: string;
+  end_time: string;
+  user_id: string;
+}
+
+const convertTo24Hour = (time12h: string) => {
+  const [time, modifier] = time12h.split(" ");
+  let [hours, minutes] = time.split(":");
+  if (hours === "12") hours = "00";
+  if (modifier === "PM") hours = (parseInt(hours, 10) + 12).toString();
+  return `${hours.padStart(2, "0")}:${minutes}`;
 };
 
-const timeOptions = generateTimeOptions();
+const formatTime = (time24h: string) => {
+  const [hours, minutes] = time24h.split(":");
+  const hour = parseInt(hours, 10);
+  const period = hour >= 12 ? "PM" : "AM";
+  const displayHour = hour % 12 || 12;
+  return `${displayHour}:${minutes} ${period}`;
+};
 
-const Calendar = () => {
+const Calendar: React.FC = () => {
+  const { user } = useAuth();
+  const userId = user?.id;
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(dayjs());
-  const [startTime, setStartTime] = useState("");
-  const [endTime, setEndTime] = useState("");
+  const [startTime, setStartTime] = useState<Dayjs | null>(null);
+  const [endTime, setEndTime] = useState<Dayjs | null>(null);
   const [booking, setBooking] = useState(false);
-  const [upcoming, setUpcoming] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [quickBookOpen, setQuickBookOpen] = useState(false);
-  const [quickBookDuration, setQuickBookDuration] = useState("60");
+  const [upcoming, setUpcoming] = useState<Booking[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
+  const [editDate, setEditDate] = useState<Dayjs | null>(null);
+  const [editStartTime, setEditStartTime] = useState<Dayjs | null>(null);
+  const [editEndTime, setEditEndTime] = useState<Dayjs | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [bookingToDelete, setBookingToDelete] = useState<Booking | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    const fetchUpcoming = async () => {
-      const { data } = await supabase
+    if (userId) fetchUpcoming();
+    // eslint-disable-next-line
+  }, [userId]);
+
+  const fetchUpcoming = async () => {
+    if (!userId) return;
+    try {
+      const { data, error } = await supabase
         .from("bookings")
-        .select()
+        .select("*")
+        .eq("user_id", userId)
         .gte("date", dayjs().format("YYYY-MM-DD"))
-        .order("date", { ascending: true })
-        .order("start_time", { ascending: true });
+        .order("date", { ascending: true });
+      if (error) throw error;
       setUpcoming(data || []);
-      setLoading(false);
-    };
-    fetchUpcoming();
-  }, [booking]);
-
-  useEffect(() => {
-    const fetchUserId = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setUserId(session?.user?.id || null);
-    };
-    fetchUserId();
-  }, []);
+    } catch (err) {
+      setUpcoming([]);
+    }
+  };
 
   const handleBook = async () => {
-    if (
-      !selectedDate ||
-      !startTime ||
-      !endTime ||
-      startTime >= endTime ||
-      !userId
-    ) {
-      setError("Please fill in all fields correctly");
+    setError(null);
+    setSuccess(null);
+    if (!selectedDate || !startTime || !endTime || !userId) {
+      setError("Please fill in all fields.");
+      return;
+    }
+    const start24 = startTime.format("HH:mm");
+    const end24 = endTime.format("HH:mm");
+    if (start24 >= end24) {
+      setError("End time must be after start time.");
       return;
     }
     setBooking(true);
-    setError(null);
-    setSuccess(null);
-    const dateStr = selectedDate.format("YYYY-MM-DD");
     try {
-      if (editId) {
-        await supabase
-          .from("bookings")
-          .update({
-            date: dateStr,
-            start_time: startTime,
-            end_time: endTime,
-            user_id: userId,
-          })
-          .eq("id", editId);
-        setSuccess("Booking updated successfully");
-      } else {
-        await supabase.from("bookings").insert({
-          date: dateStr,
-          start_time: startTime,
-          end_time: endTime,
-          user_id: userId,
-        });
-        setSuccess("Field booked successfully");
-      }
-      setEditId(null);
-      setStartTime("");
-      setEndTime("");
-    } catch (err) {
-      setError("Failed to book field. Please try again.");
-      console.error(err);
-    } finally {
-      setBooking(false);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    setBooking(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      await supabase.from("bookings").delete().eq("id", id);
-      setSuccess("Booking deleted successfully");
-    } catch (err) {
-      setError("Failed to delete booking. Please try again.");
-      console.error(err);
-    } finally {
-      setBooking(false);
-    }
-  };
-
-  const handleEdit = (row: any) => {
-    setSelectedDate(dayjs(row.date));
-    setStartTime(row.start_time);
-    setEndTime(row.end_time);
-    setEditId(row.id);
-  };
-
-  function formatTime12(time24: string) {
-    const [hourStr, minStr] = time24.split(":");
-    let hour = parseInt(hourStr, 10);
-    const min = minStr;
-    const ampm = hour < 12 ? "AM" : "PM";
-    hour = hour % 12 === 0 ? 12 : hour % 12;
-    return `${hour.toString().padStart(2, "0")}:${min} ${ampm}`;
-  }
-
-  const handleQuickBook = async () => {
-    if (!selectedDate || !userId) {
-      setError("Please select a date");
-      return;
-    }
-    setBooking(true);
-    setError(null);
-    setSuccess(null);
-    try {
-      const dateStr = selectedDate.format("YYYY-MM-DD");
-      const now = dayjs();
-      const startTimeStr = now.format("HH:mm");
-      const endTimeStr = now
-        .add(parseInt(quickBookDuration), "minutes")
-        .format("HH:mm");
-
       await supabase.from("bookings").insert({
-        date: dateStr,
-        start_time: startTimeStr,
-        end_time: endTimeStr,
+        date: selectedDate.format("YYYY-MM-DD"),
+        start_time: start24,
+        end_time: end24,
         user_id: userId,
       });
-      setSuccess("Field booked successfully");
-      setQuickBookOpen(false);
+      setSuccess("Field booked successfully.");
+      setStartTime(null);
+      setEndTime(null);
+      fetchUpcoming();
     } catch (err) {
       setError("Failed to book field. Please try again.");
-      console.error(err);
+    } finally {
+      setBooking(false);
+    }
+  };
+
+  const handleEdit = (booking: Booking) => {
+    setEditingBooking(booking);
+    setEditDate(dayjs(booking.date));
+    setEditStartTime(dayjs(`2000-01-01T${booking.start_time}`));
+    setEditEndTime(dayjs(`2000-01-01T${booking.end_time}`));
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateBooking = async () => {
+    setError(null);
+    setSuccess(null);
+    if (!editingBooking || !editDate || !editStartTime || !editEndTime) {
+      setError("Please fill in all fields for update.");
+      return;
+    }
+
+    const start24 = editStartTime.format("HH:mm");
+    const end24 = editEndTime.format("HH:mm");
+    if (start24 >= end24) {
+      setError("End time must be after start time for update.");
+      return;
+    }
+
+    setBooking(true);
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .update({
+          date: editDate.format("YYYY-MM-DD"),
+          start_time: start24,
+          end_time: end24,
+        })
+        .eq("id", editingBooking.id);
+
+      if (error) throw error;
+      setSuccess("Booking updated successfully.");
+      setEditDialogOpen(false);
+      fetchUpcoming();
+    } catch (err) {
+      setError("Failed to update booking. Please try again.");
+    } finally {
+      setBooking(false);
+    }
+  };
+
+  const handleDeleteConfirm = (booking: Booking) => {
+    setBookingToDelete(booking);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleDeleteBooking = async () => {
+    setError(null);
+    setSuccess(null);
+    if (!bookingToDelete) return;
+
+    setBooking(true);
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .delete()
+        .eq("id", bookingToDelete.id);
+
+      if (error) throw error;
+      setSuccess("Booking deleted successfully.");
+      setDeleteConfirmOpen(false);
+      setBookingToDelete(null);
+      fetchUpcoming();
+    } catch (err) {
+      setError("Failed to delete booking. Please try again.");
     } finally {
       setBooking(false);
     }
   };
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <Box
-        sx={{
-          minHeight: "100vh",
-          width: "100vw",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          background: "#111",
-          pt: { xs: 10, md: 12 },
-          pb: 6,
-          boxSizing: "border-box",
-        }}
-      >
-        <Navbar />
-        <Container maxWidth="md" sx={{ mt: 10 }}>
-          <Typography
-            variant="h3"
-            fontWeight={900}
-            sx={{
-              color: "#fff",
-              mb: 6,
-              fontFamily: "Montserrat, sans-serif",
-              textAlign: "center",
-            }}
-          >
-            Book a Field
-          </Typography>
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-          {success && (
-            <Alert severity="success" sx={{ mb: 2 }}>
-              {success}
-            </Alert>
-          )}
-
-          <Grid container spacing={4} justifyContent="center">
-            {/* Quick Book Button */}
-            <Grid item xs={12}>
-              <Button
-                variant="contained"
-                color="secondary"
-                fullWidth
-                onClick={() => setQuickBookOpen(true)}
-                sx={{
-                  py: 2,
-                  fontWeight: 600,
-                  fontSize: 18,
-                  background: "#F44336",
-                  "&:hover": {
-                    background: "#d32f2f",
-                  },
-                }}
-              >
-                Quick Book Now
-              </Button>
-            </Grid>
-
-            {/* Quick Book Dialog */}
-            <Dialog
-              open={quickBookOpen}
-              onClose={() => setQuickBookOpen(false)}
-              PaperProps={{
+    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", width: "100%", py: 6, mt: 8 }}>
+      <Paper elevation={3} sx={{ p: 4, width: "100%", maxWidth: 500, mb: 4, background: "rgba(255,255,255,0.05)", borderRadius: 2 }}>
+        <Typography variant="h5" sx={{ color: "#fff", mb: 3, textAlign: "center" }}>Book a Field</Typography>
+        <Stack spacing={3}>
+          <DatePicker
+            label="Select Date"
+            value={selectedDate}
+            onChange={setSelectedDate}
+            disablePast
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                variant: "outlined",
                 sx: {
-                  background: "#1a1a1a",
-                  color: "#fff",
+                  "& .MuiOutlinedInput-root": {
+                    color: "#fff",
+                    "& fieldset": { borderColor: "rgba(255,255,255,0.23)" },
+                    "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
+                  },
+                  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
+                },
+              },
+            }}
+          />
+          <TimePicker
+            label="Start Time"
+              value={startTime}
+            onChange={setStartTime}
+            ampm={true}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                variant: "outlined",
+                sx: {
+                  "& .MuiOutlinedInput-root": {
+                    color: "#fff",
+                    "& fieldset": { borderColor: "rgba(255,255,255,0.23)" },
+                    "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
+                  },
+                  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
+                },
+              },
+            }}
+          />
+          <TimePicker
+            label="End Time"
+              value={endTime}
+            onChange={setEndTime}
+            ampm={true}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                variant: "outlined",
+                sx: {
+                  "& .MuiOutlinedInput-root": {
+                    color: "#fff",
+                    "& fieldset": { borderColor: "rgba(255,255,255,0.23)" },
+                    "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
+                  },
+                  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
+                },
+              },
+            }}
+          />
+          <Button
+            variant="contained"
+            onClick={handleBook}
+            disabled={booking}
+            sx={{ mt: 2, background: "#F44336", '&:hover': { background: "#d32f2f" } }}
+            fullWidth
+          >
+            {booking ? <CircularProgress size={24} color="inherit" /> : "Book Field"}
+          </Button>
+          {error && <Alert severity="error">{error}</Alert>}
+          {success && <Alert severity="success">{success}</Alert>}
+        </Stack>
+      </Paper>
+      <Paper elevation={1} sx={{ p: 3, width: "100%", maxWidth: 500, background: "rgba(255,255,255,0.03)", borderRadius: 2 }}>
+        <Typography variant="h6" sx={{ color: "#fff", mb: 2, textAlign: "center" }}>Your Upcoming Bookings</Typography>
+        <Stack spacing={2}>
+          {upcoming.length === 0 ? (
+            <Typography sx={{ color: "rgba(255,255,255,0.7)", textAlign: "center" }}>No upcoming bookings</Typography>
+          ) : (
+            upcoming.map(booking => (
+              <Box key={booking.id} sx={{ background: "rgba(255,255,255,0.06)", borderRadius: 1, p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography sx={{ color: "#fff" }}>
+                  {dayjs(booking.date).format("MMMM D, YYYY")}<br />
+                  {formatTime(booking.start_time)} - {formatTime(booking.end_time)}
+                </Typography>
+                <Box>
+                  <IconButton onClick={() => handleEdit(booking)} color="inherit">
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton onClick={() => handleDeleteConfirm(booking)} color="inherit">
+                    <DeleteIcon />
+                  </IconButton>
+                </Box>
+              </Box>
+            ))
+          )}
+        </Stack>
+      </Paper>
+
+      {/* Edit Booking Dialog */}
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} PaperProps={{ sx: { background: '#1e1e1e', color: '#fff' } }}>
+        <DialogTitle sx={{ color: '#fff' }}>Edit Booking</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 2 }}>
+            <DatePicker
+              label="Date"
+              value={editDate}
+              onChange={setEditDate}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  variant: "outlined",
+                  sx: {
+                    "& .MuiOutlinedInput-root": {
+                      color: "#fff",
+                      "& fieldset": { borderColor: "rgba(255,255,255,0.23)" },
+                      "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
+                    },
+                    "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
+                  },
                 },
               }}
-            >
-              <DialogTitle>Quick Book</DialogTitle>
-              <DialogContent>
-                <Stack spacing={3} sx={{ mt: 2 }}>
-                  <TextField
-                    select
-                    label="Duration"
-                    value={quickBookDuration}
-                    onChange={(e) => setQuickBookDuration(e.target.value)}
-                    fullWidth
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        color: "#fff",
-                        "& fieldset": {
-                          borderColor: "rgba(255, 255, 255, 0.23)",
-                        },
-                        "&:hover fieldset": {
-                          borderColor: "rgba(255, 255, 255, 0.5)",
-                        },
-                      },
-                      "& .MuiInputLabel-root": {
-                        color: "rgba(255, 255, 255, 0.7)",
-                      },
-                    }}
-                  >
-                    <MenuItem value="30">30 minutes</MenuItem>
-                    <MenuItem value="60">1 hour</MenuItem>
-                    <MenuItem value="90">1.5 hours</MenuItem>
-                    <MenuItem value="120">2 hours</MenuItem>
-                  </TextField>
-                </Stack>
-              </DialogContent>
-              <DialogActions>
-                <Button
-                  onClick={() => setQuickBookOpen(false)}
-                  sx={{ color: "#fff" }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleQuickBook}
-                  variant="contained"
-                  disabled={booking}
-                  sx={{
-                    background: "#F44336",
-                    "&:hover": {
-                      background: "#d32f2f",
+            />
+            <TimePicker
+              label="Start Time"
+              value={editStartTime}
+              onChange={setEditStartTime}
+              ampm={true}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  variant: "outlined",
+                  sx: {
+                    "& .MuiOutlinedInput-root": {
+                      color: "#fff",
+                      "& fieldset": { borderColor: "rgba(255,255,255,0.23)" },
+                      "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
                     },
-                  }}
-                >
-                  {booking ? "Booking..." : "Book Now"}
-                </Button>
-              </DialogActions>
-            </Dialog>
+                    "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
+                  },
+                },
+              }}
+            />
+            <TimePicker
+              label="End Time"
+              value={editEndTime}
+              onChange={setEditEndTime}
+              ampm={true}
+              slotProps={{
+                textField: {
+                  fullWidth: true,
+                  variant: "outlined",
+                  sx: {
+                    "& .MuiOutlinedInput-root": {
+                      color: "#fff",
+                      "& fieldset": { borderColor: "rgba(255,255,255,0.23)" },
+                      "&:hover fieldset": { borderColor: "rgba(255,255,255,0.5)" },
+                    },
+                    "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.7)" },
+                  },
+                },
+              }}
+            />
+            {error && <Alert severity="error">{error}</Alert>}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialogOpen(false)} sx={{ color: '#fff' }}>Cancel</Button>
+          <Button onClick={handleUpdateBooking} variant="contained" sx={{ background: "#F44336", '&:hover': { background: "#d32f2f" } }}>Save</Button>
+        </DialogActions>
+      </Dialog>
 
-            {/* Booking Form */}
-            <Grid item xs={12}>
-              <Paper
-                elevation={3}
-                sx={{
-                  p: 4,
-                  borderRadius: 4,
-                  background: "#1a1a1a",
-                  color: "#fff",
-                }}
-              >
-                <Typography
-                  variant="h5"
-                  align="center"
-                  mb={3}
-                  fontWeight={500}
-                  sx={{ color: "#fff" }}
-                >
-                  Schedule a Booking
-                </Typography>
-                <Stack spacing={3}>
-                  <DatePicker
-                    label="Date"
-                    value={selectedDate}
-                    onChange={setSelectedDate}
-                    disablePast
-                    slotProps={{
-                      textField: {
-                        fullWidth: true,
-                        variant: "outlined",
-                        sx: {
-                          "& .MuiOutlinedInput-root": {
-                            color: "#fff",
-                            "& fieldset": {
-                              borderColor: "rgba(255, 255, 255, 0.23)",
-                            },
-                            "&:hover fieldset": {
-                              borderColor: "rgba(255, 255, 255, 0.5)",
-                            },
-                          },
-                          "& .MuiInputLabel-root": {
-                            color: "rgba(255, 255, 255, 0.7)",
-                          },
-                        },
-                      },
-                    }}
-                  />
-                  <TextField
-                    select
-                    label="Start Time"
-                    value={startTime}
-                    onChange={(e) => setStartTime(e.target.value)}
-                    fullWidth
-                    variant="outlined"
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        color: "#fff",
-                        "& fieldset": {
-                          borderColor: "rgba(255, 255, 255, 0.23)",
-                        },
-                        "&:hover fieldset": {
-                          borderColor: "rgba(255, 255, 255, 0.5)",
-                        },
-                      },
-                      "& .MuiInputLabel-root": {
-                        color: "rgba(255, 255, 255, 0.7)",
-                      },
-                    }}
-                  >
-                    {timeOptions.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        {option.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                  <TextField
-                    select
-                    label="End Time"
-                    value={endTime}
-                    onChange={(e) => setEndTime(e.target.value)}
-                    fullWidth
-                    variant="outlined"
-                    sx={{
-                      "& .MuiOutlinedInput-root": {
-                        color: "#fff",
-                        "& fieldset": {
-                          borderColor: "rgba(255, 255, 255, 0.23)",
-                        },
-                        "&:hover fieldset": {
-                          borderColor: "rgba(255, 255, 255, 0.5)",
-                        },
-                      },
-                      "& .MuiInputLabel-root": {
-                        color: "rgba(255, 255, 255, 0.7)",
-                      },
-                    }}
-                  >
-                    {timeOptions.map((option) => (
-                      <MenuItem key={option.value} value={option.value}>
-                        {option.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    fullWidth
-                    disabled={
-                      !selectedDate ||
-                      !startTime ||
-                      !endTime ||
-                      startTime >= endTime ||
-                      booking
-                    }
-                    onClick={handleBook}
-                    sx={{
-                      mt: 2,
-                      py: 1.5,
-                      fontWeight: 600,
-                      fontSize: 18,
-                      background: "#F44336",
-                      "&:hover": {
-                        background: "#d32f2f",
-                      },
-                    }}
-                  >
-                    {booking
-                      ? "Booking..."
-                      : editId
-                      ? "Update Booking"
-                      : "Book Field"}
-                  </Button>
-                </Stack>
-              </Paper>
-            </Grid>
-
-            {/* Upcoming Appointments */}
-            <Grid item xs={12} mt={4}>
-              <Paper
-                elevation={3}
-                sx={{
-                  p: 4,
-                  borderRadius: 4,
-                  background: "#1a1a1a",
-                  color: "#fff",
-                }}
-              >
-                <Typography
-                  variant="h5"
-                  align="center"
-                  mb={3}
-                  fontWeight={500}
-                  sx={{ color: "#fff" }}
-                >
-                  Upcoming Appointments
-                </Typography>
-                {loading ? (
-                  <Box display="flex" justifyContent="center" my={4}>
-                    <CircularProgress sx={{ color: "#F44336" }} />
-                  </Box>
-                ) : upcoming.length === 0 ? (
-                  <Typography color="text.secondary" align="center">
-                    No upcoming bookings.
-                  </Typography>
-                ) : (
-                  <Stack spacing={2}>
-                    {upcoming.map((row) => (
-                      <Card
-                        key={row.id}
-                        elevation={2}
-                        sx={{
-                          borderRadius: 3,
-                          background: "#2a2a2a",
-                          color: "#fff",
-                        }}
-                      >
-                        <CardContent>
-                          <Typography
-                            variant="subtitle1"
-                            fontWeight={600}
-                            gutterBottom
-                            sx={{ color: "#fff" }}
-                          >
-                            {dayjs(row.date).format("MMMM D, YYYY")}
-                          </Typography>
-                          <Box display="flex" alignItems="center" gap={1}>
-                            <AccessTimeIcon sx={{ color: "#F44336" }} />
-                            <Typography fontWeight={500} sx={{ color: "#fff" }}>
-                              {formatTime12(row.start_time)} -{" "}
-                              {formatTime12(row.end_time)}
-                            </Typography>
-                          </Box>
-                        </CardContent>
-                        <CardActions>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleEdit(row)}
-                            sx={{ color: "#F44336" }}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleDelete(row.id)}
-                            sx={{ color: "#F44336" }}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </CardActions>
-                      </Card>
-                    ))}
-                  </Stack>
-                )}
-              </Paper>
-            </Grid>
-          </Grid>
-        </Container>
-      </Box>
-    </LocalizationProvider>
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)} PaperProps={{ sx: { background: '#1e1e1e', color: '#fff' } }}>
+        <DialogTitle sx={{ color: '#fff' }}>Confirm Deletion</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ color: '#fff' }}>Are you sure you want to delete this booking?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)} sx={{ color: '#fff' }}>Cancel</Button>
+          <Button onClick={handleDeleteBooking} variant="contained" sx={{ background: "#F44336", '&:hover': { background: "#d32f2f" } }}>Delete</Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 

@@ -1,82 +1,75 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState } from "react";
-import { Box, Button, TextField, Typography, Paper, CircularProgress, Alert, Link, } from "@mui/material";
-import { supabase } from "../supabaseClient";
+import { Box, Button, TextField, Typography, Paper, Alert, Container, } from "@mui/material";
+import { useAuth } from "../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-const LoginPage = ({ setIsAuthenticated, }) => {
+const LoginPage = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
     const navigate = useNavigate();
-    const handleLogin = async (e) => {
+    const { signIn } = useAuth();
+    const handleSubmit = async (e) => {
         e.preventDefault();
+        setError(null);
         setLoading(true);
-        setError("");
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-        });
-        setLoading(false);
-        if (error) {
-            setError(error.message);
-            return;
+        try {
+            await signIn(email, password);
+            navigate("/dashboard");
         }
-        if (!data || !data.session || !data.user) {
-            setError("Login failed: No session or user returned.");
-            return;
+        catch (err) {
+            setError("Failed to sign in. Please check your credentials.");
+            console.error(err);
         }
-        setIsAuthenticated();
-        navigate("/dashboard");
+        finally {
+            setLoading(false);
+        }
     };
-    return (_jsx(Box, { sx: {
-            minHeight: "100vh",
-            width: "100vw",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "#111",
-            pt: { xs: 10, md: 12 },
-            pb: 6,
-            boxSizing: "border-box",
-        }, children: _jsxs(Paper, { elevation: 8, sx: {
-                p: 5,
-                minWidth: 350,
-                maxWidth: 400,
-                background: "#181818",
-                borderRadius: 3,
-                boxShadow: "0 4px 32px 0 rgba(244,67,54,0.10)",
-            }, children: [_jsxs(Typography, { variant: "h4", align: "center", mb: 3, fontWeight: 900, sx: { color: "#fff", fontFamily: "Montserrat, sans-serif" }, children: ["Login to", " ", _jsx(Box, { component: "span", sx: { color: "#F44336" }, children: "EZREC" })] }), _jsxs("form", { onSubmit: handleLogin, style: { marginTop: 24 }, children: [_jsx(TextField, { label: "Email", type: "email", value: email, onChange: (e) => setEmail(e.target.value), fullWidth: true, required: true, margin: "normal", InputLabelProps: { style: { color: "#fff", opacity: 0.8 } }, InputProps: { style: { color: "#fff" } }, sx: {
+    return (_jsx(Container, { maxWidth: "sm", sx: { mt: 8 }, children: _jsxs(Paper, { elevation: 3, sx: {
+                p: 4,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                background: "rgba(255, 255, 255, 0.05)",
+                backdropFilter: "blur(10px)",
+                borderRadius: 2,
+            }, children: [_jsx(Typography, { component: "h1", variant: "h4", sx: { color: "#fff", mb: 3, fontWeight: 600 }, children: "Sign In" }), error && (_jsx(Alert, { severity: "error", sx: { width: "100%", mb: 2 }, children: error })), _jsxs(Box, { component: "form", onSubmit: handleSubmit, sx: { width: "100%" }, children: [_jsx(TextField, { margin: "normal", required: true, fullWidth: true, id: "email", label: "Email Address", name: "email", autoComplete: "email", autoFocus: true, value: email, onChange: (e) => setEmail(e.target.value), sx: {
                                 "& .MuiOutlinedInput-root": {
-                                    "& fieldset": { borderColor: "#fff", opacity: 0.5 },
-                                    "&:hover fieldset": { borderColor: "#F44336" },
-                                    "&.Mui-focused fieldset": { borderColor: "#F44336" },
+                                    color: "#fff",
+                                    "& fieldset": {
+                                        borderColor: "rgba(255, 255, 255, 0.23)",
+                                    },
+                                    "&:hover fieldset": {
+                                        borderColor: "rgba(255, 255, 255, 0.5)",
+                                    },
                                 },
-                                "& .MuiInputLabel-root": { color: "#fff", opacity: 0.8 },
-                            } }), _jsx(TextField, { label: "Password", type: "password", value: password, onChange: (e) => setPassword(e.target.value), fullWidth: true, required: true, margin: "normal", InputLabelProps: { style: { color: "#fff", opacity: 0.8 } }, InputProps: { style: { color: "#fff" } }, sx: {
+                                "& .MuiInputLabel-root": {
+                                    color: "rgba(255, 255, 255, 0.7)",
+                                },
+                            } }), _jsx(TextField, { margin: "normal", required: true, fullWidth: true, name: "password", label: "Password", type: "password", id: "password", autoComplete: "current-password", value: password, onChange: (e) => setPassword(e.target.value), sx: {
                                 "& .MuiOutlinedInput-root": {
-                                    "& fieldset": { borderColor: "#fff", opacity: 0.5 },
-                                    "&:hover fieldset": { borderColor: "#F44336" },
-                                    "&.Mui-focused fieldset": { borderColor: "#F44336" },
+                                    color: "#fff",
+                                    "& fieldset": {
+                                        borderColor: "rgba(255, 255, 255, 0.23)",
+                                    },
+                                    "&:hover fieldset": {
+                                        borderColor: "rgba(255, 255, 255, 0.5)",
+                                    },
                                 },
-                                "& .MuiInputLabel-root": { color: "#fff", opacity: 0.8 },
-                            } }), error && (_jsx(Alert, { severity: "error", sx: { mt: 2 }, children: error })), _jsx(Button, { type: "submit", variant: "contained", fullWidth: true, sx: {
+                                "& .MuiInputLabel-root": {
+                                    color: "rgba(255, 255, 255, 0.7)",
+                                },
+                            } }), _jsx(Button, { type: "submit", fullWidth: true, variant: "contained", disabled: loading, sx: {
                                 mt: 3,
+                                mb: 2,
                                 py: 1.5,
-                                fontWeight: 700,
-                                fontSize: "1.1rem",
+                                fontWeight: 600,
+                                fontSize: 18,
                                 background: "#F44336",
-                                color: "#fff",
-                                borderRadius: 2,
-                                fontFamily: "Montserrat, sans-serif",
-                                boxShadow: "none",
-                                "&:hover": { background: "#d32f2f", boxShadow: "none" },
-                            }, disabled: loading, children: loading ? (_jsx(CircularProgress, { size: 24, sx: { color: "#fff" } })) : ("Login") })] }), _jsx(Typography, { align: "center", mt: 3, children: _jsx(Link, { href: "#", underline: "hover", sx: {
-                            color: "#fff",
-                            opacity: 0.8,
-                            fontWeight: 500,
-                            fontFamily: "Montserrat, sans-serif",
-                            cursor: "pointer",
-                        }, onClick: () => alert("Password reset functionality coming soon!"), children: "Forgot Password?" }) })] }) }));
+                                "&:hover": {
+                                    background: "#d32f2f",
+                                },
+                            }, children: loading ? "Signing in..." : "Sign In" })] })] }) }));
 };
 export default LoginPage;
