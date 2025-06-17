@@ -1,9 +1,9 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState, useEffect, useCallback } from "react";
-<<<<<<< HEAD
 import { Box, Container, Typography, Button, Grid, Card, CardContent, CardMedia, CircularProgress, Alert, Stack, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, } from "@mui/material";
 import { CloudUpload as CloudUploadIcon, Delete as DeleteIcon, Refresh as RefreshIcon, } from "@mui/icons-material";
 import { supabase } from "../supabaseClient";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import WifiIcon from "@mui/icons-material/Wifi";
@@ -13,15 +13,6 @@ import Navigation from "../components/Navigation";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { shallowEqual } from '../utils/objectUtils';
-=======
-import { Box, Container, Typography, Button, Grid, Card, CardContent, Alert, Stack, Dialog, DialogTitle, DialogContent, DialogActions, } from "@mui/material";
-import { CloudUpload as CloudUploadIcon, Delete as DeleteIcon, } from "@mui/icons-material";
-import { supabase } from "../supabaseClient";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import CancelIcon from "@mui/icons-material/Cancel";
-import { useRealtimeSubscription } from "../hooks/useRealtimeSubscription";
-import Navbar from "../components/Navbar";
->>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
 function isCameraOnline(lastSeen, thresholdSec = 6) {
     return (Date.now() - new Date(lastSeen).getTime()) / 1000 < thresholdSec;
 }
@@ -63,7 +54,7 @@ const buildPreviewUrlMap = async (settings) => {
 const SettingsPage = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const userId = user?.id;
+    const [userId, setUserId] = useState(user?.id || null);
     const [systemStatus, setSystemStatus] = useState(null);
     const [settings, setSettings] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -71,7 +62,6 @@ const SettingsPage = () => {
     const [success, setSuccess] = useState(null);
     const [backupDialogOpen, setBackupDialogOpen] = useState(false);
     const [backupLoading, setBackupLoading] = useState(false);
-<<<<<<< HEAD
     const [backupError, setBackupError] = useState(null);
     const [backupSuccess, setBackupSuccess] = useState(false);
     const [cameras, setCameras] = useState([]);
@@ -254,43 +244,6 @@ const SettingsPage = () => {
         updatePreviewUrls(settings);
     }, [settings, updatePreviewUrls]);
     const fetchSettings = async () => {
-=======
-    const updatePreviewUrls = useCallback(async (newSettings) => {
-        const newPreviewUrls = {};
-        if (newSettings?.intro_video_path) {
-            const { data: introData } = await supabase.storage
-                .from("usermedia")
-                .createSignedUrl(newSettings.intro_video_path, 3600);
-            if (introData?.signedUrl) {
-                newPreviewUrls.intro = introData.signedUrl;
-            }
-        }
-        if (newSettings?.logo_path) {
-            const { data: logoData } = await supabase.storage
-                .from("usermedia")
-                .createSignedUrl(newSettings.logo_path, 3600);
-            if (logoData?.signedUrl) {
-                newPreviewUrls.logo = logoData.signedUrl;
-            }
-        }
-        for (const key of [
-            "sponsor_logo1_path",
-            "sponsor_logo2_path",
-            "sponsor_logo3_path",
-        ]) {
-            if (newSettings?.[key]) {
-                const { data: signedData } = await supabase.storage
-                    .from("usermedia")
-                    .createSignedUrl(newSettings[key], 3600);
-                if (signedData?.signedUrl) {
-                    newPreviewUrls[key.replace("_path", "")] = signedData.signedUrl;
-                }
-            }
-        }
-        setPreviewUrl(newPreviewUrls);
-    }, []);
-    const fetchSettings = useCallback(async () => {
->>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
         try {
             const { data: { user }, } = await supabase.auth.getUser();
             if (!user)
@@ -311,16 +264,10 @@ const SettingsPage = () => {
             setError("Failed to fetch settings");
             console.error(err);
         }
-<<<<<<< HEAD
     };
     useEffect(() => {
         fetchSettings();
     }, []);
-=======
-    }, [updatePreviewUrls]);
-    useEffect(() => {
-        fetchSettings();
-    }, [fetchSettings]);
     useEffect(() => {
         supabase.auth.getSession().then(({ data: { session } }) => {
             setUserId(session?.user?.id || null);
@@ -370,7 +317,6 @@ const SettingsPage = () => {
             setPreviewUrl({});
         },
     });
->>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
     const handleFileUpload = async (file, type) => {
         try {
             setLoading(true);
@@ -438,8 +384,6 @@ const SettingsPage = () => {
             setLoading(false);
         }
     };
-<<<<<<< HEAD
-=======
     const renderUploader = (label, type, preview) => (_jsx(Card, { sx: {
             background: "#1a1a1a",
             color: "#fff",
@@ -476,33 +420,6 @@ const SettingsPage = () => {
                                     backgroundColor: "rgba(244, 67, 54, 0.04)",
                                 },
                             }, children: "Remove" }))] })] }) }));
-    const fetchSystemStatus = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-            const { data, error } = await supabase
-                .from("system_status")
-                .select("*")
-                .eq("user_id", userId)
-                .single();
-            if (error)
-                throw error;
-            setSystemStatus({
-                isRecording: data.is_recording,
-                isStreaming: data.is_streaming,
-                storageUsed: data.storage_used,
-                lastBackup: data.last_backup,
-            });
-        }
-        catch (err) {
-            console.error("Error fetching system status:", err);
-            setError("Failed to fetch system status");
-        }
-        finally {
-            setLoading(false);
-        }
-    };
->>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
     const handleBackup = async () => {
         try {
             setBackupLoading(true);
@@ -569,56 +486,31 @@ const SettingsPage = () => {
                             mb: 6,
                             fontFamily: "Montserrat, sans-serif",
                             textAlign: "center",
-<<<<<<< HEAD
-                        }, children: "Settings" }), error && (_jsx(Alert, { severity: "error", sx: { mb: 2 }, children: error })), success && (_jsx(Alert, { severity: "success", sx: { mb: 2 }, children: success })), _jsxs(Grid, { container: true, spacing: 4, children: [_jsx(Grid, { item: true, xs: 12, md: 6, children: _jsx(Card, { sx: {
-                                        background: "#1a1a1a",
-                                        color: "#fff",
-                                        borderRadius: 3,
-                                        height: "100%",
-                                    }, children: _jsxs(CardContent, { children: [_jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, children: [_jsx(Typography, { variant: "h5", sx: { color: "#fff", fontWeight: 600 }, children: "System Status" }), _jsx(IconButton, { onClick: fetchSystemStatus, sx: { color: "#fff" }, disabled: loading, children: _jsx(RefreshIcon, {}) })] }), loading ? (_jsx(Box, { display: "flex", justifyContent: "center", my: 4, children: _jsx(CircularProgress, { sx: { color: "#F44336" } }) })) : (_jsxs(Stack, { spacing: 2, children: [_jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Recording Status" }), _jsxs(Box, { display: "flex", alignItems: "center", children: [systemStatus?.is_recording ? (_jsx(FiberManualRecordIcon, { sx: { color: "#F44336", mr: 1 } })) : (_jsx(CancelIcon, { sx: { color: "rgba(255, 255, 255, 0.7)", mr: 1 } })), _jsx(Typography, { sx: { color: "#fff" }, children: systemStatus?.is_recording ? "Recording" : "Not Recording" })] })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Streaming Status" }), _jsxs(Box, { display: "flex", alignItems: "center", children: [systemStatus?.is_streaming ? (_jsx(WifiIcon, { sx: { color: "#4CAF50", mr: 1 } })) : (_jsx(WifiOffIcon, { sx: { color: "rgba(255, 255, 255, 0.7)", mr: 1 } })), _jsx(Typography, { sx: { color: "#fff" }, children: systemStatus?.is_streaming ? "Streaming" : "Not Streaming" })] })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Storage Used" }), _jsx(Typography, { sx: { color: "#fff" }, children: formatStorage(systemStatus?.storage_used || 0) })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Last Backup" }), _jsx(Typography, { sx: { color: "#fff" }, children: systemStatus?.last_backup
-                                                                    ? new Date(systemStatus.last_backup).toLocaleDateString()
-                                                                    : "Never" })] })] }))] }) }) }), _jsx(Grid, { item: true, xs: 12, md: 6, children: _jsx(Card, { sx: {
-                                        background: "#1a1a1a",
-                                        color: "#fff",
-                                        borderRadius: 3,
-                                        height: "100%",
-                                    }, children: _jsxs(CardContent, { children: [_jsx(Typography, { variant: "h5", gutterBottom: true, sx: { color: "#fff", fontWeight: 600 }, children: "Data Management" }), _jsxs(Stack, { spacing: 3, children: [_jsx(Button, { variant: "contained", startIcon: _jsx(CloudUploadIcon, {}), onClick: () => setBackupDialogOpen(true), sx: {
-                                                            background: "#F44336",
-                                                            "&:hover": {
-                                                                background: "#d32f2f",
-                                                            },
-                                                        }, children: "Create Backup" }), _jsx(Button, { variant: "outlined", startIcon: _jsx(DeleteIcon, {}), onClick: handleDeleteAllData, sx: {
-                                                            color: "#F44336",
-                                                            borderColor: "#F44336",
-                                                            "&:hover": {
-                                                                borderColor: "#d32f2f",
-                                                                background: "rgba(244, 67, 54, 0.08)",
-                                                            },
-                                                        }, children: "Delete All Data" })] })] }) }) })] }), _jsxs(Dialog, { open: backupDialogOpen, onClose: () => setBackupDialogOpen(false), PaperProps: {
-=======
                         }, children: "Settings" }), error && (_jsx(Alert, { severity: "error", sx: { mb: 2 }, children: error })), success && (_jsx(Alert, { severity: "success", sx: { mb: 2 }, children: success })), _jsxs(Grid, { container: true, spacing: 4, children: [_jsxs(Grid, { item: true, xs: 12, md: 6, children: [_jsx(Card, { sx: {
                                             background: "#1a1a1a",
                                             color: "#fff",
                                             borderRadius: 3,
                                             mb: 3,
-                                        }, children: _jsxs(CardContent, { children: [_jsx(Typography, { variant: "h6", gutterBottom: true, sx: { color: "#fff" }, children: "System Status" }), _jsxs(Stack, { spacing: 2, children: [_jsxs(Box, { sx: {
+                                        }, children: _jsxs(CardContent, { children: [_jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, children: [_jsx(Typography, { variant: "h5", sx: { color: "#fff", fontWeight: 600 }, children: "System Status" }), _jsx(IconButton, { onClick: fetchSystemStatus, sx: { color: "#fff" }, disabled: loading, children: _jsx(RefreshIcon, {}) })] }), loading ? (_jsx(Box, { display: "flex", justifyContent: "center", my: 4, children: _jsx(CircularProgress, { sx: { color: "#F44336" } }) })) : (_jsxs(Stack, { spacing: 2, children: [_jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Recording Status" }), _jsxs(Box, { display: "flex", alignItems: "center", children: [systemStatus?.is_recording ? (_jsx(FiberManualRecordIcon, { sx: { color: "#F44336", mr: 1 } })) : (_jsx(CancelIcon, { sx: { color: "rgba(255, 255, 255, 0.7)", mr: 1 } })), _jsx(Typography, { sx: { color: "#fff" }, children: systemStatus?.is_recording ? "Recording" : "Not Recording" })] })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Streaming Status" }), _jsxs(Box, { display: "flex", alignItems: "center", children: [systemStatus?.is_streaming ? (_jsx(WifiIcon, { sx: { color: "#4CAF50", mr: 1 } })) : (_jsx(WifiOffIcon, { sx: { color: "rgba(255, 255, 255, 0.7)", mr: 1 } })), _jsx(Typography, { sx: { color: "#fff" }, children: systemStatus?.is_streaming ? "Streaming" : "Not Streaming" })] })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Storage Used" }), _jsx(Typography, { sx: { color: "#fff" }, children: formatStorage(systemStatus?.storage_used || 0) })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Last Backup" }), _jsx(Typography, { sx: { color: "#fff" }, children: systemStatus?.last_backup
+                                                                        ? new Date(systemStatus.last_backup).toLocaleString()
+                                                                        : "Never" })] })] })), _jsx(Typography, { variant: "h6", gutterBottom: true, sx: { color: "#fff" }, children: "System Status" }), _jsxs(Stack, { spacing: 2, children: [_jsxs(Box, { sx: {
                                                                 display: "flex",
                                                                 alignItems: "center",
                                                                 justifyContent: "space-between",
-                                                            }, children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Recording Status" }), _jsx(Box, { sx: { display: "flex", alignItems: "center" }, children: systemStatus.isRecording ? (_jsx(CheckCircleIcon, { sx: { color: "#4CAF50" } })) : (_jsx(CancelIcon, { sx: { color: "#F44336" } })) })] }), _jsxs(Box, { sx: {
+                                                            }, children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Recording Status" }), _jsx(Box, { sx: { display: "flex", alignItems: "center" }, children: systemStatus?.is_recording ? (_jsx(CheckCircleIcon, { sx: { color: "#4CAF50" } })) : (_jsx(CancelIcon, { sx: { color: "#F44336" } })) })] }), _jsxs(Box, { sx: {
                                                                 display: "flex",
                                                                 alignItems: "center",
                                                                 justifyContent: "space-between",
-                                                            }, children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Streaming Status" }), _jsx(Box, { sx: { display: "flex", alignItems: "center" }, children: systemStatus.isStreaming ? (_jsx(CheckCircleIcon, { sx: { color: "#4CAF50" } })) : (_jsx(CancelIcon, { sx: { color: "#F44336" } })) })] }), _jsxs(Box, { sx: {
+                                                            }, children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Streaming Status" }), _jsx(Box, { sx: { display: "flex", alignItems: "center" }, children: systemStatus?.is_streaming ? (_jsx(CheckCircleIcon, { sx: { color: "#4CAF50" } })) : (_jsx(CancelIcon, { sx: { color: "#F44336" } })) })] }), _jsxs(Box, { sx: {
                                                                 display: "flex",
                                                                 alignItems: "center",
                                                                 justifyContent: "space-between",
-                                                            }, children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Storage Used" }), _jsx(Typography, { sx: { color: "#fff" }, children: formatStorage(systemStatus.storageUsed) })] }), _jsxs(Box, { sx: {
+                                                            }, children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Storage Used" }), _jsx(Typography, { sx: { color: "#fff" }, children: formatStorage(systemStatus?.storage_used || 0) })] }), _jsxs(Box, { sx: {
                                                                 display: "flex",
                                                                 alignItems: "center",
                                                                 justifyContent: "space-between",
-                                                            }, children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Last Backup" }), _jsx(Typography, { sx: { color: "#fff" }, children: systemStatus.lastBackup
-                                                                        ? new Date(systemStatus.lastBackup).toLocaleString()
+                                                            }, children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Last Backup" }), _jsx(Typography, { sx: { color: "#fff" }, children: systemStatus?.last_backup
+                                                                        ? new Date(systemStatus.last_backup).toLocaleString()
                                                                         : "Never" })] })] })] }) }), _jsx(Card, { sx: {
                                             background: "#1a1a1a",
                                             color: "#fff",
@@ -637,7 +529,6 @@ const SettingsPage = () => {
                                                                     backgroundColor: "rgba(244, 67, 54, 0.04)",
                                                                 },
                                                             }, children: "Delete All Data" })] })] }) })] }), _jsxs(Grid, { item: true, xs: 12, md: 6, children: [renderUploader("Intro Video", "intro_video_path", previewUrl.intro), renderUploader("Logo", "logo_path", previewUrl.logo), renderUploader("Sponsor Logo 1", "sponsor_logo1_path", previewUrl.sponsor_logo1), renderUploader("Sponsor Logo 2", "sponsor_logo2_path", previewUrl.sponsor_logo2), renderUploader("Sponsor Logo 3", "sponsor_logo3_path", previewUrl.sponsor_logo3)] })] }), _jsxs(Dialog, { open: backupDialogOpen, onClose: () => setBackupDialogOpen(false), PaperProps: {
->>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
                             sx: {
                                 background: "#1a1a1a",
                                 color: "#fff",
@@ -647,8 +538,7 @@ const SettingsPage = () => {
                                             "&:hover": {
                                                 backgroundColor: "#D32F2F",
                                             },
-<<<<<<< HEAD
-                                        }, children: backupLoading ? "Creating Backup..." : "Create Backup" })] })] }), _jsx(Grid, { container: true, spacing: 4, sx: { mt: 2 }, children: mediaCards.map((card) => (_jsx(Grid, { item: true, xs: 12, sm: 6, md: 4, children: _jsxs(Card, { sx: {
+                                        }, children: backupLoading ? "Creating..." : "Create Backup" })] })] }), _jsx(Grid, { container: true, spacing: 4, sx: { mt: 2 }, children: mediaCards.map((card) => (_jsx(Grid, { item: true, xs: 12, sm: 6, md: 4, children: _jsxs(Card, { sx: {
                                     background: '#1a1a1a',
                                     color: '#fff',
                                     borderRadius: 3,
@@ -696,8 +586,5 @@ const SettingsPage = () => {
                                                             if (file)
                                                                 handleFileUpload(file, card.type);
                                                         }, style: { display: 'none' } })] }), previewUrl[card.previewKey] && (_jsx(Button, { variant: "outlined", color: "error", onClick: () => handleRemoveFile(card.type), disabled: loading, sx: { flex: 1, color: '#fff', borderColor: '#F44336', '&:hover': { borderColor: '#d32f2f', background: 'rgba(244,67,54,0.08)' } }, children: "Remove" }))] })] }) }, card.type))) })] })] }));
-=======
-                                        }, children: backupLoading ? "Creating..." : "Create Backup" })] })] })] })] }));
->>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
 };
 export default SettingsPage;

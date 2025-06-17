@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import React, { useState, useEffect } from "react";
 import {
   Box,
@@ -165,22 +164,8 @@ const Dashboard: React.FC = () => {
       .toString()
       .padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
-=======
-import React from "react";
-import {
-  Box,
-  Typography,
-  Container,
-  Grid,
-  Card,
-  CardContent,
-} from "@mui/material";
-import Navbar from "../components/Navbar";
-import TestComponent from "../components/TestComponent";
->>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
 
   return (
-<<<<<<< HEAD
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
       <Navigation />
       <Container maxWidth="lg" sx={{ pt: 12, pb: 8 }}>
@@ -192,34 +177,11 @@ import TestComponent from "../components/TestComponent";
             mb: 6,
             color: "text.primary",
             fontFamily: "Montserrat, sans-serif",
-=======
-    <Box
-      sx={{
-        minHeight: "100vh",
-        width: "100vw",
-        background: "#111",
-        pt: { xs: 10, md: 12 },
-        pb: 6,
-        boxSizing: "border-box",
-      }}
-    >
-      <Navbar />
-      <Container maxWidth="lg" sx={{ mt: 10 }}>
-        <Typography
-          variant="h3"
-          fontWeight={900}
-          sx={{
-            color: "#fff",
-            mb: 6,
-            fontFamily: "Montserrat, sans-serif",
-            textAlign: "center",
->>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
           }}
         >
           Dashboard
         </Typography>
 
-<<<<<<< HEAD
         {/* System Status */}
         <Grid container spacing={4} sx={{ mb: 4 }}>
           <Grid item xs={12} md={3}>
@@ -271,7 +233,7 @@ import TestComponent from "../components/TestComponent";
                   sx={{ height: 8, borderRadius: 4 }}
                 />
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                  {systemStatus?.storage_usage || 0}%
+                  {systemStatus?.storage_usage ? `${(systemStatus.storage_usage * 100).toFixed(0)}%` : '0%'}
                 </Typography>
               </CardContent>
             </Card>
@@ -283,8 +245,13 @@ import TestComponent from "../components/TestComponent";
                   <SpeedIcon color="primary" />
                   <Typography variant="h6">Network Speed</Typography>
                 </Stack>
-                <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                  {systemStatus?.network_speed || 0} Mbps
+                <LinearProgress
+                  variant="determinate"
+                  value={systemStatus?.network_speed || 0}
+                  sx={{ height: 8, borderRadius: 4 }}
+                />
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  {systemStatus?.network_speed ? `${systemStatus.network_speed.toFixed(2)} Mbps` : '0 Mbps'}
                 </Typography>
               </CardContent>
             </Card>
@@ -295,87 +262,92 @@ import TestComponent from "../components/TestComponent";
         <Typography variant="h5" sx={{ mb: 3, fontWeight: 700 }}>
           Cameras
         </Typography>
-        <Grid container spacing={3} sx={{ mb: 6 }}>
-          {cameras.map((camera) => (
-            <Grid item xs={12} md={4} key={camera.id}>
-              <Card sx={{ bgcolor: "background.paper" }}>
-                <CardContent>
-                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 2 }}>
-                    <CameraIcon color="primary" />
-                    <Typography variant="h6">{camera.name}</Typography>
-                    <Chip
-                      label={camera.status}
-                      color={camera.status === "online" ? "success" : "error"}
-                      size="small"
-                    />
-                  </Stack>
-                  <Stack direction="row" spacing={1}>
-                    <Button
-                      variant="contained"
-                      color={camera.is_recording ? "error" : "primary"}
-                      startIcon={camera.is_recording ? <StopIcon /> : <PlayIcon />}
-                      onClick={() =>
-                        camera.is_recording
-                          ? handleStopRecording(camera.id)
-                          : handleStartRecording(camera.id)
-                      }
-                      fullWidth
-                    >
-                      {camera.is_recording ? "Stop Recording" : "Start Recording"}
-                    </Button>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
+        <Grid container spacing={4} sx={{ mb: 4 }}>
+          {loading ? (
+            <Grid item xs={12}><Typography>Loading cameras...</Typography></Grid>
+          ) : cameras.length === 0 ? (
+            <Grid item xs={12}><Typography>No cameras found.</Typography></Grid>
+          ) : (
+            cameras.map((camera) => (
+              <Grid item key={camera.id} xs={12} md={4}>
+                <Card sx={{ bgcolor: "background.paper" }}>
+                  <CardContent>
+                    <Stack direction="row" alignItems="center" justifyContent="space-between">
+                      <Typography variant="h6">{camera.name}</Typography>
+                      <Chip
+                        label={camera.status === "online" ? "Online" : "Offline"}
+                        color={camera.status === "online" ? "success" : "error"}
+                        size="small"
+                      />
+                    </Stack>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                      Last Seen: {new Date(camera.last_seen).toLocaleString()}
+                    </Typography>
+                    <Stack direction="row" spacing={1} sx={{ mt: 2 }}>
+                      <Button
+                        variant="contained"
+                        color={camera.is_recording ? "error" : "primary"}
+                        startIcon={camera.is_recording ? <StopIcon /> : <PlayIcon />}
+                        onClick={() =>
+                          camera.is_recording
+                            ? handleStopRecording(camera.id)
+                            : handleStartRecording(camera.id)
+                        }
+                        size="small"
+                      >
+                        {camera.is_recording ? "Stop Recording" : "Start Recording"}
+                      </Button>
+                      <IconButton size="small">
+                        <RefreshIcon />
+                      </IconButton>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))
+          )}
         </Grid>
 
         {/* Recent Recordings */}
         <Typography variant="h5" sx={{ mb: 3, fontWeight: 700 }}>
           Recent Recordings
         </Typography>
-        <Grid container spacing={3}>
-          {recentRecordings.map((recording) => (
-            <Grid item xs={12} md={4} key={recording.id}>
-              <Card sx={{ bgcolor: "background.paper" }}>
-                <CardContent>
-                  <Typography variant="h6" sx={{ mb: 1 }}>
-                    {recording.title}
-                  </Typography>
-                  <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+        <Grid container spacing={4}>
+          {loading ? (
+            <Grid item xs={12}><Typography>Loading recordings...</Typography></Grid>
+          ) : recentRecordings.length === 0 ? (
+            <Grid item xs={12}><Typography>No recent recordings found.</Typography></Grid>
+          ) : (
+            recentRecordings.map((recording) => (
+              <Grid item key={recording.id} xs={12} md={4}>
+                <Card sx={{ bgcolor: "background.paper" }}>
+                  <CardContent>
+                    <Typography variant="h6">{recording.title}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Recorded: {new Date(recording.created_at).toLocaleString()}
+                    </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Duration: {formatDuration(recording.duration)}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
                       Size: {formatBytes(recording.size)}
                     </Typography>
-                  </Stack>
-                  <Stack direction="row" spacing={1}>
                     <Button
                       variant="outlined"
                       startIcon={<DownloadIcon />}
-                      onClick={() => navigate(`/recordings/${recording.id}`)}
+                      sx={{ mt: 2 }}
+                      size="small"
                     >
-                      View
+                      Download
                     </Button>
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      startIcon={<DeleteIcon />}
-                    >
-                      Delete
-                    </Button>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-=======
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={6}>
-            <TestComponent />
-          </Grid>
->>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
+                    <IconButton size="small" color="error" sx={{ mt: 2 }}>
+                      <DeleteIcon />
+                    </IconButton>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))
+          )}
         </Grid>
       </Container>
     </Box>

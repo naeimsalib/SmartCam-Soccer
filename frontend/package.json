@@ -13,15 +13,6 @@
     "@aws-sdk/client-s3": "^3.817.0",
     "@aws-sdk/s3-request-presigner": "^3.828.0",
     "@date-io/dayjs": "^3.2.0",
-<<<<<<< HEAD
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.0",
-    "@mui/icons-material": "^5.17.1",
-    "@mui/material": "^5.17.1",
-    "@mui/system": "^5.17.1",
-    "@mui/x-date-pickers": "^6.20.2",
-    "@supabase/supabase-js": "^2.38.4",
-=======
     "@emotion/react": "^11.11.3",
     "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.15.10",
@@ -30,7 +21,6 @@
     "@mui/x-date-pickers": "^6.19.4",
     "@popperjs/core": "^2.11.8",
     "@supabase/supabase-js": "^2.39.7",
->>>>>>> 771bf45572abf3e65b9e1abda6e4f1021226bdb0
     "date-fns": "^3.3.1",
     "dayjs": "^1.11.10",
     "react": "^18.2.0",
