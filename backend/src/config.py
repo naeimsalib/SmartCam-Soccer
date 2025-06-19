@@ -23,7 +23,12 @@ USER_ID = os.getenv("USER_ID")
 CAMERA_ID = os.getenv("CAMERA_ID")
 CAMERA_NAME = os.getenv("CAMERA_NAME", "Camera")
 CAMERA_LOCATION = os.getenv("CAMERA_LOCATION", "")
-CAMERA_DEVICE = os.getenv("CAMERA_DEVICE", "/dev/video0")
+CAMERA_DEVICE = os.getenv("CAMERA_DEVICE")
+if not CAMERA_DEVICE:
+    CAMERA_DEVICE = auto_detect_camera()
+    print(f"[CONFIG] Auto-detected camera device: {CAMERA_DEVICE}")
+else:
+    print(f"[CONFIG] Using camera device from environment: {CAMERA_DEVICE}")
 
 # Camera settings
 CAMERA_INDEX = 0
