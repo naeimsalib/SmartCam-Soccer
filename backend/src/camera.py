@@ -7,7 +7,7 @@ from typing import Optional, Tuple
 import subprocess
 
 import cv2
-from utils import (
+from .utils import (
     logger,
     supabase,
     queue_upload,
@@ -17,7 +17,7 @@ from utils import (
     update_system_status,
     get_storage_used
 )
-from config import (
+from .config import (
     CAMERA_ID,
     CAMERA_WIDTH,
     CAMERA_HEIGHT,
@@ -27,12 +27,10 @@ from config import (
     UPLOAD_INTERVAL,
     MAX_RECORDING_DURATION
 )
-from picamera2 import Picamera2
-import numpy as np
 
 class CameraService:
     def __init__(self):
-        self.camera: Optional[Picamera2] = None
+        self.camera: Optional[cv2.VideoCapture] = None
         self.is_recording = False
         self.current_file = None
         self.recording_start = None
@@ -41,30 +39,22 @@ class CameraService:
         self.intro_video_path = None
 
     def start_camera(self) -> bool:
-        """Initialize and start the camera with lock file."""
+        """Initialize and start the camera."""
         try:
-            self.lock_file = os.path.join(TEMP_DIR, "camera.lock")
-            if os.path.exists(self.lock_file):
-                logger.error("Camera lock file exists. Another process may be using the camera.")
+            self.camera = cv2.VideoCapture(CAMERA_ID)
+            self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
+            self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
+            self.camera.set(cv2.CAP_PROP_FPS, CAMERA_FPS)
+            
+            if not self.camera.isOpened():
+                logger.error("Failed to open camera")
                 return False
-            with open(self.lock_file, "w") as f:
-                f.write(str(os.getpid()))
-            self.camera = Picamera2()
-            video_config = self.camera.create_video_configuration(
-                main={
-                    "size": (CAMERA_WIDTH, CAMERA_HEIGHT),
-                    "format": "RGB888"
-                },
-                controls={"FrameRate": CAMERA_FPS}
-            )
-            self.camera.configure(video_config)
-            self.camera.start()
-            logger.info("Camera initialized successfully with Picamera2")
+                
+            logger.info("Camera initialized successfully")
             return True
+            
         except Exception as e:
             logger.error(f"Error starting camera: {e}")
-            if hasattr(self, 'lock_file') and os.path.exists(self.lock_file):
-                os.remove(self.lock_file)
             return False
 
     def get_intro_video(self) -> Optional[str]:
@@ -206,16 +196,20 @@ class CameraService:
                                     f.read()
                                 )
                             logger.info(f"Uploaded {filename}")
-                            # Delete local file after upload
-                            try:
-                                os.remove(filepath)
-                                logger.info(f"Deleted local file after upload: {filepath}")
-                            except Exception as e:
-                                logger.error(f"Failed to delete local file: {filepath}, error: {e}")
+                            
+                            # Move to permanent storage
+                            os.makedirs(RECORDING_DIR, exist_ok=True)
+                            os.rename(
+                                filepath,
+                                os.path.join(RECORDING_DIR, filename)
+                            )
+                            
                             # Update storage used
                             storage_used = get_storage_used()
                             update_system_status(storage_used=storage_used)
+                
                 time.sleep(UPLOAD_INTERVAL)
+                
             except Exception as e:
                 logger.error(f"Error in upload worker: {e}")
                 time.sleep(5)
@@ -233,17 +227,18 @@ class CameraService:
         return True
 
     def stop(self):
-        """Stop the camera service and release resources."""
+        """Stop the camera service."""
         self.stop_event.set()
         if self.upload_thread:
             self.upload_thread.join()
+            
+        if self.is_recording:
+            self.stop_recording()
+            
         if self.camera:
-            self.camera.stop()
-            logger.info("Camera stopped")
-        # Remove lock file
-        if hasattr(self, 'lock_file') and os.path.exists(self.lock_file):
-            os.remove(self.lock_file)
-            logger.info("Camera lock file removed")
+            self.camera.release()
+            
+        cleanup_temp_files(TEMP_DIR)
         logger.info("Camera service stopped")
 
 def main():
@@ -255,16 +250,15 @@ def main():
     try:
         while True:
             if service.is_recording:
-                frame = service.camera.capture_array()
-                if frame is not None:
-                    # Convert RGB to BGR for OpenCV VideoWriter
-                    frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                    service.writer.write(frame_bgr)
+                ret, frame = service.camera.read()
+                if ret:
+                    service.writer.write(frame)
+                    
                     # Check recording duration
                     if (time.time() - service.recording_start) >= MAX_RECORDING_DURATION:
                         service.stop_recording()
                 else:
-                    logger.error("Failed to read frame from Picamera2")
+                    logger.error("Failed to read frame")
                     break
             else:
                 time.sleep(1)
