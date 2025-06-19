@@ -82,7 +82,7 @@ class CameraInterface:
             filename = f"recording_{timestamp}.mp4"
         self.recording_path = os.path.join(self.output_dir, filename)
         if self.camera_type == 'picamera2':
-            self.picam.start_recording(self.recording_path)
+            self.picam.start_recording(output=self.recording_path)
             self.recording = True
         elif self.camera_type == 'opencv':
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
