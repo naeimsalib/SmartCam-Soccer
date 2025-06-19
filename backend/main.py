@@ -23,9 +23,10 @@ from concurrent.futures import ThreadPoolExecutor
 import logging
 from logging.handlers import RotatingFileHandler
 from src.config import (
-    CAMERA_DEVICE, PREVIEW_WIDTH, PREVIEW_HEIGHT, RECORD_WIDTH, RECORD_HEIGHT, PREVIEW_FPS, RECORD_FPS, HARDWARE_ENCODER, auto_detect_camera
+    CAMERA_DEVICE, PREVIEW_WIDTH, PREVIEW_HEIGHT, RECORD_WIDTH, RECORD_HEIGHT, PREVIEW_FPS, RECORD_FPS, HARDWARE_ENCODER
 )
-from picamera2 import Picamera2
+from src.camera_interface import CameraInterface
+from src.utils import send_heartbeat, start_heartbeat_thread, stop_heartbeat_thread
 
 # Configure logging
 logging.basicConfig(
@@ -364,6 +365,7 @@ def update_camera_status(camera_on, is_recording):
         "is_recording": is_recording,
         "last_seen": datetime.datetime.utcnow().isoformat(),
         "ip_address": get_ip(),
+        "pi_active": True,  # Set the new variable to True when script is running
     }
     # Commented out to reduce terminal output
     # print(f"[{datetime.datetime.utcnow().isoformat()}] Upserting camera data: {data}")
@@ -405,90 +407,70 @@ def cleanup_local_file(file_path):
     return False
 
 def main():
-    """Main function with optimized video processing."""
+    """Main function with optimized video processing using CameraInterface."""
     global shutting_down
-    
+
+    # Start heartbeat thread
+    start_heartbeat_thread()
+
     # Start upload worker
     upload_thread = threading.Thread(target=upload_worker, daemon=True)
     upload_thread.start()
-    
-    # Camera initialization with Picamera2
+
+    # Camera initialization with CameraInterface
     try:
-        picam = Picamera2()
-        video_config = picam.create_video_configuration(
-            main={
-                "size": (PREVIEW_WIDTH, PREVIEW_HEIGHT),
-                "format": "RGB888"
-            },
-            controls={"FrameRate": PREVIEW_FPS}
+        camera = CameraInterface(
+            width=PREVIEW_WIDTH,
+            height=PREVIEW_HEIGHT,
+            fps=PREVIEW_FPS,
+            output_dir="temp"
         )
-        picam.configure(video_config)
-        picam.start()
-        log("Camera initialized and opened with Picamera2", LogLevel.SUCCESS)
+        log(f"Camera initialized and opened with CameraInterface ({camera.camera_type})", LogLevel.SUCCESS)
+        # Set pi_active to True at startup
+        update_camera_status(camera_on=True, is_recording=False)
+        send_heartbeat(is_recording=False)
     except Exception as e:
-        log(f"Failed to initialize Picamera2: {e}", LogLevel.ERROR)
+        log(f"Failed to initialize CameraInterface: {e}", LogLevel.ERROR)
         return
-    
+
     prev_frame = None
-    recording_process = None
     last_booking_check = 0
     BOOKING_CHECK_INTERVAL = 60  # check every minute for bookings
     status_update_interval = 15  # seconds
     last_status_update = 0
     active_booking = None
-    
+    recording = False
+
     try:
         while not shutting_down:
-            frame = picam.capture_array()
+            frame = camera.capture_frame()
             if frame is None:
-                log("Failed to read frame from Picamera2", LogLevel.ERROR)
+                log("Failed to read frame from camera", LogLevel.ERROR)
                 continue
-            # Convert RGB to BGR for OpenCV compatibility
-            frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
             # Resize frame for preview
-            frame_bgr = cv2.resize(frame_bgr, (PREVIEW_WIDTH, PREVIEW_HEIGHT))
-            frame = frame_bgr
+            frame = cv2.resize(frame, (PREVIEW_WIDTH, PREVIEW_HEIGHT))
             # Ball detection (only on preview resolution)
             center, radius = detect_moving_circle(frame, prev_frame)
             prev_frame = frame.copy()
             # Check bookings periodically
             current_time = time.time()
             if current_time - last_booking_check > BOOKING_CHECK_INTERVAL or active_booking is None:
-                bookings = get_upcoming_bookings()
-                log(f"Fetched bookings: {bookings}", LogLevel.INFO)
-                now_dt = datetime.datetime.now()
-                active_booking = None
-                for booking in bookings:
-                    start_dt = datetime.datetime.strptime(f"{booking['date']} {booking['start_time']}", "%Y-%m-%d %H:%M")
-                    end_dt = datetime.datetime.strptime(f"{booking['date']} {booking['end_time']}", "%Y-%m-%d %H:%M")
-                    log(f"Comparing now_dt={now_dt} to booking window: start_dt={start_dt}, end_dt={end_dt}", LogLevel.INFO)
-                    if start_dt <= now_dt <= end_dt:
-                        log(f"Booking {booking['id']} is ACTIVE (now_dt is within window)", LogLevel.INFO)
-                        active_booking = booking
-                        break
-                    else:
-                        log(f"Booking {booking['id']} is NOT active (now_dt not in window)", LogLevel.INFO)
-                if active_booking:
-                    log(f"Active booking detected: {active_booking}", LogLevel.SUCCESS)
-                else:
-                    log("No active booking at this time.", LogLevel.INFO)
+                active_booking = get_upcoming_bookings()
                 last_booking_check = current_time
             # Start/stop recording based on booking
-            if active_booking and recording_process is None:
+            if active_booking and not recording:
                 log(f"Starting recording for booking: {active_booking}", LogLevel.SUCCESS)
-                recording_process = start_recording()
-                log(f"Recording process started: {recording_process}", LogLevel.INFO)
-                log(f"Temp directory contents: {os.listdir('temp') if os.path.exists('temp') else 'temp dir missing'}", LogLevel.INFO)
-                log(f"Recordings directory contents: {os.listdir('recordings') if os.path.exists('recordings') else 'recordings dir missing'}", LogLevel.INFO)
-            elif not active_booking and recording_process is not None:
+                camera.start_recording()
+                recording = True
+                send_heartbeat(is_recording=True)
+            elif not active_booking and recording:
                 log("No active booking, stopping recording.", LogLevel.INFO)
-                recording_process.terminate()
-                recording_process = None
-                log(f"Recording process stopped. Temp directory: {os.listdir('temp') if os.path.exists('temp') else 'temp dir missing'}", LogLevel.INFO)
-                log(f"Recordings directory: {os.listdir('recordings') if os.path.exists('recordings') else 'recordings dir missing'}", LogLevel.INFO)
+                camera.stop_recording()
+                recording = False
+                send_heartbeat(is_recording=False)
             # Throttle status update
             if current_time - last_status_update > status_update_interval:
-                update_camera_status(camera_on=True, is_recording=recording_process is not None)
+                update_camera_status(camera_on=True, is_recording=recording)
                 last_status_update = current_time
             # Process frame (skip if not needed)
             if center and radius:
@@ -505,11 +487,12 @@ def main():
     except Exception as e:
         log(f"Main loop error: {str(e)}", LogLevel.ERROR)
     finally:
-        if recording_process:
-            recording_process.terminate()
-        picam.stop()
+        if recording:
+            camera.stop_recording()
+        camera.release()
         cv2.destroyAllWindows()
         update_camera_status(camera_on=False, is_recording=False)
+        stop_heartbeat_thread()
 
 if __name__ == "__main__":
     main()

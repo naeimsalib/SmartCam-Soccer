@@ -1,8 +1,6 @@
 import os
 from dotenv import load_dotenv
 from pathlib import Path
-import glob
-import cv2
 
 # Load environment variables
 load_dotenv()
@@ -11,6 +9,8 @@ load_dotenv()
 BASE_DIR = Path(__file__).parent.parent
 TEMP_DIR = BASE_DIR / "temp"
 UPLOAD_DIR = BASE_DIR / "uploads"
+LOG_DIR = BASE_DIR / "logs"
+RECORDING_DIR = BASE_DIR / "recordings"
 
 # Create directories if they don't exist
 TEMP_DIR.mkdir(exist_ok=True)
@@ -20,15 +20,10 @@ UPLOAD_DIR.mkdir(exist_ok=True)
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_SERVICE_KEY")
 USER_ID = os.getenv("USER_ID")
-CAMERA_ID = os.getenv("CAMERA_ID")
+CAMERA_ID = os.getenv("CAMERA_ID", "default_camera")
 CAMERA_NAME = os.getenv("CAMERA_NAME", "Camera")
 CAMERA_LOCATION = os.getenv("CAMERA_LOCATION", "")
 CAMERA_DEVICE = os.getenv("CAMERA_DEVICE")
-if not CAMERA_DEVICE:
-    CAMERA_DEVICE = auto_detect_camera()
-    print(f"[CONFIG] Auto-detected camera device: {CAMERA_DEVICE}")
-else:
-    print(f"[CONFIG] Using camera device from environment: {CAMERA_DEVICE}")
 
 # Camera settings
 CAMERA_INDEX = 0
@@ -50,19 +45,4 @@ BOOKING_CHECK_INTERVAL = 60  # seconds
 
 # File paths
 NEXT_BOOKING_FILE = TEMP_DIR / "next_booking.json"
-UPLOAD_QUEUE_FILE = TEMP_DIR / "to_upload.txt"
-
-def auto_detect_camera():
-    """Auto-detect the first working camera device."""
-    video_devices = sorted(glob.glob('/dev/video*'))
-    for device in video_devices:
-        try:
-            cap = cv2.VideoCapture(device)
-            if cap.isOpened():
-                ret, frame = cap.read()
-                cap.release()
-                if ret:
-                    return device
-        except Exception:
-            continue
-    return None 
+UPLOAD_QUEUE_FILE = TEMP_DIR / "to_upload.txt" 
