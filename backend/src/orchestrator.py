@@ -8,7 +8,8 @@ from .utils import (
     logger,
     load_booking,
     remove_booking,
-    update_system_status
+    update_system_status,
+    remove_booking_from_supabase
 )
 from .config import BOOKING_CHECK_INTERVAL
 from .camera import CameraService
@@ -49,6 +50,7 @@ class Orchestrator:
                 # Remove booking after recording is complete
                 if self.current_booking_id:
                     remove_booking()
+                    remove_booking_from_supabase(self.current_booking_id)
                     self.current_booking_id = None
                     
                 return True
