@@ -124,6 +124,8 @@ class CameraService:
             logger.warning("Already recording")
             return False
         try:
+            # Placeholder for recording sign/LED ON
+            logger.info("[Recording Sign] Would turn ON recording indicator here.")
             self.current_file = self.interface.start_recording()
             self.is_recording = True
             self.recording_start = time.time()
@@ -145,6 +147,8 @@ class CameraService:
         try:
             self.is_recording = False
             self.interface.stop_recording()
+            # Placeholder for recording sign/LED OFF
+            logger.info("[Recording Sign] Would turn OFF recording indicator here.")
             if self.current_file:
                 logger.info(f"Checking file after stop_recording: {self.current_file}")
                 if os.path.exists(self.current_file):
@@ -155,6 +159,9 @@ class CameraService:
                         logger.info(f"Queuing file for upload: {final_path}")
                         queue_upload(final_path)
                         logger.info(f"Recording saved and queued for upload: {final_path}")
+                        # Log current upload queue
+                        queue = get_upload_queue()
+                        logger.info(f"Upload queue after recording: {queue}")
                     else:
                         logger.error(f"attach_intro_video returned None for {self.current_file}")
                 else:
@@ -172,10 +179,13 @@ class CameraService:
 
     def upload_worker(self):
         """Background thread for handling file uploads."""
+        logger.info("Upload worker started.")
         while not self.stop_event.is_set():
             try:
                 queue = get_upload_queue()
                 logger.debug(f"Upload queue: {queue}")
+                if not queue:
+                    logger.info("Upload queue is empty.")
                 if queue:
                     for filepath in queue:
                         logger.info(f"Attempting upload for: {filepath}")
@@ -216,16 +226,20 @@ class CameraService:
             except Exception as e:
                 logger.error(f"Error in upload worker: {e}", exc_info=True)
                 time.sleep(5)
+        logger.info("Upload worker stopped.")
 
     def start(self):
         """Start the camera service."""
         if not self.start_camera():
+            logger.error("Camera failed to start, upload worker will not run.")
             return False
-            
-        self.upload_thread = threading.Thread(target=self.upload_worker)
-        self.upload_thread.daemon = True
-        self.upload_thread.start()
-        
+        if self.upload_thread and self.upload_thread.is_alive():
+            logger.warning("Upload worker already running!")
+        else:
+            self.upload_thread = threading.Thread(target=self.upload_worker)
+            self.upload_thread.daemon = True
+            self.upload_thread.start()
+            logger.info("Upload worker thread started.")
         logger.info("Camera service started")
         return True
 
@@ -233,6 +247,7 @@ class CameraService:
         """Stop the camera service."""
         self.stop_event.set()
         if self.upload_thread:
+            logger.info("Waiting for upload worker to stop...")
             self.upload_thread.join()
         if self.is_recording:
             self.stop_recording()

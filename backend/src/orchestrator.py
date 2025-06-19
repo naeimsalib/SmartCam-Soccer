@@ -9,7 +9,8 @@ from .utils import (
     load_booking,
     remove_booking,
     update_system_status,
-    remove_booking_from_supabase
+    remove_booking_from_supabase,
+    get_upload_queue
 )
 from .config import BOOKING_CHECK_INTERVAL
 from .camera import CameraService
@@ -48,13 +49,17 @@ class Orchestrator:
             logger.info("Attempting to stop recording")
             if self.camera_service.stop_recording():
                 logger.info("Recording stopped successfully")
+                # Log upload queue after recording
+                queue = get_upload_queue()
+                logger.info(f"Upload queue after stop_recording: {queue}")
                 # Remove booking after recording is complete
                 if self.current_booking_id:
                     try:
-                        logger.info(f"Removing booking {self.current_booking_id} from local and Supabase DB.")
+                        logger.info(f"Attempting to remove booking {self.current_booking_id} from local and Supabase DB.")
                         remove_booking()
+                        logger.info(f"Booking {self.current_booking_id} removed from local file.")
                         remove_booking_from_supabase(self.current_booking_id)
-                        logger.info(f"Booking {self.current_booking_id} removed from local and Supabase DB.")
+                        logger.info(f"Booking {self.current_booking_id} removed from Supabase DB.")
                     except Exception as e:
                         logger.error(f"Failed to remove booking {self.current_booking_id}: {e}", exc_info=True)
                     self.current_booking_id = None
@@ -65,10 +70,11 @@ class Orchestrator:
             # Try to remove booking anyway
             if self.current_booking_id:
                 try:
-                    logger.info(f"Removing booking {self.current_booking_id} from local and Supabase DB (after error).")
+                    logger.info(f"Attempting to remove booking {self.current_booking_id} from local and Supabase DB (after error).")
                     remove_booking()
+                    logger.info(f"Booking {self.current_booking_id} removed from local file (after error).")
                     remove_booking_from_supabase(self.current_booking_id)
-                    logger.info(f"Booking {self.current_booking_id} removed from local and Supabase DB (after error).")
+                    logger.info(f"Booking {self.current_booking_id} removed from Supabase DB (after error).")
                 except Exception as e2:
                     logger.error(f"Failed to remove booking {self.current_booking_id} after error: {e2}", exc_info=True)
                 self.current_booking_id = None
