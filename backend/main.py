@@ -26,6 +26,7 @@ from src.config import (
     CAMERA_DEVICE, PREVIEW_WIDTH, PREVIEW_HEIGHT, RECORD_WIDTH, RECORD_HEIGHT, PREVIEW_FPS, RECORD_FPS, HARDWARE_ENCODER
 )
 from src.camera_interface import CameraInterface
+from src.utils import send_heartbeat, start_heartbeat_thread, stop_heartbeat_thread
 
 # Configure logging
 logging.basicConfig(
@@ -409,6 +410,9 @@ def main():
     """Main function with optimized video processing using CameraInterface."""
     global shutting_down
 
+    # Start heartbeat thread
+    start_heartbeat_thread()
+
     # Start upload worker
     upload_thread = threading.Thread(target=upload_worker, daemon=True)
     upload_thread.start()
@@ -424,6 +428,7 @@ def main():
         log(f"Camera initialized and opened with CameraInterface ({camera.camera_type})", LogLevel.SUCCESS)
         # Set pi_active to True at startup
         update_camera_status(camera_on=True, is_recording=False)
+        send_heartbeat(is_recording=False)
     except Exception as e:
         log(f"Failed to initialize CameraInterface: {e}", LogLevel.ERROR)
         return
@@ -457,10 +462,12 @@ def main():
                 log(f"Starting recording for booking: {active_booking}", LogLevel.SUCCESS)
                 camera.start_recording()
                 recording = True
+                send_heartbeat(is_recording=True)
             elif not active_booking and recording:
                 log("No active booking, stopping recording.", LogLevel.INFO)
                 camera.stop_recording()
                 recording = False
+                send_heartbeat(is_recording=False)
             # Throttle status update
             if current_time - last_status_update > status_update_interval:
                 update_camera_status(camera_on=True, is_recording=recording)
@@ -485,6 +492,7 @@ def main():
         camera.release()
         cv2.destroyAllWindows()
         update_camera_status(camera_on=False, is_recording=False)
+        stop_heartbeat_thread()
 
 if __name__ == "__main__":
     main()

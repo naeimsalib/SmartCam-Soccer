@@ -6,6 +6,8 @@ import os
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from supabase import create_client, Client
+import time
+import threading
 
 from .config import (
     SUPABASE_URL,
@@ -223,4 +225,44 @@ def get_storage_used() -> int:
         return total_size
     except Exception as e:
         logger.error(f"Error calculating storage used: {e}")
-        return 0 
+        return 0
+
+HEARTBEAT_INTERVAL = 20  # seconds
+
+_heartbeat_thread = None
+_heartbeat_stop_event = threading.Event()
+
+def send_heartbeat(is_recording=False, is_streaming=False, storage_used=None, last_backup=None):
+    """Send a heartbeat update to keep the system marked as active"""
+    data = {
+        "pi_active": True,
+        "last_heartbeat": datetime.utcnow().isoformat(),
+        "is_recording": is_recording,
+        "is_streaming": is_streaming,
+    }
+    if storage_used is not None:
+        data["storage_used"] = storage_used
+    if last_backup is not None:
+        data["last_backup"] = last_backup
+    try:
+        supabase.table("system_status").update(data).eq("user_id", USER_ID).execute()
+        print("[Heartbeat] Sent successfully")
+    except Exception as e:
+        print(f"[Heartbeat] Failed to send: {e}")
+
+def _heartbeat_loop():
+    while not _heartbeat_stop_event.is_set():
+        send_heartbeat()
+        _heartbeat_stop_event.wait(HEARTBEAT_INTERVAL)
+
+def start_heartbeat_thread():
+    global _heartbeat_thread
+    if _heartbeat_thread is None or not _heartbeat_thread.is_alive():
+        _heartbeat_stop_event.clear()
+        _heartbeat_thread = threading.Thread(target=_heartbeat_loop, daemon=True)
+        _heartbeat_thread.start()
+
+def stop_heartbeat_thread():
+    _heartbeat_stop_event.set()
+    if _heartbeat_thread:
+        _heartbeat_thread.join() 

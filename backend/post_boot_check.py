@@ -4,6 +4,7 @@ from supabase import create_client
 from dotenv import load_dotenv
 import sys
 import multiprocessing
+from src.utils import send_heartbeat
 
 load_dotenv()
 
@@ -79,6 +80,7 @@ if __name__ == "__main__":
     perm_ok = check_permissions()
     if cam_ok and supa_ok and perm_ok:
         print("[Post Boot Check] All checks passed!")
+        send_heartbeat(is_recording=False, is_streaming=False)
         sys.exit(0)
     else:
         print("[Post Boot Check] One or more checks failed!")
