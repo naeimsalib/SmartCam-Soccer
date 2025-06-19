@@ -30,20 +30,10 @@ fi
 
 # Test camera
 test_camera() {
-    print_status "Testing camera..."
-    python3 -c "
-import cv2
-camera = cv2.VideoCapture(0)
-if not camera.isOpened():
-    print('Camera test failed')
-    exit(1)
-ret, frame = camera.read()
-if not ret:
-    print('Camera test failed')
-    exit(1)
-camera.release()
-print('Camera test passed')
-"
+    print_status "Testing all /dev/video* devices..."
+    python3 -c "import cv2, glob; found = False; devices = sorted(glob.glob('/dev/video*')); print('Found devices:', devices);\
+for device in devices:\n    cap = cv2.VideoCapture(device);\n    if cap.isOpened():\n        ret, frame = cap.read();\n        cap.release();\n        if ret:\n            print(f'Camera test passed for {device}'); found = True\n        else:\n            print(f'Opened {device} but failed to read frame.')\n    else:\n        print(f'Failed to open {device}');\
+if not found: print('No working camera found'); exit(1)"
 }
 
 # Test Supabase connection
