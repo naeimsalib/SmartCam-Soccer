@@ -6,9 +6,10 @@ Pillow==10.0.0
 requests==2.31.0
 
 # Supabase dependencies
-supabase==2.3.0
+supabase==2.3.5
 postgrest==0.10.8  # Using older version for compatibility
 httpx==0.24.1  # Fixed version that works with both supabase and postgrest
+gotrue==2.4.0
 
 # Video processing
 ffmpeg-python==0.2.0
