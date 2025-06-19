@@ -5,10 +5,10 @@ PartOf=smartcam.service
 
 [Service]
 Type=simple
-User=pi
-WorkingDirectory=/home/pi/SmartCam-Soccer/backend
+User=michomanoly14892
+WorkingDirectory=/home/michomanoly14892/code/SmartCam-Soccer/backend
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/home/pi/SmartCam-Soccer/backend/venv/bin/python update_system_status.py
+ExecStart=/home/michomanoly14892/code/SmartCam-Soccer/backend/venv/bin/python update_system_status.py
 Restart=always
 RestartSec=5
 StandardOutput=syslog

@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+USERNAME="michomanoly14892"
+APP_DIR="/home/$USERNAME/code/SmartCam-Soccer"
+
+# Print header
 echo "SmartCam Soccer Setup Script"
 echo "==========================="
 
@@ -28,15 +32,14 @@ apt-get install -y \
     v4l-utils
 
 # Create application directory
-APP_DIR="/home/pi/SmartCam-Soccer"
 echo "Setting up application directory at $APP_DIR..."
 mkdir -p "$APP_DIR"
-chown -R pi:pi "$APP_DIR"
+chown -R $USERNAME:$USERNAME "$APP_DIR"
 
 # Clone repository if not already present
 if [ ! -d "$APP_DIR/.git" ]; then
     echo "Cloning repository..."
-    su - pi -c "git clone https://github.com/yourusername/SmartCam-Soccer.git $APP_DIR"
+    su - $USERNAME -c "git clone https://github.com/yourusername/SmartCam-Soccer.git $APP_DIR"
 fi
 
 # Setup Python environment
@@ -51,7 +54,7 @@ pip install -r requirements.txt
 echo "Creating necessary directories..."
 mkdir -p "$APP_DIR/backend/recordings"
 mkdir -p "$APP_DIR/backend/logs"
-chown -R pi:pi "$APP_DIR"
+chown -R $USERNAME:$USERNAME "$APP_DIR"
 
 # Setup systemd services
 echo "Setting up systemd services..."
@@ -79,13 +82,13 @@ RECORDING_DIR=$APP_DIR/backend/recordings
 # System Configuration
 LOG_DIR=$APP_DIR/backend/logs
 EOL
-    chown pi:pi "$APP_DIR/backend/.env"
+    chown $USERNAME:$USERNAME "$APP_DIR/backend/.env"
     echo "Please edit $APP_DIR/backend/.env with your actual configuration"
 fi
 
 # Set permissions
 echo "Setting permissions..."
-chown -R pi:pi "$APP_DIR"
+chown -R $USERNAME:$USERNAME "$APP_DIR"
 chmod -R 755 "$APP_DIR"
 
 echo "Setup complete!"
