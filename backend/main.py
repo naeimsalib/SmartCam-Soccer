@@ -438,9 +438,10 @@ def main():
     prev_frame = None
     recording_process = None
     last_booking_check = 0
-    BOOKING_CHECK_INTERVAL = 300  # 5 minutes
+    BOOKING_CHECK_INTERVAL = 60  # check every minute for bookings
     status_update_interval = 15  # seconds
     last_status_update = 0
+    active_booking = None
     
     try:
         while not shutting_down:
@@ -455,9 +456,30 @@ def main():
             prev_frame = frame.copy()
             # Check bookings periodically
             current_time = time.time()
-            if current_time - last_booking_check > BOOKING_CHECK_INTERVAL:
-                get_upcoming_bookings()
+            if current_time - last_booking_check > BOOKING_CHECK_INTERVAL or active_booking is None:
+                bookings = get_upcoming_bookings()
+                log(f"Fetched bookings: {bookings}", LogLevel.INFO)
+                now_dt = datetime.datetime.now()
+                active_booking = None
+                for booking in bookings:
+                    start_dt = datetime.datetime.strptime(f"{booking['date']} {booking['start_time']}", "%Y-%m-%d %H:%M")
+                    end_dt = datetime.datetime.strptime(f"{booking['date']} {booking['end_time']}", "%Y-%m-%d %H:%M")
+                    if start_dt <= now_dt <= end_dt:
+                        active_booking = booking
+                        break
+                if active_booking:
+                    log(f"Active booking detected: {active_booking}", LogLevel.SUCCESS)
+                else:
+                    log("No active booking at this time.", LogLevel.INFO)
                 last_booking_check = current_time
+            # Start/stop recording based on booking
+            if active_booking and recording_process is None:
+                log(f"Starting recording for booking: {active_booking}", LogLevel.SUCCESS)
+                recording_process = start_recording()
+            elif not active_booking and recording_process is not None:
+                log("No active booking, stopping recording.", LogLevel.INFO)
+                recording_process.terminate()
+                recording_process = None
             # Throttle status update
             if current_time - last_status_update > status_update_interval:
                 update_camera_status(camera_on=True, is_recording=recording_process is not None)
