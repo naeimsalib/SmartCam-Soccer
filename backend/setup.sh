@@ -12,8 +12,6 @@ echo "==========================="
 if [ "$EUID" -ne 0 ]; then 
     echo "Please run as root (use sudo)"
     exit 1
-fi
-
 # Update system
 echo "Updating system packages..."
 apt-get update
