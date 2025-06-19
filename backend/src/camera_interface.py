@@ -28,6 +28,7 @@ class CameraInterface:
         # Try Picamera2 first (for Pi Camera Module)
         if PICAMERA2_AVAILABLE:
             try:
+                print("[DEBUG] Attempting to initialize Picamera2...")
                 self.picam = Picamera2()
                 video_config = self.picam.create_video_configuration(
                     main={"size": (self.width, self.height), "format": "RGB888"},
@@ -39,8 +40,10 @@ class CameraInterface:
                 print("[CameraInterface] Using Pi Camera (Picamera2)")
                 return
             except Exception as e:
+                import traceback
                 self.picam = None
                 print(f"[CameraInterface] Picamera2 not available or failed: {e}")
+                traceback.print_exc()
         # Fallback: Try OpenCV on /dev/video* (for USB cameras)
         for idx in range(8):  # Try /dev/video0 ... /dev/video7
             cap = cv2.VideoCapture(idx)
