@@ -56,6 +56,7 @@ def log(message, level=LogLevel.INFO):
 
 # Constants for video processing
 MAX_WORKERS = 2  # Limit concurrent processes
+BOOKING_GRACE_PERIOD = 120  # 2 minutes in seconds
 
 # Global variables
 load_dotenv()
@@ -108,6 +109,7 @@ def overlay_logo(frame, logo_path, position):
         logo = logo_cache[position]
 
     h_logo, w_logo = logo.shape[:2]
+    h_frame, w_frame = frame.shape[:2]
     x, y = {
         "top-left": (10, 10),
         "top-right": (w_frame - w_logo - 10, 10),
@@ -129,6 +131,34 @@ def overlay_logo(frame, logo_path, position):
         overlay[y:y+h_logo, x:x+w_logo] = logo
     return overlay
 
+def add_timestamp_overlay(frame, timestamp_str):
+    """Add timestamp overlay to the frame."""
+    h_frame, w_frame = frame.shape[:2]
+    
+    # Choose font and scale based on frame size
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_scale = max(0.8, min(2.0, w_frame / 1000))  # Scale font based on frame width
+    thickness = max(1, int(font_scale * 2))
+    
+    # Get text size
+    (text_width, text_height), baseline = cv2.getTextSize(timestamp_str, font, font_scale, thickness)
+    
+    # Position timestamp in top-left corner with padding
+    x = 20
+    y = text_height + 20
+    
+    # Add background rectangle for better readability
+    padding = 10
+    cv2.rectangle(frame, 
+                  (x - padding, y - text_height - padding), 
+                  (x + text_width + padding, y + baseline + padding), 
+                  (0, 0, 0), -1)  # Black background
+    
+    # Add timestamp text in white
+    cv2.putText(frame, timestamp_str, (x, y), font, font_scale, (255, 255, 255), thickness)
+    
+    return frame
+
 def encode_video_with_fixed_fps(input_path, output_path, target_fps=30):
     """Encode video using hardware acceleration."""
     try:
@@ -149,6 +179,60 @@ def encode_video_with_fixed_fps(input_path, output_path, target_fps=30):
         return True
     except Exception as e:
         log(f"Failed to encode video: {str(e)}", LogLevel.ERROR)
+        return False
+
+def process_video_with_overlays(input_path, output_path, user_settings, booking_info):
+    """Process video to add timestamp and logo overlays."""
+    try:
+        # Get logo path from user settings
+        logo_path = user_settings.get("logo_path", "user_assets/default_logo.png")
+        logo_position = user_settings.get("logo_position", "top-right")
+        
+        # Open input video
+        cap = cv2.VideoCapture(input_path)
+        if not cap.isOpened():
+            log(f"Failed to open input video: {input_path}", LogLevel.ERROR)
+            return False
+        
+        # Get video properties
+        fps = int(cap.get(cv2.CAP_PROP_FPS))
+        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        
+        # Setup video writer
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
+        
+        frame_count = 0
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
+            
+            # Calculate timestamp for this frame
+            seconds_elapsed = frame_count / fps
+            recording_start = datetime.datetime.fromisoformat(booking_info['start_time'].replace('Z', '+00:00'))
+            current_time = recording_start + datetime.timedelta(seconds=seconds_elapsed)
+            timestamp_str = current_time.strftime("%Y-%m-%d %H:%M:%S")
+            
+            # Add timestamp overlay
+            frame = add_timestamp_overlay(frame, timestamp_str)
+            
+            # Add logo overlay
+            if os.path.exists(logo_path):
+                frame = overlay_logo(frame, logo_path, logo_position)
+            
+            out.write(frame)
+            frame_count += 1
+        
+        cap.release()
+        out.release()
+        
+        log(f"Successfully processed video with overlays: {output_path}", LogLevel.SUCCESS)
+        return True
+        
+    except Exception as e:
+        log(f"Failed to process video with overlays: {str(e)}", LogLevel.ERROR)
         return False
 
 def prepend_intro(intro_path, main_path, output_path):
@@ -199,12 +283,13 @@ def prepend_intro(intro_path, main_path, output_path):
         ]
         subprocess.run(merge_cmd, capture_output=True)
         
-        shutil.rmtree(temp_dir)
+        # Cleanup
+        if os.path.exists(temp_dir):
+            shutil.rmtree(temp_dir)
+        
         return True
     except Exception as e:
         log(f"Failed to prepend intro: {str(e)}", LogLevel.ERROR)
-        if os.path.exists(temp_dir):
-            shutil.rmtree(temp_dir)
         return False
 
 def detect_moving_circle(frame, prev_frame):
@@ -315,20 +400,91 @@ def remove_finished_booking(booking_id):
         log(f"Error removing finished booking {booking_id}: {str(e)}", LogLevel.ERROR)
         return False
 
+def cleanup_past_bookings():
+    """Remove past bookings that have ended with grace period."""
+    try:
+        today = datetime.date.today().isoformat()
+        response = supabase.table("bookings").select("*").eq("user_id", USER_ID).eq("date", today).execute()
+        
+        if not response.data:
+            return
+        
+        current_datetime = datetime.datetime.now()
+        bookings_to_remove = []
+        
+        for booking in response.data:
+            # Parse booking end time
+            booking_date = datetime.date.fromisoformat(booking["date"])
+            end_time = datetime.time.fromisoformat(booking["end_time"])
+            booking_end_datetime = datetime.datetime.combine(booking_date, end_time)
+            
+            # Check if booking ended more than grace period ago
+            time_since_end = (current_datetime - booking_end_datetime).total_seconds()
+            
+            if time_since_end > BOOKING_GRACE_PERIOD:
+                bookings_to_remove.append(booking["id"])
+                log(f"Booking {booking['id']} ended {int(time_since_end/60)} minutes ago, marking for removal")
+        
+        # Remove expired bookings
+        for booking_id in bookings_to_remove:
+            remove_finished_booking(booking_id)
+            
+    except Exception as e:
+        log(f"Error cleaning up past bookings: {str(e)}", LogLevel.ERROR)
+
 def process_and_upload_video(video_path, booking_id):
-    """Process video and add to upload queue."""
+    """Process video with overlays and intro, then add to upload queue."""
     try:
         if not os.path.exists(video_path):
             log(f"Video file not found: {video_path}", LogLevel.ERROR)
             return False
             
-        # Generate filename based on booking info
+        # Get user settings and booking info
+        user_settings = get_user_settings()
+        
+        # Get booking info for timestamp overlay
+        booking_info = None
+        try:
+            response = supabase.table("bookings").select("*").eq("id", booking_id).single().execute()
+            booking_info = response.data
+        except Exception as e:
+            log(f"Warning: Could not fetch booking info for overlays: {str(e)}", LogLevel.WARNING)
+        
+        # Generate processed filename
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"recording_{timestamp}_{booking_id}.mp4"
+        processed_filename = f"recording_{timestamp}_{booking_id}.mp4"
+        processed_path = os.path.join("temp", f"processed_{processed_filename}")
+        
+        # Ensure temp directory exists
+        os.makedirs("temp", exist_ok=True)
+        
+        # Process video with overlays if booking info is available
+        if booking_info:
+            log("Processing video with timestamp and logo overlays", LogLevel.INFO)
+            if not process_video_with_overlays(video_path, processed_path, user_settings, booking_info):
+                log("Failed to process video with overlays, using original", LogLevel.WARNING)
+                processed_path = video_path
+        else:
+            processed_path = video_path
+        
+        # Add intro video if configured
+        intro_path = user_settings.get("intro_video_path")
+        final_path = processed_path
+        
+        if intro_path and os.path.exists(intro_path):
+            log("Adding intro video to recording", LogLevel.INFO)
+            final_processed_path = os.path.join("temp", f"final_{processed_filename}")
+            if prepend_intro(intro_path, processed_path, final_processed_path):
+                final_path = final_processed_path
+                # Clean up intermediate file if different from original
+                if processed_path != video_path:
+                    cleanup_local_file(processed_path)
+            else:
+                log("Failed to add intro video, using processed video without intro", LogLevel.WARNING)
         
         # Add to upload queue with booking_id
-        upload_queue.put((video_path, USER_ID, filename, booking_id))
-        log(f"Added video to upload queue: {filename}", LogLevel.SUCCESS)
+        upload_queue.put((final_path, USER_ID, processed_filename, booking_id))
+        log(f"Added processed video to upload queue: {processed_filename}", LogLevel.SUCCESS)
         return True
         
     except Exception as e:
@@ -424,6 +580,10 @@ def update_camera_status(camera_on, is_recording):
         mem = psutil.virtual_memory()
         cpu_percent = psutil.cpu_percent(interval=0.5)
         
+        # Calculate camera count - 1 if camera is active, 0 if not
+        cameras_online = 1 if camera_on else 0
+        total_cameras = 1  # We have 1 camera total
+        
         # Update system_status table with correct column names
         system_data = {
             "user_id": USER_ID,
@@ -434,6 +594,8 @@ def update_camera_status(camera_on, is_recording):
             "memory_usage": mem.percent,
             "storage_usage": (mem.total - mem.available) / mem.total * 100,
             "pi_active": camera_on,
+            "cameras_online": cameras_online,
+            "total_cameras": total_cameras,
             "ip_address": get_ip_address(),
             "last_seen": datetime.datetime.now().isoformat(),
             "updated_at": datetime.datetime.now().isoformat()
@@ -472,18 +634,29 @@ def insert_video_reference(user_id, filename, storage_path, booking_id):
             "user_id": user_id,
             "filename": filename,
             "storage_path": storage_path,
+            "booking_id": booking_id,  # Now include booking_id
             "created_at": now
         }
-        
-        # Note: booking_id column doesn't exist in database yet, so we don't include it
-        # This can be added later when the database schema is updated
         
         supabase.table("videos").insert(video_data).execute()
         log(f"Added video reference for {filename} (associated with booking: {booking_id})", LogLevel.SUCCESS)
         return True
     except Exception as e:
         log(f"Database insert failed: {str(e)}", LogLevel.WARNING)
-        return False
+        # Try without booking_id if the column doesn't exist yet
+        try:
+            video_data_fallback = {
+                "user_id": user_id,
+                "filename": filename,
+                "storage_path": storage_path,
+                "created_at": now
+            }
+            supabase.table("videos").insert(video_data_fallback).execute()
+            log(f"Added video reference for {filename} (booking_id column not available)", LogLevel.SUCCESS)
+            return True
+        except Exception as e2:
+            log(f"Database insert failed even without booking_id: {str(e2)}", LogLevel.ERROR)
+            return False
 
 def cleanup_local_file(file_path):
     try:
@@ -558,6 +731,9 @@ def main():
             # Check bookings periodically
             current_time = time.time()
             if current_time - last_booking_check > BOOKING_CHECK_INTERVAL:
+                # Clean up past bookings with grace period
+                cleanup_past_bookings()
+                
                 new_booking = get_current_active_booking()
                 
                 # Handle booking changes
