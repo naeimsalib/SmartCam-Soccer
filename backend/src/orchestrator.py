@@ -46,18 +46,28 @@ class Orchestrator:
         try:
             if self.camera_service.stop_recording():
                 logger.info("Recording stopped successfully")
-                
                 # Remove booking after recording is complete
                 if self.current_booking_id:
-                    remove_booking()
-                    # Remove booking from Supabase
-                    remove_booking_from_supabase(self.current_booking_id)
+                    try:
+                        remove_booking()
+                        remove_booking_from_supabase(self.current_booking_id)
+                        logger.info(f"Booking {self.current_booking_id} removed from local and Supabase DB.")
+                    except Exception as e:
+                        logger.error(f"Failed to remove booking {self.current_booking_id}: {e}")
                     self.current_booking_id = None
-                
                 return True
             return False
         except Exception as e:
             logger.error(f"Error stopping recording: {e}")
+            # Try to remove booking anyway
+            if self.current_booking_id:
+                try:
+                    remove_booking()
+                    remove_booking_from_supabase(self.current_booking_id)
+                    logger.info(f"Booking {self.current_booking_id} removed from local and Supabase DB (after error).")
+                except Exception as e2:
+                    logger.error(f"Failed to remove booking {self.current_booking_id} after error: {e2}")
+                self.current_booking_id = None
             return False
 
     def recording_worker(self):

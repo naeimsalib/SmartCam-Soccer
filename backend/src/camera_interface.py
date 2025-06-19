@@ -6,6 +6,7 @@ from typing import Optional, Tuple
 
 try:
     from picamera2 import Picamera2
+    from picamera2.encoders import H264Encoder
     print("[DEBUG] Picamera2 import succeeded")
     PICAMERA2_AVAILABLE = True
 except ImportError as e:
@@ -73,6 +74,13 @@ class CameraInterface:
         else:
             return None
 
+    def _update_system_status(self, is_recording: bool):
+        try:
+            from .utils import update_system_status
+            update_system_status(is_recording=is_recording)
+        except Exception as e:
+            print(f"[CameraInterface] Failed to update system status: {e}")
+
     def start_recording(self, filename: Optional[str] = None) -> str:
         if self.recording:
             print("[CameraInterface] Already recording!")
@@ -82,8 +90,11 @@ class CameraInterface:
             filename = f"recording_{timestamp}.mp4"
         self.recording_path = os.path.join(self.output_dir, filename)
         if self.camera_type == 'picamera2':
-            self.picam.start_recording(output=self.recording_path)
+            # Create encoder and start recording with encoder and output path
+            self.encoder = H264Encoder()
+            self.picam.start_recording(self.encoder, self.recording_path)
             self.recording = True
+            self._update_system_status(is_recording=True)
         elif self.camera_type == 'opencv':
             fourcc = cv2.VideoWriter_fourcc(*'mp4v')
             self.writer = cv2.VideoWriter(
@@ -94,6 +105,7 @@ class CameraInterface:
             self._recording_thread = threading.Thread(target=self._opencv_record_loop)
             self._recording_thread.daemon = True
             self._recording_thread.start()
+            self._update_system_status(is_recording=True)
         print(f"[CameraInterface] Started recording: {self.recording_path}")
         return self.recording_path
 
@@ -112,12 +124,15 @@ class CameraInterface:
             print("[CameraInterface] Not recording.")
             return
         if self.camera_type == 'picamera2':
+            # Stop recording and clean up encoder
             self.picam.stop_recording()
+            self.encoder = None
         elif self.camera_type == 'opencv':
             self.recording = False
             if self.writer:
                 self.writer.release()
                 self.writer = None
+        self._update_system_status(is_recording=False)
         print(f"[CameraInterface] Stopped recording: {self.recording_path}")
         self.recording_path = None
 

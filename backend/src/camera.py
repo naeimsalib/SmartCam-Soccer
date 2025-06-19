@@ -127,7 +127,10 @@ class CameraService:
             self.current_file = self.interface.start_recording()
             self.is_recording = True
             self.recording_start = time.time()
-            update_system_status(is_recording=True)
+            try:
+                update_system_status(is_recording=True)
+            except Exception as e:
+                logger.error(f"Error updating system status after start_recording: {e}")
             logger.info(f"Started recording to {self.current_file}")
             return True
         except Exception as e:
@@ -148,7 +151,10 @@ class CameraService:
                     logger.info(f"Recording saved and queued for upload: {final_path}")
             self.current_file = None
             self.recording_start = None
-            update_system_status(is_recording=False)
+            try:
+                update_system_status(is_recording=False)
+            except Exception as e:
+                logger.error(f"Error updating system status after stop_recording: {e}")
             return True
         except Exception as e:
             logger.error(f"Error stopping recording: {e}")
