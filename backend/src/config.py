@@ -52,6 +52,9 @@ MIN_RECORDING_DURATION = int(os.getenv("MIN_RECORDING_DURATION", 300))   # 5 min
 STATUS_UPDATE_INTERVAL = int(os.getenv("STATUS_UPDATE_INTERVAL", 15))  # seconds
 BOOKING_CHECK_INTERVAL = int(os.getenv("BOOKING_CHECK_INTERVAL", 60))  # seconds
 
+# Add upload interval for camera service
+UPLOAD_INTERVAL = int(os.getenv("UPLOAD_INTERVAL", 60))  # seconds
+
 # File paths
 NEXT_BOOKING_FILE = TEMP_DIR / "next_booking.json"
 UPLOAD_QUEUE_FILE = TEMP_DIR / "to_upload.txt"
