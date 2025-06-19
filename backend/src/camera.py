@@ -154,49 +154,61 @@ class CameraService:
             logger.error(f"Error starting recording: {e}", exc_info=True)
             return False
 
-    def stop_recording(self) -> bool:
-        """Stop recording and queue file for upload using CameraInterface."""
+    def stop_recording(self):
+        """Stop recording and queue file for upload."""
         if not self.is_recording:
             logger.warning("stop_recording called but not recording")
             return False
         try:
-            logger.info("Beginning recording stop process")
+            logger.info("[Camera] Beginning recording stop process")
             self.is_recording = False
             self.interface.stop_recording()
-            logger.info("[Recording Sign] Would turn OFF recording indicator here.")
+            logger.info("[Camera] Recording stopped")
             
             if self.current_file:
-                logger.info(f"Checking file after stop_recording: {self.current_file}")
+                logger.info(f"[Camera] Processing recording file: {self.current_file}")
                 if os.path.exists(self.current_file):
                     size = os.path.getsize(self.current_file)
-                    logger.info(f"Recording file exists, size: {size} bytes")
-                    final_path = self.attach_intro_video(self.current_file)
-                    if final_path:
-                        logger.info(f"Queuing file for upload: {final_path}")
-                        booking_id = self.file_booking_map.get(self.current_file)
-                        self.add_to_upload_queue(final_path, booking_id)
-                        logger.info(f"Recording saved and queued for upload: {final_path} (booking {booking_id})")
-                        queue = get_upload_queue()
-                        logger.info(f"Upload queue after recording: {queue}")
-                    else:
-                        logger.error(f"attach_intro_video returned None for {self.current_file}")
+                    logger.info(f"[Camera] Recording file exists, size: {size} bytes")
+                    
+                    # Wait a moment to ensure file is fully written
+                    time.sleep(2)
+                    
+                    try:
+                        # Try to attach intro video
+                        final_path = self.attach_intro_video(self.current_file)
+                        if final_path and os.path.exists(final_path):
+                            logger.info(f"[Camera] Final video created at: {final_path}")
+                            booking_id = self.file_booking_map.get(self.current_file)
+                            if booking_id:
+                                logger.info(f"[Camera] Adding to upload queue with booking ID: {booking_id}")
+                                self.add_to_upload_queue(final_path, booking_id)
+                                logger.info(f"[Camera] Successfully queued for upload: {final_path}")
+                            else:
+                                logger.error(f"[Camera] No booking ID found for file: {self.current_file}")
+                        else:
+                            logger.error(f"[Camera] Failed to create final video from: {self.current_file}")
+                    except Exception as e:
+                        logger.error(f"[Camera] Error processing recording: {str(e)}", exc_info=True)
                 else:
-                    logger.error(f"Recording file does not exist: {self.current_file}")
+                    logger.error(f"[Camera] Recording file does not exist: {self.current_file}")
             else:
-                logger.warning("[Upload Worker] No file to add to upload queue after recording.")
-                
+                logger.warning("[Camera] No current file to process after recording")
+            
+            # Update status
+            try:
+                update_system_status(is_recording=False)
+                logger.info("[Camera] System status updated to not recording")
+            except Exception as e:
+                logger.error(f"[Camera] Error updating system status: {str(e)}", exc_info=True)
+            
+            # Clear recording state
             self.current_file = None
             self.recording_start = None
             
-            try:
-                update_system_status(is_recording=False)
-                logger.info("System status updated to not recording")
-            except Exception as e:
-                logger.error(f"Error updating system status after stop_recording: {e}", exc_info=True)
-                
             return True
         except Exception as e:
-            logger.error(f"Error stopping recording: {e}", exc_info=True)
+            logger.error(f"[Camera] Error in stop_recording: {str(e)}", exc_info=True)
             return False
 
     def _start_upload_worker(self):

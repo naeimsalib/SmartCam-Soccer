@@ -86,14 +86,20 @@ class Orchestrator:
                     logger.info(f"[Time Check] Start: {start_datetime.strftime('%Y-%m-%d %H:%M:%S %Z')}")
                     logger.info(f"[Time Check] End: {end_datetime.strftime('%Y-%m-%d %H:%M:%S %Z')}")
                     
-                    # Add buffer to prevent early start (1 minute)
-                    if (start_datetime - now).total_seconds() <= 60:
+                    time_until_start = (start_datetime - now).total_seconds()
+                    time_since_end = (now - end_datetime).total_seconds()
+                    
+                    logger.info(f"[Time Check] Seconds until start: {time_until_start}")
+                    logger.info(f"[Time Check] Seconds since end: {time_since_end}")
+                    
+                    # Only start if we're within 10 seconds of start time or already in the booking window
+                    if time_until_start <= 10 and time_since_end < 0:
                         if not self.camera_service.is_recording:
-                            logger.info(f"Starting recording for booking {booking['id']}")
+                            logger.info(f"Starting recording for booking {booking['id']} (start in {time_until_start} seconds)")
                             self.start_recording(booking["id"])
                             last_booking_id = booking["id"]
-                    elif now > end_datetime and self.camera_service.is_recording:
-                        logger.info(f"Stopping recording for booking {booking['id']} as end time reached")
+                    elif time_since_end >= 0 and self.camera_service.is_recording:
+                        logger.info(f"Stopping recording for booking {booking['id']} as end time reached ({time_since_end} seconds ago)")
                         self.stop_recording()
                         last_booking_id = None
                 elif self.camera_service.is_recording:
