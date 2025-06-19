@@ -1,20 +1,23 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useState, useEffect, useCallback } from "react";
 import { Box, Container, Typography, Button, Grid, Card, CardContent, CardMedia, CircularProgress, Alert, Stack, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, } from "@mui/material";
-import { CloudUpload as CloudUploadIcon, Delete as DeleteIcon, Refresh as RefreshIcon, } from "@mui/icons-material";
+import { CloudUpload as CloudUploadIcon, Delete as DeleteIcon, Refresh as RefreshIcon, Computer as ComputerIcon, } from "@mui/icons-material";
 import { supabase } from "../supabaseClient";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import WifiIcon from "@mui/icons-material/Wifi";
 import WifiOffIcon from "@mui/icons-material/WifiOff";
-import { useRealtimeSubscription } from "../hooks/useRealtimeSubscription";
 import Navigation from "../components/Navigation";
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { shallowEqual } from '../utils/objectUtils';
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../contexts/AuthContext";
+import { shallowEqual } from "../utils/objectUtils";
 function isCameraOnline(lastSeen, thresholdSec = 6) {
     return (Date.now() - new Date(lastSeen).getTime()) / 1000 < thresholdSec;
+}
+// Function to check if the Raspberry Pi system is responsive
+function isSystemResponsive(lastHeartbeat, thresholdSec = 30) {
+    return (Date.now() - new Date(lastHeartbeat).getTime()) / 1000 < thresholdSec;
 }
 // Add buildPreviewUrlMap function
 const buildPreviewUrlMap = async (settings) => {
@@ -54,7 +57,6 @@ const buildPreviewUrlMap = async (settings) => {
 const SettingsPage = () => {
     const navigate = useNavigate();
     const { user } = useAuth();
-    const [userId, setUserId] = useState(user?.id || null);
     const [systemStatus, setSystemStatus] = useState(null);
     const [settings, setSettings] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -68,64 +70,64 @@ const SettingsPage = () => {
     const [previewUrl, setPreviewUrl] = useState({});
     const mediaCards = [
         {
-            label: 'Intro Video',
-            type: 'intro_video_path',
-            previewKey: 'intro',
-            accept: 'video/*',
+            label: "Intro Video",
+            type: "intro_video_path",
+            previewKey: "intro",
+            accept: "video/*",
             isVideo: true,
         },
         {
-            label: 'Logo',
-            type: 'logo_path',
-            previewKey: 'logo',
-            accept: 'image/*',
+            label: "Logo",
+            type: "logo_path",
+            previewKey: "logo",
+            accept: "image/*",
             isVideo: false,
         },
         {
-            label: 'Sponsor Logo 1',
-            type: 'sponsor_logo1_path',
-            previewKey: 'sponsor_logo1',
-            accept: 'image/*',
+            label: "Sponsor Logo 1",
+            type: "sponsor_logo1_path",
+            previewKey: "sponsor_logo1",
+            accept: "image/*",
             isVideo: false,
         },
         {
-            label: 'Sponsor Logo 2',
-            type: 'sponsor_logo2_path',
-            previewKey: 'sponsor_logo2',
-            accept: 'image/*',
+            label: "Sponsor Logo 2",
+            type: "sponsor_logo2_path",
+            previewKey: "sponsor_logo2",
+            accept: "image/*",
             isVideo: false,
         },
         {
-            label: 'Sponsor Logo 3',
-            type: 'sponsor_logo3_path',
-            previewKey: 'sponsor_logo3',
-            accept: 'image/*',
+            label: "Sponsor Logo 3",
+            type: "sponsor_logo3_path",
+            previewKey: "sponsor_logo3",
+            accept: "image/*",
             isVideo: false,
         },
     ];
     // Memoize all handlers
     const handleSystemStatusUpdate = useCallback((updatedStatus) => {
-        setSystemStatus(prev => {
+        setSystemStatus((prev) => {
             if (shallowEqual(prev, updatedStatus))
                 return prev;
             return updatedStatus;
         });
     }, []);
     const handleSettingsUpdate = useCallback((updatedSettings) => {
-        setSettings(prev => {
+        setSettings((prev) => {
             if (shallowEqual(prev, updatedSettings))
                 return prev;
             return updatedSettings;
         });
     }, []);
     const handleCameraInsert = useCallback((newCamera) => {
-        setCameras(prev => [...prev, newCamera]);
+        setCameras((prev) => [...prev, newCamera]);
     }, []);
     const handleCameraUpdate = useCallback((updatedCamera) => {
-        setCameras(prev => prev.map(cam => cam.id === updatedCamera.id ? updatedCamera : cam));
+        setCameras((prev) => prev.map((cam) => (cam.id === updatedCamera.id ? updatedCamera : cam)));
     }, []);
     const handleCameraDelete = useCallback((deletedCamera) => {
-        setCameras(prev => prev.filter(cam => cam.id !== deletedCamera.id));
+        setCameras((prev) => prev.filter((cam) => cam.id !== deletedCamera.id));
     }, []);
     const handleSettingsInsert = useCallback((newSettings) => {
         setSettings(newSettings);
@@ -133,59 +135,61 @@ const SettingsPage = () => {
     const handleSettingsDelete = useCallback((deletedSettings) => {
         setSettings(null);
     }, []);
+    // TEMPORARILY DISABLED - WebSocket connection issues
+    // TODO: Re-enable when WebSocket connectivity is resolved
     // System status subscription
-    const { channel: systemStatusChannel, error: systemStatusError, isConnected: systemStatusConnected } = useRealtimeSubscription({
-        table: "system_status",
-        filter: userId ? `user_id=eq.${userId}` : undefined,
-        onUpdate: handleSystemStatusUpdate,
-        onInsert: handleSystemStatusUpdate,
-    });
-    // Settings subscription
-    const { channel: settingsChannel, error: settingsError, isConnected: settingsConnected } = useRealtimeSubscription({
-        table: "user_settings",
-        filter: userId ? `user_id=eq.${userId}` : undefined,
-        onUpdate: handleSettingsUpdate,
-        onInsert: handleSettingsInsert,
-        onDelete: handleSettingsDelete,
-    });
-    // Cameras subscription
-    const { channel: camerasChannel, error: camerasError, isConnected: camerasConnected } = useRealtimeSubscription({
-        table: "cameras",
-        filter: userId ? `user_id=eq.${userId}` : undefined,
-        onInsert: handleCameraInsert,
-        onUpdate: handleCameraUpdate,
-        onDelete: handleCameraDelete,
-    });
-    // Log subscription errors and connection status
-    useEffect(() => {
-        if (systemStatusError || settingsError || camerasError) {
-            setError('Connection error. Please refresh the page.');
-        }
-    }, [systemStatusError, settingsError, camerasError]);
-    // Cleanup subscriptions when component unmounts
-    useEffect(() => {
-        return () => {
-            if (systemStatusChannel) {
-                supabase.removeChannel(systemStatusChannel);
-            }
-            if (settingsChannel) {
-                supabase.removeChannel(settingsChannel);
-            }
-            if (camerasChannel) {
-                supabase.removeChannel(camerasChannel);
-            }
-        };
-    }, [systemStatusChannel, settingsChannel, camerasChannel]);
+    // const {
+    //   channel: systemStatusChannel,
+    //   error: systemStatusError,
+    //   isConnected: systemStatusConnected,
+    // } = useRealtimeSubscription<SystemStatus>({
+    //   table: user?.id ? "system_status" : "",
+    //   filter: user?.id ? `user_id=eq.${user.id}` : undefined,
+    //   onUpdate: handleSystemStatusUpdate,
+    //   onInsert: handleSystemStatusUpdate,
+    // });
+    // // Settings subscription
+    // const {
+    //   channel: settingsChannel,
+    //   error: settingsError,
+    //   isConnected: settingsConnected,
+    // } = useRealtimeSubscription<UserSettings>({
+    //   table: user?.id ? "user_settings" : "",
+    //   filter: user?.id ? `user_id=eq.${user.id}` : undefined,
+    //   onUpdate: handleSettingsUpdate,
+    //   onInsert: handleSettingsInsert,
+    //   onDelete: handleSettingsDelete,
+    // });
+    // // Cameras subscription
+    // const {
+    //   channel: camerasChannel,
+    //   error: camerasError,
+    //   isConnected: camerasConnected,
+    // } = useRealtimeSubscription<CameraRow>({
+    //   table: user?.id ? "cameras" : "",
+    //   filter: user?.id ? `user_id=eq.${user.id}` : undefined,
+    //   onInsert: handleCameraInsert,
+    //   onUpdate: handleCameraUpdate,
+    //   onDelete: handleCameraDelete,
+    // });
+    // Placeholder values for disabled subscriptions
+    const systemStatusError = null;
+    const settingsError = null;
+    const camerasError = null;
+    const systemStatusConnected = false;
+    const settingsConnected = false;
+    const camerasConnected = false;
     // Memoize the fetch system status function
     const fetchSystemStatus = useCallback(async () => {
-        if (!userId)
+        if (!user?.id) {
             return;
+        }
         try {
             setLoading(true);
             const { data, error } = await supabase
                 .from("system_status")
                 .select("*")
-                .eq("user_id", userId)
+                .eq("user_id", user.id)
                 .maybeSingle();
             if (error)
                 throw error;
@@ -194,11 +198,11 @@ const SettingsPage = () => {
                 const { data: newStatus, error: insertError } = await supabase
                     .from("system_status")
                     .insert({
-                    user_id: userId,
+                    user_id: user.id,
                     is_recording: false,
                     is_streaming: false,
                     storage_used: 0,
-                    last_backup: null
+                    last_backup: null,
                 })
                     .select()
                     .single();
@@ -207,27 +211,28 @@ const SettingsPage = () => {
                 setSystemStatus(newStatus);
             }
             else {
-                setSystemStatus(prev => {
-                    if (shallowEqual(prev, data))
+                setSystemStatus((prev) => {
+                    if (shallowEqual(prev, data)) {
                         return prev;
+                    }
                     return data;
                 });
             }
         }
         catch (err) {
+            console.error("Error fetching system status:", err);
             setError("Failed to fetch system status");
-            console.error(err);
         }
         finally {
             setLoading(false);
         }
-    }, [userId]);
+    }, [user?.id]);
     // Memoize the updatePreviewUrls function
     const updatePreviewUrls = useCallback(async (newSettings) => {
         if (!newSettings)
             return;
         const newUrls = await buildPreviewUrlMap(newSettings);
-        setPreviewUrl(prev => {
+        setPreviewUrl((prev) => {
             if (shallowEqual(prev, newUrls))
                 return prev;
             return newUrls;
@@ -235,10 +240,10 @@ const SettingsPage = () => {
     }, []);
     // Single useEffect for initial data fetching
     useEffect(() => {
-        if (!userId)
+        if (!user?.id)
             return;
         fetchSystemStatus();
-    }, [userId, fetchSystemStatus]);
+    }, [user?.id, fetchSystemStatus]);
     // Update preview URLs when settings change
     useEffect(() => {
         updatePreviewUrls(settings);
@@ -268,55 +273,19 @@ const SettingsPage = () => {
     useEffect(() => {
         fetchSettings();
     }, []);
-    useEffect(() => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setUserId(session?.user?.id || null);
-        });
-    }, []);
     // Initial fetch of cameras
     useEffect(() => {
-        if (!userId)
+        if (!user?.id)
             return;
         supabase
             .from("cameras")
             .select("*")
-            .eq("user_id", userId)
+            .eq("user_id", user.id)
             .then(({ data }) => {
             if (data)
                 setCameras(data);
         });
-    }, [userId]);
-    // Real-time subscription for cameras
-    useRealtimeSubscription({
-        table: "cameras",
-        filter: userId ? `user_id=eq.${userId}` : undefined,
-        onInsert: (newCamera) => {
-            setCameras((prev) => [...prev, newCamera]);
-        },
-        onUpdate: (updatedCamera) => {
-            setCameras((prev) => prev.map((cam) => (cam.id === updatedCamera.id ? updatedCamera : cam)));
-        },
-        onDelete: (deletedCamera) => {
-            setCameras((prev) => prev.filter((cam) => cam.id !== deletedCamera.id));
-        },
-    });
-    // Real-time subscription for user settings
-    useRealtimeSubscription({
-        table: "user_settings",
-        filter: userId ? `user_id=eq.${userId}` : undefined,
-        onInsert: (newSettings) => {
-            setSettings(newSettings);
-            updatePreviewUrls(newSettings);
-        },
-        onUpdate: (updatedSettings) => {
-            setSettings(updatedSettings);
-            updatePreviewUrls(updatedSettings);
-        },
-        onDelete: () => {
-            setSettings(null);
-            setPreviewUrl({});
-        },
-    });
+    }, [user?.id]);
     const handleFileUpload = async (file, type) => {
         try {
             setLoading(true);
@@ -426,7 +395,7 @@ const SettingsPage = () => {
             setError(null);
             setSuccess(null);
             const { error } = await supabase.functions.invoke("create-backup", {
-                body: { userId },
+                body: { userId: user?.id },
             });
             if (error)
                 throw error;
@@ -448,7 +417,7 @@ const SettingsPage = () => {
             setError(null);
             setSuccess(null);
             const { error } = await supabase.functions.invoke("delete-all-data", {
-                body: { userId },
+                body: { userId: user?.id },
             });
             if (error)
                 throw error;
@@ -474,6 +443,55 @@ const SettingsPage = () => {
         }
         return `${size.toFixed(2)} ${units[unitIndex]}`;
     };
+    // Manual refresh mechanism (since realtime is disabled)
+    const refreshData = useCallback(async () => {
+        if (!user?.id)
+            return;
+        // Fetch updated system status
+        await fetchSystemStatus();
+        // Fetch updated settings
+        await fetchSettings();
+        // Fetch updated cameras
+        const { data: camerasData } = await supabase
+            .from("cameras")
+            .select("*")
+            .eq("user_id", user.id);
+        if (camerasData) {
+            setCameras(camerasData);
+        }
+    }, [user?.id, fetchSystemStatus]);
+    // Auto-refresh every 30 seconds (since realtime is disabled)
+    useEffect(() => {
+        if (!user?.id)
+            return;
+        const interval = setInterval(() => {
+            refreshData();
+        }, 30000); // 30 seconds
+        return () => clearInterval(interval);
+    }, [user?.id, refreshData]);
+    // Compute actual system active status (combines database flag + heartbeat check)
+    const isSystemActive = systemStatus?.pi_active &&
+        systemStatus?.last_heartbeat &&
+        isSystemResponsive(systemStatus.last_heartbeat);
+    // Auto-update database when system becomes unresponsive
+    useEffect(() => {
+        const updateSystemStatus = async () => {
+            if (systemStatus?.pi_active &&
+                systemStatus?.last_heartbeat &&
+                !isSystemResponsive(systemStatus.last_heartbeat)) {
+                try {
+                    await supabase
+                        .from("system_status")
+                        .update({ pi_active: false })
+                        .eq("user_id", user?.id);
+                }
+                catch (error) {
+                    // Silently handle error to avoid console noise
+                }
+            }
+        };
+        updateSystemStatus();
+    }, [systemStatus?.pi_active, systemStatus?.last_heartbeat, user?.id]);
     return (_jsxs(Box, { sx: {
             minHeight: "100vh",
             width: "100vw",
@@ -491,9 +509,26 @@ const SettingsPage = () => {
                                             color: "#fff",
                                             borderRadius: 3,
                                             mb: 3,
-                                        }, children: _jsxs(CardContent, { children: [_jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, children: [_jsx(Typography, { variant: "h5", sx: { color: "#fff", fontWeight: 600 }, children: "System Status" }), _jsx(IconButton, { onClick: fetchSystemStatus, sx: { color: "#fff" }, disabled: loading, children: _jsx(RefreshIcon, {}) })] }), loading ? (_jsx(Box, { display: "flex", justifyContent: "center", my: 4, children: _jsx(CircularProgress, { sx: { color: "#F44336" } }) })) : (_jsxs(Stack, { spacing: 2, children: [_jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Recording Status" }), _jsxs(Box, { display: "flex", alignItems: "center", children: [systemStatus?.is_recording ? (_jsx(FiberManualRecordIcon, { sx: { color: "#F44336", mr: 1 } })) : (_jsx(CancelIcon, { sx: { color: "rgba(255, 255, 255, 0.7)", mr: 1 } })), _jsx(Typography, { sx: { color: "#fff" }, children: systemStatus?.is_recording ? "Recording" : "Not Recording" })] })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Streaming Status" }), _jsxs(Box, { display: "flex", alignItems: "center", children: [systemStatus?.is_streaming ? (_jsx(WifiIcon, { sx: { color: "#4CAF50", mr: 1 } })) : (_jsx(WifiOffIcon, { sx: { color: "rgba(255, 255, 255, 0.7)", mr: 1 } })), _jsx(Typography, { sx: { color: "#fff" }, children: systemStatus?.is_streaming ? "Streaming" : "Not Streaming" })] })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Storage Used" }), _jsx(Typography, { sx: { color: "#fff" }, children: formatStorage(systemStatus?.storage_used || 0) })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Last Backup" }), _jsx(Typography, { sx: { color: "#fff" }, children: systemStatus?.last_backup
+                                        }, children: _jsxs(CardContent, { children: [_jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, children: [_jsx(Typography, { variant: "h5", sx: { color: "#fff", fontWeight: 600 }, children: "System Status" }), _jsx(IconButton, { onClick: refreshData, sx: { color: "#fff" }, disabled: loading, title: "Refresh all data", children: _jsx(RefreshIcon, {}) })] }), loading ? (_jsx(Box, { display: "flex", justifyContent: "center", my: 4, children: _jsx(CircularProgress, { sx: { color: "#F44336" } }) })) : (_jsxs(Stack, { spacing: 2, children: [_jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Raspberry Pi Status" }), _jsxs(Box, { display: "flex", alignItems: "center", children: [isSystemActive ? (_jsx(ComputerIcon, { sx: { color: "#4CAF50", mr: 1 } })) : (_jsx(ComputerIcon, { sx: { color: "rgba(255, 255, 255, 0.7)", mr: 1 } })), _jsx(Typography, { sx: { color: "#fff" }, children: isSystemActive
+                                                                                ? "Active"
+                                                                                : systemStatus?.pi_active
+                                                                                    ? "Timeout"
+                                                                                    : "Inactive" })] })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Recording Status" }), _jsxs(Box, { display: "flex", alignItems: "center", children: [systemStatus?.is_recording ? (_jsx(FiberManualRecordIcon, { sx: { color: "#F44336", mr: 1 } })) : (_jsx(CancelIcon, { sx: { color: "rgba(255, 255, 255, 0.7)", mr: 1 } })), _jsx(Typography, { sx: { color: "#fff" }, children: systemStatus?.is_recording
+                                                                                ? "Recording"
+                                                                                : "Not Recording" })] })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Streaming Status" }), _jsxs(Box, { display: "flex", alignItems: "center", children: [systemStatus?.is_streaming ? (_jsx(WifiIcon, { sx: { color: "#4CAF50", mr: 1 } })) : (_jsx(WifiOffIcon, { sx: { color: "rgba(255, 255, 255, 0.7)", mr: 1 } })), _jsx(Typography, { sx: { color: "#fff" }, children: systemStatus?.is_streaming
+                                                                                ? "Streaming"
+                                                                                : "Not Streaming" })] })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Connected Cameras" }), _jsxs(Typography, { sx: { color: "#fff" }, children: [cameras.filter((cam) => isCameraOnline(cam.last_seen))
+                                                                            .length, " ", "of ", cameras.length, " online"] })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Active Recordings" }), _jsxs(Typography, { sx: { color: "#fff" }, children: [cameras.filter((cam) => cam.is_recording).length, " ", "cameras recording"] })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Storage Used" }), _jsx(Typography, { sx: { color: "#fff" }, children: formatStorage(systemStatus?.storage_used || 0) })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Last Backup" }), _jsx(Typography, { sx: { color: "#fff" }, children: systemStatus?.last_backup
                                                                         ? new Date(systemStatus.last_backup).toLocaleString()
                                                                         : "Never" })] })] })), _jsx(Typography, { variant: "h6", gutterBottom: true, sx: { color: "#fff" }, children: "System Status" }), _jsxs(Stack, { spacing: 2, children: [_jsxs(Box, { sx: {
+                                                                display: "flex",
+                                                                alignItems: "center",
+                                                                justifyContent: "space-between",
+                                                            }, children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Raspberry Pi Status" }), _jsxs(Box, { sx: { display: "flex", alignItems: "center" }, children: [isSystemActive ? (_jsx(ComputerIcon, { sx: { color: "#4CAF50", mr: 1 } })) : (_jsx(ComputerIcon, { sx: { color: "#F44336", mr: 1 } })), _jsx(Typography, { sx: { color: "#fff" }, children: isSystemActive
+                                                                                ? "Active"
+                                                                                : systemStatus?.pi_active
+                                                                                    ? "Timeout"
+                                                                                    : "Inactive" })] })] }), _jsxs(Box, { sx: {
                                                                 display: "flex",
                                                                 alignItems: "center",
                                                                 justifyContent: "space-between",
@@ -512,6 +547,31 @@ const SettingsPage = () => {
                                                             }, children: [_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "Last Backup" }), _jsx(Typography, { sx: { color: "#fff" }, children: systemStatus?.last_backup
                                                                         ? new Date(systemStatus.last_backup).toLocaleString()
                                                                         : "Never" })] })] })] }) }), _jsx(Card, { sx: {
+                                            background: "#1a1a1a",
+                                            color: "#fff",
+                                            borderRadius: 3,
+                                            mb: 3,
+                                        }, children: _jsxs(CardContent, { children: [_jsx(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, children: _jsx(Typography, { variant: "h6", sx: { color: "#fff", fontWeight: 600 }, children: "Camera Status" }) }), cameras.length === 0 ? (_jsx(Typography, { sx: { color: "rgba(255, 255, 255, 0.7)" }, children: "No cameras connected" })) : (_jsx(Stack, { spacing: 2, children: cameras.map((camera) => (_jsxs(Box, { sx: {
+                                                            p: 2,
+                                                            border: "1px solid rgba(255, 255, 255, 0.1)",
+                                                            borderRadius: 2,
+                                                            background: "rgba(255, 255, 255, 0.02)",
+                                                        }, children: [_jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1, children: [_jsx(Typography, { sx: { color: "#fff", fontWeight: 500 }, children: camera.name }), _jsxs(Box, { display: "flex", alignItems: "center", gap: 1, children: [isCameraOnline(camera.last_seen) ? (_jsx(CheckCircleIcon, { sx: { color: "#4CAF50", fontSize: 16 } })) : (_jsx(CancelIcon, { sx: { color: "#F44336", fontSize: 16 } })), _jsx(Typography, { sx: {
+                                                                                    color: isCameraOnline(camera.last_seen)
+                                                                                        ? "#4CAF50"
+                                                                                        : "#F44336",
+                                                                                    fontSize: "0.875rem",
+                                                                                }, children: isCameraOnline(camera.last_seen)
+                                                                                    ? "Online"
+                                                                                    : "Offline" })] })] }), _jsxs(Box, { display: "flex", justifyContent: "space-between", alignItems: "center", children: [_jsx(Typography, { sx: {
+                                                                            color: "rgba(255, 255, 255, 0.7)",
+                                                                            fontSize: "0.875rem",
+                                                                        }, children: camera.is_recording
+                                                                            ? "Recording"
+                                                                            : "Not Recording" }), _jsxs(Typography, { sx: {
+                                                                            color: "rgba(255, 255, 255, 0.5)",
+                                                                            fontSize: "0.75rem",
+                                                                        }, children: ["Last seen:", " ", new Date(camera.last_seen).toLocaleString()] })] })] }, camera.id))) }))] }) }), _jsx(Card, { sx: {
                                             background: "#1a1a1a",
                                             color: "#fff",
                                             borderRadius: 3,
@@ -539,52 +599,60 @@ const SettingsPage = () => {
                                                 backgroundColor: "#D32F2F",
                                             },
                                         }, children: backupLoading ? "Creating..." : "Create Backup" })] })] }), _jsx(Grid, { container: true, spacing: 4, sx: { mt: 2 }, children: mediaCards.map((card) => (_jsx(Grid, { item: true, xs: 12, sm: 6, md: 4, children: _jsxs(Card, { sx: {
-                                    background: '#1a1a1a',
-                                    color: '#fff',
+                                    background: "#1a1a1a",
+                                    color: "#fff",
                                     borderRadius: 3,
                                     minHeight: 280,
-                                    display: 'flex',
-                                    flexDirection: 'column',
-                                    alignItems: 'center',
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    alignItems: "center",
                                     p: 2,
-                                }, children: [_jsx(Typography, { variant: "h6", fontWeight: 700, sx: { color: '#fff', mb: 2, textAlign: 'center' }, children: card.label }), _jsx(Box, { sx: {
+                                }, children: [_jsx(Typography, { variant: "h6", fontWeight: 700, sx: { color: "#fff", mb: 2, textAlign: "center" }, children: card.label }), _jsx(Box, { sx: {
                                             mb: 2,
-                                            width: '100%',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            alignItems: 'center',
+                                            width: "100%",
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            alignItems: "center",
                                             minHeight: 120,
-                                            justifyContent: 'center',
-                                        }, children: previewUrl[card.previewKey] ? (_jsx(CardMedia, { component: card.isVideo ? 'video' : 'img', controls: card.isVideo, src: previewUrl[card.previewKey], sx: {
+                                            justifyContent: "center",
+                                        }, children: previewUrl[card.previewKey] ? (_jsx(CardMedia, { component: card.isVideo ? "video" : "img", controls: card.isVideo, src: previewUrl[card.previewKey], sx: {
                                                 height: 120,
-                                                width: '100%',
+                                                width: "100%",
                                                 maxWidth: 240,
-                                                objectFit: 'contain',
+                                                objectFit: "contain",
                                                 borderRadius: 2,
                                                 mb: 2,
-                                                background: '#2a2a2a',
+                                                background: "#2a2a2a",
                                             }, onError: () => console.error(`❌ Failed to load preview for: ${card.type}`, previewUrl[card.previewKey]) })) : (_jsx(Box, { sx: {
                                                 height: 120,
-                                                width: '100%',
+                                                width: "100%",
                                                 maxWidth: 240,
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                background: '#222',
+                                                display: "flex",
+                                                alignItems: "center",
+                                                justifyContent: "center",
+                                                background: "#222",
                                                 borderRadius: 2,
                                                 mb: 2,
-                                                color: '#888',
+                                                color: "#888",
                                                 fontSize: 18,
-                                            }, children: card.label })) }), _jsxs(Stack, { direction: "row", spacing: 2, sx: { width: '100%' }, children: [_jsxs(Button, { component: "label", variant: "contained", startIcon: _jsx(CloudUploadIcon, {}), disabled: loading, sx: {
-                                                    background: '#F44336',
-                                                    color: '#fff',
+                                            }, children: card.label })) }), _jsxs(Stack, { direction: "row", spacing: 2, sx: { width: "100%" }, children: [_jsxs(Button, { component: "label", variant: "contained", startIcon: _jsx(CloudUploadIcon, {}), disabled: loading, sx: {
+                                                    background: "#F44336",
+                                                    color: "#fff",
                                                     fontWeight: 700,
                                                     flex: 1,
-                                                    '&:hover': { background: '#d32f2f' },
+                                                    "&:hover": { background: "#d32f2f" },
                                                 }, children: ["Upload", _jsx("input", { type: "file", accept: card.accept, onChange: (e) => {
                                                             const file = e.target.files?.[0];
                                                             if (file)
                                                                 handleFileUpload(file, card.type);
-                                                        }, style: { display: 'none' } })] }), previewUrl[card.previewKey] && (_jsx(Button, { variant: "outlined", color: "error", onClick: () => handleRemoveFile(card.type), disabled: loading, sx: { flex: 1, color: '#fff', borderColor: '#F44336', '&:hover': { borderColor: '#d32f2f', background: 'rgba(244,67,54,0.08)' } }, children: "Remove" }))] })] }) }, card.type))) })] })] }));
+                                                        }, style: { display: "none" } })] }), previewUrl[card.previewKey] && (_jsx(Button, { variant: "outlined", color: "error", onClick: () => handleRemoveFile(card.type), disabled: loading, sx: {
+                                                    flex: 1,
+                                                    color: "#fff",
+                                                    borderColor: "#F44336",
+                                                    "&:hover": {
+                                                        borderColor: "#d32f2f",
+                                                        background: "rgba(244,67,54,0.08)",
+                                                    },
+                                                }, children: "Remove" }))] })] }) }, card.type))) })] })] }));
 };
 export default SettingsPage;

@@ -11,6 +11,8 @@ export interface SystemStatus {
   user_id: string;
   is_recording: boolean;
   is_streaming: boolean;
+  pi_active: boolean;
+  last_heartbeat: string;
   storage_used: number;
   last_backup: string | null;
   created_at: string;

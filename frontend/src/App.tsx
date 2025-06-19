@@ -1,9 +1,5 @@
 import React from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-} from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { supabase } from "./supabaseClient";
 import LandingPage from "./pages/LandingPage";
 import AboutPage from "./pages/AboutPage";
@@ -13,30 +9,33 @@ import Calendar from "./pages/Calendar";
 import Recordings from "./pages/Recordings";
 import Navigation from "./components/Navigation";
 import SettingsPage from "./pages/SettingsPage";
-import { LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import ProtectedRoute from './components/ProtectedRoute';
-import { ThemeProvider as MuiThemeProvider, createTheme } from '@mui/material/styles';
-import CssBaseline from '@mui/material/CssBaseline';
-import { AuthProvider } from './contexts/AuthContext';
+import { LocalizationProvider } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import ProtectedRoute from "./components/ProtectedRoute";
+import {
+  ThemeProvider as MuiThemeProvider,
+  createTheme,
+} from "@mui/material/styles";
+import CssBaseline from "@mui/material/CssBaseline";
+import { AuthProvider } from "./contexts/AuthContext";
 import FeaturesPage from "./pages/FeaturesPage";
 import PricingPage from "./pages/PricingPage";
 import ContactPage from "./pages/ContactPage";
 import AuthenticatedAboutPage from "./pages/AuthenticatedAboutPage";
-import { Box } from '@mui/material';
+import { Box } from "@mui/material";
 
 const darkTheme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: "dark",
     primary: {
-      main: '#90caf9',
+      main: "#90caf9",
     },
     secondary: {
-      main: '#f48fb1',
+      main: "#f48fb1",
     },
     background: {
-      default: '#121212',
-      paper: '#1e1e1e',
+      default: "#121212",
+      paper: "#1e1e1e",
     },
   },
   typography: {
@@ -46,18 +45,18 @@ const darkTheme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         html: {
-          width: '100%',
-          height: '100%',
+          width: "100%",
+          height: "100%",
         },
         body: {
-          backgroundColor: '#121212',
-          minHeight: '100vh',
+          backgroundColor: "#121212",
+          minHeight: "100vh",
         },
-        '#root': {
-          display: 'flex',
-          flexDirection: 'column',
-          width: '100%',
-          height: '100%',
+        "#root": {
+          display: "flex",
+          flexDirection: "column",
+          width: "100%",
+          height: "100%",
           flexGrow: 1,
         },
       },
@@ -71,14 +70,26 @@ const App: React.FC = () => {
       <CssBaseline />
       <LocalizationProvider dateAdapter={AdapterDayjs}>
         <AuthProvider>
-          <Router>
-            <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', width: '100%' }}>
+          <Router
+            future={{
+              v7_startTransition: true,
+              v7_relativeSplatPath: true,
+            }}
+          >
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                minHeight: "100vh",
+                width: "100%",
+              }}
+            >
               <Navigation />
               <Box
                 sx={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  width: '100%',
+                  display: "flex",
+                  flexDirection: "column",
+                  width: "100%",
                   flexGrow: 1,
                 }}
               >

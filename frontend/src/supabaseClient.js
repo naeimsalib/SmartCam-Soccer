@@ -19,6 +19,11 @@ try {
         },
         db: {
             schema: 'public'
+        },
+        realtime: {
+            params: {
+                eventsPerSecond: 10
+            }
         }
     });
 }

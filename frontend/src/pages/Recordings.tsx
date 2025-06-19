@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box,
   Typography,
@@ -46,56 +46,37 @@ const Recordings = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [selectedRecording, setSelectedRecording] = useState<Recording | null>(null);
+  const [selectedRecording, setSelectedRecording] = useState<Recording | null>(
+    null
+  );
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [userId, setUserId] = useState<string | null>(null);
 
-  // Check authentication and fetch user ID
   useEffect(() => {
-    const checkAuth = async () => {
+    const initializeAuth = async () => {
       try {
-        console.log("Checking authentication...");
         const {
           data: { session },
-          error: sessionError,
         } = await supabase.auth.getSession();
 
-        if (sessionError) {
-          console.error("Session error:", sessionError);
-          throw sessionError;
-        }
-
-        console.log("Session:", session);
-
         if (!session) {
-          console.log("No session found, redirecting to login");
           navigate("/login");
           return;
         }
 
-        console.log("Setting user ID:", session.user.id);
         setUserId(session.user.id);
-      } catch (err) {
-        console.error("Error checking authentication:", err);
-        setError("Authentication error. Please try logging in again.");
+      } catch (error) {
+        console.error("Error initializing auth:", error);
         navigate("/login");
       }
     };
 
-    checkAuth();
+    initializeAuth();
   }, [navigate]);
 
-  // Fetch recordings when userId changes
-  useEffect(() => {
-    if (userId) {
-      console.log("User ID changed, fetching recordings...");
-      fetchRecordings();
-    }
-  }, [userId]);
-
-  const fetchRecordings = async () => {
+  const fetchRecordings = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -115,7 +96,8 @@ const Recordings = () => {
       }
 
       // Filter for only .mp4 files
-      const videoFiles = storageFiles?.filter(file => file.name.endsWith('.mp4')) || [];
+      const videoFiles =
+        storageFiles?.filter((file) => file.name.endsWith(".mp4")) || [];
 
       // Now fetch the metadata from the database
       const { data: dbRecordings, error: dbError } = await supabase
@@ -133,8 +115,10 @@ const Recordings = () => {
       const recordingsWithUrls = await Promise.all(
         dbRecordings.map(async (recording) => {
           // Check if the file exists in storage
-          const fileExists = videoFiles.some(file => file.name === recording.filename);
-          
+          const fileExists = videoFiles.some(
+            (file) => file.name === recording.filename
+          );
+
           if (!fileExists) {
             return {
               ...recording,
@@ -143,12 +127,16 @@ const Recordings = () => {
           }
 
           try {
-            const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-              .from("videos")
-              .createSignedUrl(`${userId}/${recording.filename}`, 3600);
+            const { data: signedUrlData, error: signedUrlError } =
+              await supabase.storage
+                .from("videos")
+                .createSignedUrl(`${userId}/${recording.filename}`, 3600);
 
             if (signedUrlError) {
-              console.error(`Error getting signed URL for ${recording.filename}:`, signedUrlError);
+              console.error(
+                `Error getting signed URL for ${recording.filename}:`,
+                signedUrlError
+              );
               return {
                 ...recording,
                 video_url: "",
@@ -170,7 +158,9 @@ const Recordings = () => {
       );
 
       // Filter out recordings that don't have a valid video URL
-      const validRecordings = recordingsWithUrls.filter(recording => recording.video_url !== "");
+      const validRecordings = recordingsWithUrls.filter(
+        (recording) => recording.video_url !== ""
+      );
       setRecordings(validRecordings);
     } catch (err) {
       console.error("Error in fetchRecordings:", err);
@@ -178,10 +168,20 @@ const Recordings = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    fetchRecordings();
+  }, [userId, fetchRecordings]);
 
   const handleDelete = async (recording: Recording) => {
-    if (!window.confirm(`Are you sure you want to delete recording: ${recording.title}?`)) {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete recording: ${recording.title}?`
+      )
+    ) {
       return;
     }
 
@@ -210,7 +210,11 @@ const Recordings = () => {
       fetchRecordings(); // Re-fetch recordings to update the list
     } catch (err) {
       console.error("Error deleting recording:", err);
-      setError(`Failed to delete recording: ${err instanceof Error ? err.message : String(err)}`);
+      setError(
+        `Failed to delete recording: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
     } finally {
       setLoading(false);
       setTimeout(() => setSuccess(null), 3000); // Clear success message
@@ -243,7 +247,11 @@ const Recordings = () => {
       fetchRecordings();
     } catch (err) {
       console.error("Error updating recording:", err);
-      setError(`Failed to update recording: ${err instanceof Error ? err.message : String(err)}`);
+      setError(
+        `Failed to update recording: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
     } finally {
       setLoading(false);
       setTimeout(() => setSuccess(null), 3000);
@@ -263,12 +271,27 @@ const Recordings = () => {
     <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
       <Navigation />
       <Container maxWidth="lg" sx={{ pt: 12, pb: 8 }}>
-        <Typography variant="h4" component="h1" gutterBottom sx={{ color: "text.primary", fontWeight: 700 }}>
+        <Typography
+          variant="h4"
+          component="h1"
+          gutterBottom
+          sx={{ color: "text.primary", fontWeight: 700 }}
+        >
           Your Recordings
         </Typography>
-        {loading && <CircularProgress sx={{ display: 'block', mx: 'auto', my: 4 }} />}
-        {error && <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>}
-        {success && <Alert severity="success" sx={{ my: 2 }}>{success}</Alert>}
+        {loading && (
+          <CircularProgress sx={{ display: "block", mx: "auto", my: 4 }} />
+        )}
+        {error && (
+          <Alert severity="error" sx={{ my: 2 }}>
+            {error}
+          </Alert>
+        )}
+        {success && (
+          <Alert severity="success" sx={{ my: 2 }}>
+            {success}
+          </Alert>
+        )}
         {!loading && recordings.length === 0 && !error && (
           <Typography variant="body1" color="text.secondary" sx={{ mt: 4 }}>
             No recordings found. Make a booking to start recording!
@@ -283,10 +306,19 @@ const Recordings = () => {
                     component="video"
                     src={recording.video_url}
                     controls
-                    sx={{ height: 200, bgcolor: 'black' }}
+                    sx={{ height: 200, bgcolor: "black" }}
                   />
                 ) : (
-                  <Box sx={{ height: 200, bgcolor: 'grey.900', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'grey.500' }}>
+                  <Box
+                    sx={{
+                      height: 200,
+                      bgcolor: "grey.900",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "grey.500",
+                    }}
+                  >
                     Video not available
                   </Box>
                 )}
@@ -305,13 +337,26 @@ const Recordings = () => {
                   </Typography>
                 </CardContent>
                 <CardActions>
-                  <Button size="small" startIcon={<DownloadIcon />} onClick={() => handleDownload(recording)}>
+                  <Button
+                    size="small"
+                    startIcon={<DownloadIcon />}
+                    onClick={() => handleDownload(recording)}
+                  >
                     Download
                   </Button>
-                  <Button size="small" startIcon={<EditIcon />} onClick={() => handleEdit(recording)}>
+                  <Button
+                    size="small"
+                    startIcon={<EditIcon />}
+                    onClick={() => handleEdit(recording)}
+                  >
                     Edit
                   </Button>
-                  <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => handleDelete(recording)}>
+                  <Button
+                    size="small"
+                    color="error"
+                    startIcon={<DeleteIcon />}
+                    onClick={() => handleDelete(recording)}
+                  >
                     Delete
                   </Button>
                 </CardActions>

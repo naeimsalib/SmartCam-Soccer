@@ -1,23 +1,27 @@
-// frontend/eslint.config.js
-module.exports = {
-    root: true,
-    env: {
-      browser: true,
-      es2021: true,
-    },
-    extends: [
-      "eslint:recommended",
-      "plugin:react/recommended",
-    ],
-    parserOptions: {
-      ecmaFeatures: {
-        jsx: true,
+// eslint.config.js
+import js from '@eslint/js';
+import react from 'eslint-plugin-react';
+
+export default [
+  js.configs.recommended,
+  {
+    plugins: { react },
+    files: ['**/*.{js,jsx,ts,tsx}'],
+    languageOptions: {
+      ecmaVersion: 2021,
+      sourceType: 'module',
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
       },
-      ecmaVersion: 12,
-      sourceType: "module",
+      globals: {
+        window: 'readonly',
+        document: 'readonly',
+        navigator: 'readonly',
+      },
     },
-    plugins: ["react"],
     rules: {
+      ...react.configs.recommended.rules,
       // Add custom rules here
     },
-  };
+  },
+];
