@@ -273,6 +273,7 @@ class CameraService:
         self._start_upload_worker()
 
     def upload_worker(self):
+        """Upload worker thread that processes the upload queue."""
         logger.info("[Upload Worker] Upload worker running.")
         while self.upload_worker_running:
             with self.upload_queue_lock:
@@ -281,17 +282,50 @@ class CameraService:
                     continue
                 file_path, booking_id = self.upload_queue.pop(0)
                 self._save_upload_queue()
-            logger.info(f"[Upload Worker] Attempting upload for: {file_path} (booking {booking_id})")
+            
+            logger.info(f"[Upload Worker] Processing upload for: {file_path} (booking {booking_id})")
             try:
                 if os.path.exists(file_path):
+                    size = os.path.getsize(file_path)
+                    logger.info(f"[Upload Worker] File exists, size: {size} bytes")
                     filename = os.path.basename(file_path)
+                    storage_path = f"recordings/{filename}"
+                    
                     with open(file_path, 'rb') as f:
                         try:
-                            supabase.storage.from_("recordings").upload(filename, f)
-                            logger.info(f"[Upload Worker] Upload successful: {file_path}")
-                            self.remove_booking_for_file(file_path, booking_id)
+                            # Upload to Supabase storage
+                            supabase.storage.from_("recordings").upload(storage_path, f)
+                            logger.info(f"[Upload Worker] Upload successful: {storage_path}")
+                            
+                            # Create video reference in database with local time
+                            video_data = {
+                                "filename": filename,
+                                "storage_path": storage_path,
+                                "booking_id": booking_id,
+                                "created_at": datetime.now().astimezone().isoformat(),
+                                "status": "completed"
+                            }
+                            supabase.table("videos").insert(video_data).execute()
+                            logger.info(f"[Upload Worker] Video reference created in database")
+                            
+                            # Remove the booking
+                            if booking_id:
+                                self.remove_booking_for_file(file_path, booking_id)
+                            
+                            # Update storage usage
+                            storage_used = get_storage_used()
+                            update_system_status(storage_used=storage_used)
+                            logger.info(f"[Upload Worker] Updated storage usage: {storage_used} bytes")
+                            
+                            # Clean up the local file
+                            os.remove(file_path)
+                            logger.info(f"[Upload Worker] Removed local file: {file_path}")
+                            
                         except Exception as e:
                             logger.error(f"[Upload Worker] Upload failed for {file_path}: {e}", exc_info=True)
+                            # Put the file back in the queue for retry
+                            self.upload_queue.append((file_path, booking_id))
+                            self._save_upload_queue()
                 else:
                     logger.error(f"[Upload Worker] File does not exist: {file_path}")
             except Exception as e:
@@ -299,14 +333,24 @@ class CameraService:
             time.sleep(1)
 
     def remove_booking_for_file(self, file_path, booking_id=None):
+        """Remove booking after successful upload."""
         try:
             if not booking_id:
                 booking_id = self.file_booking_map.get(file_path)
             if booking_id:
                 logger.info(f"[Upload Worker] Removing booking {booking_id} for file: {file_path}")
+                # Remove from Supabase first
+                try:
+                    supabase.table("bookings").delete().eq("id", booking_id).execute()
+                    logger.info(f"[Upload Worker] Booking {booking_id} removed from Supabase")
+                except Exception as e:
+                    logger.error(f"[Upload Worker] Failed to remove booking from Supabase: {e}")
+                
+                # Then remove locally
                 remove_booking(booking_id)
-                remove_booking_from_supabase(booking_id)
-                logger.info(f"[Upload Worker] Booking {booking_id} removed from local and Supabase.")
+                logger.info(f"[Upload Worker] Booking {booking_id} removed locally")
+                
+                # Update the file-booking map
                 self.file_booking_map.pop(file_path, None)
                 self._save_file_booking_map()
             else:

@@ -5,6 +5,7 @@ import socket
 import json
 import os
 from datetime import datetime
+import pytz
 from typing import Optional, Dict, Any, List
 from supabase import create_client, Client
 import time
@@ -23,13 +24,29 @@ from .config import (
 # Initialize Supabase client
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-# Setup logging
+def get_local_timezone():
+    """Get the local timezone name."""
+    return datetime.now().astimezone().tzinfo
+
+# Setup logging with local timezone
 def setup_logging():
-    """Configure logging with both file and console handlers."""
+    """Configure logging with both file and console handlers using local timezone."""
     os.makedirs(LOG_DIR, exist_ok=True)
     
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
+    
+    # Custom formatter that uses local time
+    class LocalTimeFormatter(logging.Formatter):
+        def converter(self, timestamp):
+            dt = datetime.fromtimestamp(timestamp)
+            return dt.astimezone()
+            
+        def formatTime(self, record, datefmt=None):
+            dt = self.converter(record.created)
+            if datefmt:
+                return dt.strftime(datefmt)
+            return dt.strftime('%Y-%m-%d %H:%M:%S %z')
     
     # File handler with rotation
     file_handler = logging.handlers.RotatingFileHandler(
@@ -37,13 +54,13 @@ def setup_logging():
         maxBytes=10*1024*1024,  # 10MB
         backupCount=5
     )
-    file_handler.setFormatter(logging.Formatter(
+    file_handler.setFormatter(LocalTimeFormatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     ))
     
     # Console handler
     console_handler = logging.StreamHandler()
-    console_handler.setFormatter(logging.Formatter(
+    console_handler.setFormatter(LocalTimeFormatter(
         '%(asctime)s - %(levelname)s - %(message)s'
     ))
     
@@ -66,6 +83,10 @@ def get_ip() -> str:
         logger.error(f"Failed to get IP address: {e}")
         return "127.0.0.1"
 
+def local_now():
+    """Get current datetime in local timezone."""
+    return datetime.now().astimezone()
+
 def update_system_status(
     is_recording: bool = False,
     is_streaming: bool = False,
@@ -77,24 +98,44 @@ def update_system_status(
         # Collect memory and CPU usage
         mem = psutil.virtual_memory()
         cpu = psutil.cpu_percent(interval=0.5)
-        logger.info(f"Memory usage: {mem.percent}%, CPU usage: {cpu}%")
-        logger.info(f"Updating system status: is_recording={is_recording}, is_streaming={is_streaming}, storage_used={storage_used}, last_backup={last_backup}, mem={mem.percent}, cpu={cpu}")
-        data = {
+        
+        now = local_now()
+        
+        # Get camera status
+        camera_data = {
+            "id": CAMERA_ID,
+            "user_id": USER_ID,
+            "name": os.getenv("CAMERA_NAME", "Camera"),
+            "location": os.getenv("CAMERA_LOCATION", ""),
+            "camera_on": True,  # If this function is called, camera is on
+            "is_recording": is_recording,
+            "last_seen": now.isoformat(),
+            "ip_address": get_ip(),
+            "pi_active": True
+        }
+        
+        # Update camera status
+        supabase.table("cameras").upsert(camera_data).execute()
+        logger.info(f"Camera status updated: recording={is_recording}")
+        
+        # Update system status
+        system_data = {
             "user_id": USER_ID,
             "is_recording": is_recording,
             "is_streaming": is_streaming,
-            "storage_used": storage_used,
+            "storage_used": storage_used or get_storage_used(),  # Ensure we always have a value
             "last_backup": last_backup,
-            "last_seen": datetime.utcnow().isoformat(),
+            "last_seen": now.isoformat(),
             "ip_address": get_ip(),
             "memory_usage": mem.percent,
-            "cpu_usage": cpu
+            "cpu_usage": cpu,
+            "pi_active": True
         }
-        response = supabase.table("system_status").upsert(data).execute()
-        if hasattr(response, 'error') and response.error:
-            logger.error(f"Failed to update system status: {response.error}")
-            return False
-        logger.info("System status updated successfully")
+        
+        # Update system status
+        supabase.table("system_status").upsert(system_data).execute()
+        logger.info(f"System status updated: memory={mem.percent}%, cpu={cpu}%, storage={storage_used}")
+        
         return True
     except Exception as e:
         logger.error(f"Error updating system status: {e}", exc_info=True)

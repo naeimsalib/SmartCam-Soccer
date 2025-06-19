@@ -69,21 +69,25 @@ class Orchestrator:
         while not self.stop_event.is_set():
             try:
                 booking = load_booking()
-                now = datetime.utcnow()
+                # Use local time
+                now = datetime.now().astimezone()
                 if booking:
-                    # Parse the time correctly
-                    today = now.date()
+                    # Parse the time correctly with local timezone
+                    local_tz = now.tzinfo
                     booking_date = datetime.strptime(booking["date"], "%Y-%m-%d").date()
                     start_time = datetime.strptime(booking["start_time"], "%H:%M").time()
                     end_time = datetime.strptime(booking["end_time"], "%H:%M").time()
                     
-                    # Combine date and time
-                    start_datetime = datetime.combine(booking_date, start_time)
-                    end_datetime = datetime.combine(booking_date, end_time)
+                    # Combine date and time with local timezone
+                    start_datetime = datetime.combine(booking_date, start_time).astimezone(local_tz)
+                    end_datetime = datetime.combine(booking_date, end_time).astimezone(local_tz)
                     
-                    logger.info(f"Current time: {now}, Start: {start_datetime}, End: {end_datetime}")
+                    logger.info(f"[Time Check] Current: {now.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                    logger.info(f"[Time Check] Start: {start_datetime.strftime('%Y-%m-%d %H:%M:%S %Z')}")
+                    logger.info(f"[Time Check] End: {end_datetime.strftime('%Y-%m-%d %H:%M:%S %Z')}")
                     
-                    if start_datetime <= now <= end_datetime:
+                    # Add buffer to prevent early start (1 minute)
+                    if (start_datetime - now).total_seconds() <= 60:
                         if not self.camera_service.is_recording:
                             logger.info(f"Starting recording for booking {booking['id']}")
                             self.start_recording(booking["id"])
