@@ -130,34 +130,44 @@ class CameraService:
             try:
                 update_system_status(is_recording=True)
             except Exception as e:
-                logger.error(f"Error updating system status after start_recording: {e}")
+                logger.error(f"Error updating system status after start_recording: {e}", exc_info=True)
             logger.info(f"Started recording to {self.current_file}")
             return True
         except Exception as e:
-            logger.error(f"Error starting recording: {e}")
+            logger.error(f"Error starting recording: {e}", exc_info=True)
             return False
 
     def stop_recording(self) -> bool:
         """Stop recording and queue file for upload using CameraInterface."""
         if not self.is_recording:
+            logger.warning("stop_recording called but not recording")
             return False
         try:
             self.is_recording = False
             self.interface.stop_recording()
-            if self.current_file and os.path.exists(self.current_file):
-                final_path = self.attach_intro_video(self.current_file)
-                if final_path:
-                    queue_upload(final_path)
-                    logger.info(f"Recording saved and queued for upload: {final_path}")
+            if self.current_file:
+                logger.info(f"Checking file after stop_recording: {self.current_file}")
+                if os.path.exists(self.current_file):
+                    size = os.path.getsize(self.current_file)
+                    logger.info(f"Recording file exists, size: {size} bytes")
+                    final_path = self.attach_intro_video(self.current_file)
+                    if final_path:
+                        logger.info(f"Queuing file for upload: {final_path}")
+                        queue_upload(final_path)
+                        logger.info(f"Recording saved and queued for upload: {final_path}")
+                    else:
+                        logger.error(f"attach_intro_video returned None for {self.current_file}")
+                else:
+                    logger.error(f"Recording file does not exist: {self.current_file}")
             self.current_file = None
             self.recording_start = None
             try:
                 update_system_status(is_recording=False)
             except Exception as e:
-                logger.error(f"Error updating system status after stop_recording: {e}")
+                logger.error(f"Error updating system status after stop_recording: {e}", exc_info=True)
             return True
         except Exception as e:
-            logger.error(f"Error stopping recording: {e}")
+            logger.error(f"Error stopping recording: {e}", exc_info=True)
             return False
 
     def upload_worker(self):
@@ -165,33 +175,46 @@ class CameraService:
         while not self.stop_event.is_set():
             try:
                 queue = get_upload_queue()
+                logger.debug(f"Upload queue: {queue}")
                 if queue:
                     for filepath in queue:
+                        logger.info(f"Attempting upload for: {filepath}")
                         if os.path.exists(filepath):
+                            size = os.path.getsize(filepath)
+                            logger.info(f"File exists for upload: {filepath}, size: {size} bytes")
                             # Upload to Supabase storage
                             with open(filepath, 'rb') as f:
                                 filename = os.path.basename(filepath)
-                                supabase.storage.from_("recordings").upload(
-                                    filename,
-                                    f.read()
-                                )
-                            logger.info(f"Uploaded {filename}")
-                            
+                                try:
+                                    supabase.storage.from_("recordings").upload(
+                                        filename,
+                                        f.read()
+                                    )
+                                    logger.info(f"Uploaded {filename}")
+                                except Exception as e:
+                                    logger.error(f"Upload failed for {filename}: {e}", exc_info=True)
+                                    continue
                             # Move to permanent storage
-                            os.makedirs(RECORDING_DIR, exist_ok=True)
-                            os.rename(
-                                filepath,
-                                os.path.join(RECORDING_DIR, filename)
-                            )
-                            
+                            try:
+                                os.makedirs(RECORDING_DIR, exist_ok=True)
+                                os.rename(
+                                    filepath,
+                                    os.path.join(RECORDING_DIR, filename)
+                                )
+                                logger.info(f"Moved {filename} to permanent storage")
+                            except Exception as e:
+                                logger.error(f"Failed to move {filename} to permanent storage: {e}", exc_info=True)
                             # Update storage used
-                            storage_used = get_storage_used()
-                            update_system_status(storage_used=storage_used)
-                
+                            try:
+                                storage_used = get_storage_used()
+                                update_system_status(storage_used=storage_used)
+                            except Exception as e:
+                                logger.error(f"Failed to update storage used after upload: {e}", exc_info=True)
+                        else:
+                            logger.error(f"File does not exist for upload: {filepath}")
                 time.sleep(UPLOAD_INTERVAL)
-                
             except Exception as e:
-                logger.error(f"Error in upload worker: {e}")
+                logger.error(f"Error in upload worker: {e}", exc_info=True)
                 time.sleep(5)
 
     def start(self):

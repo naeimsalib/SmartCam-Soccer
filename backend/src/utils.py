@@ -73,6 +73,7 @@ def update_system_status(
 ) -> bool:
     """Update system status in the database."""
     try:
+        logger.info(f"Updating system status: is_recording={is_recording}, is_streaming={is_streaming}, storage_used={storage_used}, last_backup={last_backup}")
         data = {
             "user_id": USER_ID,
             "is_recording": is_recording,
@@ -82,23 +83,20 @@ def update_system_status(
             "last_seen": datetime.utcnow().isoformat(),
             "ip_address": get_ip()
         }
-        
         response = supabase.table("system_status").upsert(data).execute()
-        
-        if response.error:
+        if hasattr(response, 'error') and response.error:
             logger.error(f"Failed to update system status: {response.error}")
             return False
-            
         logger.info("System status updated successfully")
         return True
-        
     except Exception as e:
-        logger.error(f"Error updating system status: {e}")
+        logger.error(f"Error updating system status: {e}", exc_info=True)
         return False
 
 def save_booking(booking: Dict[str, Any]) -> bool:
     """Save booking information to a JSON file."""
     try:
+        logger.info(f"Saving booking: {booking}")
         os.makedirs(TEMP_DIR, exist_ok=True)
         filepath = os.path.join(TEMP_DIR, "current_booking.json")
         
@@ -109,7 +107,7 @@ def save_booking(booking: Dict[str, Any]) -> bool:
         return True
         
     except Exception as e:
-        logger.error(f"Error saving booking: {e}")
+        logger.error(f"Error saving booking: {e}", exc_info=True)
         return False
 
 def load_booking() -> Optional[Dict[str, Any]]:
@@ -118,15 +116,17 @@ def load_booking() -> Optional[Dict[str, Any]]:
         filepath = os.path.join(TEMP_DIR, "current_booking.json")
         
         if not os.path.exists(filepath):
+            logger.info("No booking file found to load.")
             return None
             
         with open(filepath, "r") as f:
             booking = json.load(f)
             
+        logger.info(f"Loaded booking: {booking}")
         return booking
         
     except Exception as e:
-        logger.error(f"Error loading booking: {e}")
+        logger.error(f"Error loading booking: {e}", exc_info=True)
         return None
 
 def remove_booking() -> bool:
@@ -138,15 +138,19 @@ def remove_booking() -> bool:
             os.remove(filepath)
             logger.info("Booking file removed")
             
+        else:
+            logger.info("No booking file to remove.")
+            
         return True
         
     except Exception as e:
-        logger.error(f"Error removing booking: {e}")
+        logger.error(f"Error removing booking: {e}", exc_info=True)
         return False
 
 def queue_upload(filepath: str) -> bool:
     """Add a file to the upload queue."""
     try:
+        logger.info(f"Queueing file for upload: {filepath}")
         queue_file = os.path.join(TEMP_DIR, "upload_queue.json")
         queue = get_upload_queue()
         
@@ -158,10 +162,13 @@ def queue_upload(filepath: str) -> bool:
                 
             logger.info(f"File queued for upload: {filepath}")
             
+        else:
+            logger.info(f"File already in upload queue: {filepath}")
+            
         return True
         
     except Exception as e:
-        logger.error(f"Error queueing file for upload: {e}")
+        logger.error(f"Error queueing file for upload: {e}", exc_info=True)
         return False
 
 def get_upload_queue() -> List[str]:
@@ -170,15 +177,17 @@ def get_upload_queue() -> List[str]:
         queue_file = os.path.join(TEMP_DIR, "upload_queue.json")
         
         if not os.path.exists(queue_file):
+            logger.info("No upload queue file found.")
             return []
             
         with open(queue_file, "r") as f:
             queue = json.load(f)
             
+        logger.info(f"Loaded upload queue: {queue}")
         return queue
         
     except Exception as e:
-        logger.error(f"Error getting upload queue: {e}")
+        logger.error(f"Error getting upload queue: {e}", exc_info=True)
         return []
 
 def clear_upload_queue() -> bool:
@@ -193,7 +202,7 @@ def clear_upload_queue() -> bool:
         return True
         
     except Exception as e:
-        logger.error(f"Error clearing upload queue: {e}")
+        logger.error(f"Error clearing upload queue: {e}", exc_info=True)
         return False
 
 def format_timestamp(timestamp: datetime) -> str:

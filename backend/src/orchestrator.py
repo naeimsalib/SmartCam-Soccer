@@ -24,6 +24,7 @@ class Orchestrator:
     def start_recording(self, booking_id: str) -> bool:
         """Start recording for a specific booking."""
         try:
+            logger.info(f"Attempting to start recording for booking {booking_id}")
             booking = load_booking()
             if not booking or booking["id"] != booking_id:
                 logger.error(f"Invalid booking ID: {booking_id}")
@@ -38,35 +39,38 @@ class Orchestrator:
             return True
 
         except Exception as e:
-            logger.error(f"Error starting recording: {e}")
+            logger.error(f"Error starting recording: {e}", exc_info=True)
             return False
 
     def stop_recording(self) -> bool:
         """Stop the current recording."""
         try:
+            logger.info("Attempting to stop recording")
             if self.camera_service.stop_recording():
                 logger.info("Recording stopped successfully")
                 # Remove booking after recording is complete
                 if self.current_booking_id:
                     try:
+                        logger.info(f"Removing booking {self.current_booking_id} from local and Supabase DB.")
                         remove_booking()
                         remove_booking_from_supabase(self.current_booking_id)
                         logger.info(f"Booking {self.current_booking_id} removed from local and Supabase DB.")
                     except Exception as e:
-                        logger.error(f"Failed to remove booking {self.current_booking_id}: {e}")
+                        logger.error(f"Failed to remove booking {self.current_booking_id}: {e}", exc_info=True)
                     self.current_booking_id = None
                 return True
             return False
         except Exception as e:
-            logger.error(f"Error stopping recording: {e}")
+            logger.error(f"Error stopping recording: {e}", exc_info=True)
             # Try to remove booking anyway
             if self.current_booking_id:
                 try:
+                    logger.info(f"Removing booking {self.current_booking_id} from local and Supabase DB (after error).")
                     remove_booking()
                     remove_booking_from_supabase(self.current_booking_id)
                     logger.info(f"Booking {self.current_booking_id} removed from local and Supabase DB (after error).")
                 except Exception as e2:
-                    logger.error(f"Failed to remove booking {self.current_booking_id} after error: {e2}")
+                    logger.error(f"Failed to remove booking {self.current_booking_id} after error: {e2}", exc_info=True)
                 self.current_booking_id = None
             return False
 
@@ -79,20 +83,22 @@ class Orchestrator:
                     start_time = datetime.fromisoformat(booking["start_time"])
                     end_time = datetime.fromisoformat(booking["end_time"])
                     now = datetime.utcnow()
-
+                    logger.debug(f"Booking loaded: {booking}, now: {now}")
                     if start_time <= now <= end_time:
                         if not self.camera_service.is_recording:
+                            logger.info(f"Within booking window, starting recording for {booking['id']}")
                             self.start_recording(booking["id"])
                     elif now > end_time and self.camera_service.is_recording:
+                        logger.info(f"Booking ended, stopping recording for {booking['id']}")
                         self.stop_recording()
                 elif self.camera_service.is_recording:
-                    # If no booking but still recording, stop recording
+                    logger.info("No booking found but still recording, stopping recording")
                     self.stop_recording()
 
                 time.sleep(BOOKING_CHECK_INTERVAL)
 
             except Exception as e:
-                logger.error(f"Error in recording worker: {e}")
+                logger.error(f"Error in recording worker: {e}", exc_info=True)
                 time.sleep(5)
 
     def start(self):
