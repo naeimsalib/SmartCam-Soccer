@@ -9,6 +9,7 @@ from typing import Optional, Dict, Any, List
 from supabase import create_client, Client
 import time
 import threading
+import psutil
 
 from .config import (
     SUPABASE_URL,
@@ -73,7 +74,11 @@ def update_system_status(
 ) -> bool:
     """Update system status in the database."""
     try:
-        logger.info(f"Updating system status: is_recording={is_recording}, is_streaming={is_streaming}, storage_used={storage_used}, last_backup={last_backup}")
+        # Collect memory and CPU usage
+        mem = psutil.virtual_memory()
+        cpu = psutil.cpu_percent(interval=0.5)
+        logger.info(f"Memory usage: {mem.percent}%, CPU usage: {cpu}%")
+        logger.info(f"Updating system status: is_recording={is_recording}, is_streaming={is_streaming}, storage_used={storage_used}, last_backup={last_backup}, mem={mem.percent}, cpu={cpu}")
         data = {
             "user_id": USER_ID,
             "is_recording": is_recording,
@@ -81,7 +86,9 @@ def update_system_status(
             "storage_used": storage_used,
             "last_backup": last_backup,
             "last_seen": datetime.utcnow().isoformat(),
-            "ip_address": get_ip()
+            "ip_address": get_ip(),
+            "memory_usage": mem.percent,
+            "cpu_usage": cpu
         }
         response = supabase.table("system_status").upsert(data).execute()
         if hasattr(response, 'error') and response.error:

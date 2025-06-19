@@ -15,7 +15,9 @@ from .utils import (
     clear_upload_queue,
     cleanup_temp_files,
     update_system_status,
-    get_storage_used
+    get_storage_used,
+    remove_booking,
+    remove_booking_from_supabase
 )
 from .config import (
     CAMERA_ID,
@@ -207,12 +209,28 @@ class CameraService:
             file_path = self.upload_queue.pop(0)
             logger.info(f"[Upload Worker] Attempting upload for: {file_path}")
             try:
-                # ... upload logic ...
-                logger.info(f"[Upload Worker] Upload successful: {file_path}")
-                # ... booking removal logic ...
-                logger.info(f"[Upload Worker] Booking removal attempted for: {file_path}")
+                # Real upload logic
+                if os.path.exists(file_path):
+                    filename = os.path.basename(file_path)
+                    with open(file_path, 'rb') as f:
+                        try:
+                            supabase.storage.from_("recordings").upload(filename, f.read())
+                            logger.info(f"[Upload Worker] Upload successful: {file_path}")
+                        except Exception as e:
+                            logger.error(f"[Upload Worker] Upload failed for {file_path}: {e}", exc_info=True)
+                            continue
+                    # Remove booking after upload
+                    try:
+                        logger.info(f"[Upload Worker] Attempting booking removal for: {file_path}")
+                        remove_booking(filename)
+                        remove_booking_from_supabase(filename)
+                        logger.info(f"[Upload Worker] Booking removal successful for: {file_path}")
+                    except Exception as e:
+                        logger.error(f"[Upload Worker] Booking removal failed for {file_path}: {e}", exc_info=True)
+                else:
+                    logger.error(f"[Upload Worker] File does not exist for upload: {file_path}")
             except Exception as e:
-                logger.error(f"[Upload Worker] Upload failed for {file_path}: {e}", exc_info=True)
+                logger.error(f"[Upload Worker] Upload worker error for {file_path}: {e}", exc_info=True)
 
     def start(self):
         """Start the camera service."""
