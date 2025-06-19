@@ -414,7 +414,10 @@ def main():
         cap.set(cv2.CAP_PROP_FPS, PREVIEW_FPS)
         cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         if not cap.isOpened():
-            log(f"Failed to open camera device {device_to_try}, auto-detecting...", LogLevel.WARNING)
+            log(f"Failed to open camera device {device_to_try}. Check if another process is using it, permissions, or if the device exists.", LogLevel.ERROR)
+            log(f"Current user: {os.getlogin()}, groups: {os.getgroups()}", LogLevel.ERROR)
+            log(f"Listing /dev/video* devices:", LogLevel.ERROR)
+            os.system('ls -l /dev/video*')
             cap.release()
             cap = None
     if cap is None:
