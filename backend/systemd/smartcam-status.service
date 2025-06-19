@@ -1,17 +1,19 @@
 [Unit]
-Description=SmartCam Soccer System Status Service
+Description=SmartCam Soccer Status Service
 After=network.target
+PartOf=smartcam.service
 
 [Service]
 Type=simple
-User=root
-WorkingDirectory=/home/michomanoly14892/code/SmartCam-Soccer/backend/SmartCam-Soccer/backend
-Environment="VIRTUAL_ENV=/home/michomanoly14892/code/SmartCam-Soccer/backend/SmartCam-Soccer/backend/venv"
-Environment="PYTHONPATH=/home/michomanoly14892/code/SmartCam-Soccer/backend/SmartCam-Soccer/backend"
-EnvironmentFile=/home/michomanoly14892/code/SmartCam-Soccer/backend/SmartCam-Soccer/backend/.env
-ExecStart=/home/michomanoly14892/code/SmartCam-Soccer/backend/SmartCam-Soccer/backend/venv/bin/python update_system_status.py
+User=pi
+WorkingDirectory=/home/pi/SmartCam-Soccer/backend
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/pi/SmartCam-Soccer/backend/venv/bin/python update_system_status.py
 Restart=always
 RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=smartcam-status
 
 [Install]
 WantedBy=multi-user.target 
