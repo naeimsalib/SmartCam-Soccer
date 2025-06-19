@@ -38,6 +38,10 @@ PREVIEW_FPS = int(os.getenv("PREVIEW_FPS", 24))
 RECORD_FPS = int(os.getenv("RECORD_FPS", 30))
 HARDWARE_ENCODER = os.getenv("HARDWARE_ENCODER", "h264_omx")
 
+# Aliases for compatibility
+CAMERA_WIDTH = PREVIEW_WIDTH
+CAMERA_HEIGHT = PREVIEW_HEIGHT
+
 # Recording settings
 MAX_RECORDING_DURATION = int(os.getenv("MAX_RECORDING_DURATION", 7200))  # 2 hours in seconds
 MIN_RECORDING_DURATION = int(os.getenv("MIN_RECORDING_DURATION", 300))   # 5 minutes in seconds
