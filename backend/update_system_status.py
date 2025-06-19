@@ -82,16 +82,13 @@ def main():
     """Main function to run the system status updater"""
     logging.info("Starting system status updater...")
     
+    user_id = os.getenv("USER_ID")
+    if not user_id:
+        logging.error("USER_ID environment variable not set!")
+        return
     while True:
         try:
-            # Get all users
-            response = supabase.table("profiles").select("id").execute()
-            users = response.data
-            
-            for user in users:
-                update_system_status(user["id"])
-            
-            # Wait for 5 seconds before next update
+            update_system_status(user_id)
             time.sleep(5)
         except Exception as e:
             logging.error(f"Error in main loop: {e}")
