@@ -102,23 +102,6 @@ def update_system_status(
         
         now = local_now()
         
-        # Get camera status
-        camera_data = {
-            "id": CAMERA_ID,
-            "user_id": USER_ID,
-            "name": os.getenv("CAMERA_NAME", "Camera"),
-            "location": os.getenv("CAMERA_LOCATION", ""),
-            "camera_on": True,  # If this function is called, camera is on
-            "is_recording": is_recording,
-            "last_seen": now.isoformat(),
-            "ip_address": get_ip(),
-            "pi_active": True
-        }
-        
-        # Update camera status
-        supabase.table("cameras").upsert(camera_data).execute()
-        logger.info(f"Camera status updated: recording={is_recording}")
-        
         # Update system status - try update first, then insert if not found
         system_data = {
             "user_id": USER_ID,

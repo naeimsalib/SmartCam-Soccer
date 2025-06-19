@@ -117,12 +117,20 @@ class CameraInterface:
                 h264_path = self.recording_path.replace('.mp4', '.h264')
                 self.h264_path = h264_path  # Store for conversion later
                 
+                # IMPORTANT: Stop the camera before reconfiguring
+                print("[CameraInterface] Stopping camera for reconfiguration...")
+                self.picam.stop()
+                
                 # Configure for recording with higher resolution
                 video_config = self.picam.create_video_configuration(
                     main={"size": (1920, 1080), "format": "YUV420"},  # Higher quality
                     controls={"FrameRate": 30}
                 )
                 self.picam.configure(video_config)
+                
+                # Start the camera with new configuration
+                print("[CameraInterface] Starting camera with video configuration...")
+                self.picam.start()
                 
                 self.picam.start_recording(self.encoder, h264_path)
                 self.recording = True
@@ -182,6 +190,18 @@ class CameraInterface:
             if self.camera_type == 'picamera2':
                 self.picam.stop_recording()
                 self.encoder = None
+                
+                # Stop the camera and reconfigure back to preview mode
+                print("[CameraInterface] Stopping camera and reconfiguring to preview mode...")
+                self.picam.stop()
+                
+                # Reconfigure back to preview mode
+                preview_config = self.picam.create_preview_configuration(
+                    main={"size": (self.width, self.height), "format": "RGB888"}
+                )
+                self.picam.configure(preview_config)
+                self.picam.start()
+                print("[CameraInterface] Camera reconfigured to preview mode")
                 
                 # Convert H264 to MP4 using ffmpeg for better compatibility
                 if hasattr(self, 'h264_path') and os.path.exists(self.h264_path):
