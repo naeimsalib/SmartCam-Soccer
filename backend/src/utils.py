@@ -18,7 +18,8 @@ from .config import (
     USER_ID,
     LOG_DIR,
     TEMP_DIR,
-    RECORDING_DIR
+    RECORDING_DIR,
+    CAMERA_ID
 )
 
 # Initialize Supabase client
