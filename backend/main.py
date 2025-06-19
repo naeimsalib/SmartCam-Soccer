@@ -22,6 +22,9 @@ import multiprocessing
 from concurrent.futures import ThreadPoolExecutor
 import logging
 from logging.handlers import RotatingFileHandler
+from src.config import (
+    CAMERA_DEVICE, PREVIEW_WIDTH, PREVIEW_HEIGHT, RECORD_WIDTH, RECORD_HEIGHT, PREVIEW_FPS, RECORD_FPS, HARDWARE_ENCODER, auto_detect_camera
+)
 
 # Configure logging
 logging.basicConfig(
@@ -50,14 +53,6 @@ def log(message, level=LogLevel.INFO):
         logging.info(f"SUCCESS: {message}")
 
 # Constants for video processing
-CAMERA_INDEX = 0
-PREVIEW_WIDTH = 640  # Reduced for preview
-PREVIEW_HEIGHT = 480
-RECORD_WIDTH = 1280  # Full resolution for recording
-RECORD_HEIGHT = 720
-PREVIEW_FPS = 24  # Reduced FPS for preview
-RECORD_FPS = 30  # Full FPS for recording
-HARDWARE_ENCODER = "h264_omx"  # Use hardware encoder
 MAX_WORKERS = 2  # Limit concurrent processes
 
 # Global variables
@@ -408,17 +403,38 @@ def main():
     upload_thread = threading.Thread(target=upload_worker, daemon=True)
     upload_thread.start()
     
-    # Initialize camera
-    cap = cv2.VideoCapture(CAMERA_INDEX)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, PREVIEW_WIDTH)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, PREVIEW_HEIGHT)
-    cap.set(cv2.CAP_PROP_FPS, PREVIEW_FPS)
-    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    # Camera initialization
+    device_to_try = CAMERA_DEVICE
+    cap = None
+    if device_to_try:
+        log(f"Trying to open camera device from .env: {device_to_try}")
+        cap = cv2.VideoCapture(device_to_try)
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, PREVIEW_WIDTH)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, PREVIEW_HEIGHT)
+        cap.set(cv2.CAP_PROP_FPS, PREVIEW_FPS)
+        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        if not cap.isOpened():
+            log(f"Failed to open camera device {device_to_try}, auto-detecting...", LogLevel.WARNING)
+            cap.release()
+            cap = None
+    if cap is None:
+        detected = auto_detect_camera()
+        if detected:
+            log(f"Auto-detected working camera device: {detected}", LogLevel.SUCCESS)
+            cap = cv2.VideoCapture(detected)
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, PREVIEW_WIDTH)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, PREVIEW_HEIGHT)
+            cap.set(cv2.CAP_PROP_FPS, PREVIEW_FPS)
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        else:
+            log("No working camera device found!", LogLevel.ERROR)
+            return
     
     if not cap.isOpened():
-        log("Failed to open camera", LogLevel.ERROR)
+        log("Failed to open camera after auto-detection", LogLevel.ERROR)
         return
-        
+    log(f"Camera initialized and opened: {device_to_try if device_to_try else detected}", LogLevel.SUCCESS)
+    
     prev_frame = None
     recording_process = None
     last_booking_check = 0

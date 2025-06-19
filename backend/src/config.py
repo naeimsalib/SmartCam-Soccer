@@ -1,6 +1,8 @@
 import os
 from dotenv import load_dotenv
 from pathlib import Path
+import glob
+import cv2
 
 # Load environment variables
 load_dotenv()
@@ -23,23 +25,39 @@ CAMERA_NAME = os.getenv("CAMERA_NAME", "Camera")
 CAMERA_LOCATION = os.getenv("CAMERA_LOCATION", "")
 
 # Camera settings
-CAMERA_INDEX = 0
-PREVIEW_WIDTH = 640
-PREVIEW_HEIGHT = 480
-RECORD_WIDTH = 1280
-RECORD_HEIGHT = 720
-PREVIEW_FPS = 24
-RECORD_FPS = 30
-HARDWARE_ENCODER = "h264_omx"
+CAMERA_DEVICE = os.getenv("CAMERA_DEVICE")
+PREVIEW_WIDTH = int(os.getenv("CAMERA_WIDTH", 640))
+PREVIEW_HEIGHT = int(os.getenv("CAMERA_HEIGHT", 480))
+RECORD_WIDTH = int(os.getenv("RECORD_WIDTH", 1280))
+RECORD_HEIGHT = int(os.getenv("RECORD_HEIGHT", 720))
+PREVIEW_FPS = int(os.getenv("PREVIEW_FPS", 24))
+RECORD_FPS = int(os.getenv("RECORD_FPS", 30))
+HARDWARE_ENCODER = os.getenv("HARDWARE_ENCODER", "h264_omx")
 
 # Recording settings
-MAX_RECORDING_DURATION = 7200  # 2 hours in seconds
-MIN_RECORDING_DURATION = 300   # 5 minutes in seconds
+MAX_RECORDING_DURATION = int(os.getenv("MAX_RECORDING_DURATION", 7200))  # 2 hours in seconds
+MIN_RECORDING_DURATION = int(os.getenv("MIN_RECORDING_DURATION", 300))   # 5 minutes in seconds
 
 # Status update intervals
-STATUS_UPDATE_INTERVAL = 15  # seconds
-BOOKING_CHECK_INTERVAL = 60  # seconds
+STATUS_UPDATE_INTERVAL = int(os.getenv("STATUS_UPDATE_INTERVAL", 15))  # seconds
+BOOKING_CHECK_INTERVAL = int(os.getenv("BOOKING_CHECK_INTERVAL", 60))  # seconds
 
 # File paths
 NEXT_BOOKING_FILE = TEMP_DIR / "next_booking.json"
-UPLOAD_QUEUE_FILE = TEMP_DIR / "to_upload.txt" 
+UPLOAD_QUEUE_FILE = TEMP_DIR / "to_upload.txt"
+
+
+def auto_detect_camera():
+    """Auto-detect the first working camera device."""
+    video_devices = sorted(glob.glob('/dev/video*'))
+    for device in video_devices:
+        try:
+            cap = cv2.VideoCapture(device)
+            if cap.isOpened():
+                ret, frame = cap.read()
+                cap.release()
+                if ret:
+                    return device
+        except Exception:
+            continue
+    return None 
