@@ -453,9 +453,13 @@ def main():
                 for booking in bookings:
                     start_dt = datetime.datetime.strptime(f"{booking['date']} {booking['start_time']}", "%Y-%m-%d %H:%M")
                     end_dt = datetime.datetime.strptime(f"{booking['date']} {booking['end_time']}", "%Y-%m-%d %H:%M")
+                    log(f"Comparing now_dt={now_dt} to booking window: start_dt={start_dt}, end_dt={end_dt}", LogLevel.INFO)
                     if start_dt <= now_dt <= end_dt:
+                        log(f"Booking {booking['id']} is ACTIVE (now_dt is within window)", LogLevel.INFO)
                         active_booking = booking
                         break
+                    else:
+                        log(f"Booking {booking['id']} is NOT active (now_dt not in window)", LogLevel.INFO)
                 if active_booking:
                     log(f"Active booking detected: {active_booking}", LogLevel.SUCCESS)
                 else:
@@ -465,10 +469,15 @@ def main():
             if active_booking and recording_process is None:
                 log(f"Starting recording for booking: {active_booking}", LogLevel.SUCCESS)
                 recording_process = start_recording()
+                log(f"Recording process started: {recording_process}", LogLevel.INFO)
+                log(f"Temp directory contents: {os.listdir('temp') if os.path.exists('temp') else 'temp dir missing'}", LogLevel.INFO)
+                log(f"Recordings directory contents: {os.listdir('recordings') if os.path.exists('recordings') else 'recordings dir missing'}", LogLevel.INFO)
             elif not active_booking and recording_process is not None:
                 log("No active booking, stopping recording.", LogLevel.INFO)
                 recording_process.terminate()
                 recording_process = None
+                log(f"Recording process stopped. Temp directory: {os.listdir('temp') if os.path.exists('temp') else 'temp dir missing'}", LogLevel.INFO)
+                log(f"Recordings directory: {os.listdir('recordings') if os.path.exists('recordings') else 'recordings dir missing'}", LogLevel.INFO)
             # Throttle status update
             if current_time - last_status_update > status_update_interval:
                 update_camera_status(camera_on=True, is_recording=recording_process is not None)
