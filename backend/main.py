@@ -357,7 +357,7 @@ def upload_worker():
             for attempt in range(max_retries):
                 try:
                     with open(local_path, 'rb') as f:
-                        storage_path = f"videos/{user_id}/{filename}"
+                        storage_path = f"{user_id}/{filename}"
                         supabase.storage.from_("videos").upload(storage_path, f)
                         
                     insert_video_reference(user_id, filename, storage_path, booking_id)
