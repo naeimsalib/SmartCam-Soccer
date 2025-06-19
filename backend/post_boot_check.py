@@ -4,6 +4,7 @@ import cv2
 from supabase import create_client
 from dotenv import load_dotenv
 import sys
+import multiprocessing
 
 load_dotenv()
 
@@ -13,23 +14,45 @@ USER_ID = os.getenv("USER_ID")
 
 print("[Post Boot Check] Starting health checks...")
 
-# Camera check
-def check_camera():
-    print("Checking all /dev/video* devices...")
-    devices = sorted(glob.glob('/dev/video*'))
-    found = False
-    for device in devices:
+# Camera check with timeout
+
+def check_device(device, result_queue):
+    try:
         cap = cv2.VideoCapture(device)
         if cap.isOpened():
             ret, frame = cap.read()
             cap.release()
             if ret:
-                print(f"Camera test passed for {device}")
+                result_queue.put((device, True, None))
+            else:
+                result_queue.put((device, False, "Opened but failed to read frame"))
+        else:
+            result_queue.put((device, False, "Failed to open"))
+    except Exception as e:
+        result_queue.put((device, False, f"Exception: {e}"))
+
+def check_camera():
+    print("Checking all /dev/video* devices with timeout...")
+    devices = sorted(glob.glob('/dev/video*'))
+    found = False
+    for device in devices:
+        result_queue = multiprocessing.Queue()
+        p = multiprocessing.Process(target=check_device, args=(device, result_queue))
+        p.start()
+        p.join(2)  # 2 second timeout per device
+        if p.is_alive():
+            p.terminate()
+            print(f"Timeout on {device}")
+            continue
+        if not result_queue.empty():
+            dev, ok, msg = result_queue.get()
+            if ok:
+                print(f"Camera test passed for {dev}")
                 found = True
             else:
-                print(f"Opened {device} but failed to read frame.")
+                print(f"{msg} for {dev}")
         else:
-            print(f"Failed to open {device}")
+            print(f"No result for {device}")
     if not found:
         print("No working camera found!")
         return False
