@@ -12,10 +12,13 @@ BASE_DIR = Path(__file__).parent.parent
 TEMP_DIR = BASE_DIR / "temp"
 UPLOAD_DIR = BASE_DIR / "uploads"
 LOG_DIR = BASE_DIR / "logs"
+RECORDING_DIR = BASE_DIR / "recordings"
 
 # Create directories if they don't exist
 TEMP_DIR.mkdir(exist_ok=True)
 UPLOAD_DIR.mkdir(exist_ok=True)
+LOG_DIR.mkdir(exist_ok=True)
+RECORDING_DIR.mkdir(exist_ok=True)
 
 # Supabase configuration
 SUPABASE_URL = os.getenv("SUPABASE_URL")
