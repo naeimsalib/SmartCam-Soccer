@@ -4,7 +4,7 @@ import threading
 from datetime import datetime, timedelta
 from typing import Optional
 
-from .utils import (
+from utils import (
     logger,
     load_booking,
     remove_booking,
@@ -13,8 +13,8 @@ from .utils import (
     save_booking,
     supabase
 )
-from .config import BOOKING_CHECK_INTERVAL, USER_ID, MIN_RECORDING_DURATION, MAX_RECORDING_DURATION
-from .camera import CameraService
+from config import BOOKING_CHECK_INTERVAL, USER_ID, MIN_RECORDING_DURATION, MAX_RECORDING_DURATION
+from camera import CameraService
 
 class Orchestrator:
     def __init__(self):
