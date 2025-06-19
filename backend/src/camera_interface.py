@@ -5,7 +5,7 @@ import cv2
 from typing import Optional, Tuple
 
 try:
-    from picamera2 import Picamera2, Picamera2Error
+    from picamera2 import Picamera2
     print("[DEBUG] Picamera2 import succeeded")
     PICAMERA2_AVAILABLE = True
 except ImportError as e:
