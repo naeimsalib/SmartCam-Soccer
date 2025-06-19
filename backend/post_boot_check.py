@@ -1,6 +1,5 @@
 import os
-import glob
-import cv2
+from src.camera_interface import CameraInterface
 from supabase import create_client
 from dotenv import load_dotenv
 import sys
@@ -32,31 +31,14 @@ def check_device(device, result_queue):
         result_queue.put((device, False, f"Exception: {e}"))
 
 def check_camera():
-    print("Checking all /dev/video* devices with timeout...")
-    devices = sorted(glob.glob('/dev/video*'))
-    found = False
-    for device in devices:
-        result_queue = multiprocessing.Queue()
-        p = multiprocessing.Process(target=check_device, args=(device, result_queue))
-        p.start()
-        p.join(2)  # 2 second timeout per device
-        if p.is_alive():
-            p.terminate()
-            print(f"Timeout on {device}")
-            continue
-        if not result_queue.empty():
-            dev, ok, msg = result_queue.get()
-            if ok:
-                print(f"Camera test passed for {dev}")
-                found = True
-            else:
-                print(f"{msg} for {dev}")
-        else:
-            print(f"No result for {device}")
-    if not found:
-        print("No working camera found!")
+    try:
+        cam = CameraInterface()
+        print(f"Camera health check passed: type={cam.camera_type}")
+        cam.release()
+        return True
+    except Exception as e:
+        print(f"Camera health check failed: {e}")
         return False
-    return True
 
 # Supabase check
 def check_supabase():

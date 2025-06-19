@@ -27,32 +27,31 @@ from .config import (
     UPLOAD_INTERVAL,
     MAX_RECORDING_DURATION
 )
+from .camera_interface import CameraInterface
 
 class CameraService:
     def __init__(self):
-        self.camera: Optional[cv2.VideoCapture] = None
+        self.camera = None
         self.is_recording = False
         self.current_file = None
         self.recording_start = None
         self.upload_thread = None
         self.stop_event = threading.Event()
         self.intro_video_path = None
+        self.interface = None
 
     def start_camera(self) -> bool:
-        """Initialize and start the camera."""
+        """Initialize and start the camera using CameraInterface."""
         try:
-            self.camera = cv2.VideoCapture(CAMERA_ID)
-            self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
-            self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
-            self.camera.set(cv2.CAP_PROP_FPS, CAMERA_FPS)
-            
-            if not self.camera.isOpened():
-                logger.error("Failed to open camera")
-                return False
-                
-            logger.info("Camera initialized successfully")
+            self.interface = CameraInterface(
+                width=CAMERA_WIDTH,
+                height=CAMERA_HEIGHT,
+                fps=CAMERA_FPS,
+                output_dir=TEMP_DIR
+            )
+            self.camera = self.interface  # for backward compatibility
+            logger.info("CameraInterface initialized successfully")
             return True
-            
         except Exception as e:
             logger.error(f"Error starting camera: {e}")
             return False
@@ -120,62 +119,37 @@ class CameraService:
             return recording_path
 
     def start_recording(self) -> bool:
-        """Start recording video."""
+        """Start recording video using CameraInterface."""
         if self.is_recording:
             logger.warning("Already recording")
             return False
-            
         try:
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"recording_{timestamp}.mp4"
-            self.current_file = os.path.join(TEMP_DIR, filename)
-            
-            fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-            self.writer = cv2.VideoWriter(
-                self.current_file,
-                fourcc,
-                CAMERA_FPS,
-                (CAMERA_WIDTH, CAMERA_HEIGHT)
-            )
-            
+            self.current_file = self.interface.start_recording()
             self.is_recording = True
             self.recording_start = time.time()
-            
-            # Update system status
             update_system_status(is_recording=True)
-            
             logger.info(f"Started recording to {self.current_file}")
             return True
-            
         except Exception as e:
             logger.error(f"Error starting recording: {e}")
             return False
 
     def stop_recording(self) -> bool:
-        """Stop recording and queue file for upload."""
+        """Stop recording and queue file for upload using CameraInterface."""
         if not self.is_recording:
             return False
-            
         try:
             self.is_recording = False
-            self.writer.release()
-            
+            self.interface.stop_recording()
             if self.current_file and os.path.exists(self.current_file):
-                # Attach intro video if available
                 final_path = self.attach_intro_video(self.current_file)
-                
                 if final_path:
                     queue_upload(final_path)
                     logger.info(f"Recording saved and queued for upload: {final_path}")
-            
             self.current_file = None
             self.recording_start = None
-            
-            # Update system status
             update_system_status(is_recording=False)
-            
             return True
-            
         except Exception as e:
             logger.error(f"Error stopping recording: {e}")
             return False
@@ -231,38 +205,30 @@ class CameraService:
         self.stop_event.set()
         if self.upload_thread:
             self.upload_thread.join()
-            
         if self.is_recording:
             self.stop_recording()
-            
-        if self.camera:
-            self.camera.release()
-            
+        if self.interface:
+            self.interface.release()
         cleanup_temp_files(TEMP_DIR)
         logger.info("Camera service stopped")
 
 def main():
-    """Main camera service loop."""
+    """Main camera service loop using CameraInterface."""
     service = CameraService()
     if not service.start():
         return
-        
     try:
         while True:
             if service.is_recording:
-                ret, frame = service.camera.read()
-                if ret:
-                    service.writer.write(frame)
-                    
-                    # Check recording duration
-                    if (time.time() - service.recording_start) >= MAX_RECORDING_DURATION:
-                        service.stop_recording()
-                else:
-                    logger.error("Failed to read frame")
-                    break
+                frame = service.interface.capture_frame()
+                if frame is not None and service.interface.camera_type == 'opencv':
+                    service.interface.writer.write(frame)
+                # For picamera2, recording is handled internally
+                # Check recording duration
+                if (time.time() - service.recording_start) >= MAX_RECORDING_DURATION:
+                    service.stop_recording()
             else:
                 time.sleep(1)
-                
     except KeyboardInterrupt:
         logger.info("Received shutdown signal")
     finally:

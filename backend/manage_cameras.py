@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 import subprocess
 import json
+from src.camera_interface import CameraInterface
 
 # Configure logging
 logging.basicConfig(
@@ -21,10 +22,10 @@ supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY
 supabase: Client = create_client(supabase_url, supabase_key)
 
 def check_camera_status(camera_id: str) -> bool:
-    """Check if camera is online by attempting to connect"""
+    """Check if camera is online by attempting to connect using CameraInterface"""
     try:
-        # This is a placeholder - implement actual camera connection check
-        # For example, using OpenCV to check camera feed
+        cam = CameraInterface()
+        cam.release()
         return True
     except Exception as e:
         logging.error(f"Error checking camera status: {e}")
