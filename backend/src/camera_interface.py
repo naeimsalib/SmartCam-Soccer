@@ -6,8 +6,13 @@ from typing import Optional, Tuple
 
 try:
     from picamera2 import Picamera2, Picamera2Error
+    print("[DEBUG] Picamera2 import succeeded")
     PICAMERA2_AVAILABLE = True
-except ImportError:
+except ImportError as e:
+    print(f"[DEBUG] Picamera2 import failed: {e}")
+    PICAMERA2_AVAILABLE = False
+except Exception as e:
+    print(f"[DEBUG] Picamera2 import failed (other): {e}")
     PICAMERA2_AVAILABLE = False
 
 class CameraInterface:
