@@ -39,22 +39,28 @@ class CameraService:
         self.intro_video_path = None
 
     def start_camera(self) -> bool:
-        """Initialize and start the camera."""
+        """Initialize and start the camera with lock file."""
         try:
+            self.lock_file = os.path.join(TEMP_DIR, "camera.lock")
+            if os.path.exists(self.lock_file):
+                logger.error("Camera lock file exists. Another process may be using the camera.")
+                return False
+            with open(self.lock_file, "w") as f:
+                f.write(str(os.getpid()))
             self.camera = cv2.VideoCapture(CAMERA_ID)
             self.camera.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
             self.camera.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
             self.camera.set(cv2.CAP_PROP_FPS, CAMERA_FPS)
-            
             if not self.camera.isOpened():
                 logger.error("Failed to open camera")
+                os.remove(self.lock_file)
                 return False
-                
             logger.info("Camera initialized successfully")
             return True
-            
         except Exception as e:
             logger.error(f"Error starting camera: {e}")
+            if hasattr(self, 'lock_file') and os.path.exists(self.lock_file):
+                os.remove(self.lock_file)
             return False
 
     def get_intro_video(self) -> Optional[str]:
@@ -196,20 +202,16 @@ class CameraService:
                                     f.read()
                                 )
                             logger.info(f"Uploaded {filename}")
-                            
-                            # Move to permanent storage
-                            os.makedirs(RECORDING_DIR, exist_ok=True)
-                            os.rename(
-                                filepath,
-                                os.path.join(RECORDING_DIR, filename)
-                            )
-                            
+                            # Delete local file after upload
+                            try:
+                                os.remove(filepath)
+                                logger.info(f"Deleted local file after upload: {filepath}")
+                            except Exception as e:
+                                logger.error(f"Failed to delete local file: {filepath}, error: {e}")
                             # Update storage used
                             storage_used = get_storage_used()
                             update_system_status(storage_used=storage_used)
-                
                 time.sleep(UPLOAD_INTERVAL)
-                
             except Exception as e:
                 logger.error(f"Error in upload worker: {e}")
                 time.sleep(5)
@@ -227,18 +229,17 @@ class CameraService:
         return True
 
     def stop(self):
-        """Stop the camera service."""
+        """Stop the camera service and release resources."""
         self.stop_event.set()
         if self.upload_thread:
             self.upload_thread.join()
-            
-        if self.is_recording:
-            self.stop_recording()
-            
         if self.camera:
             self.camera.release()
-            
-        cleanup_temp_files(TEMP_DIR)
+            logger.info("Camera released")
+        # Remove lock file
+        if hasattr(self, 'lock_file') and os.path.exists(self.lock_file):
+            os.remove(self.lock_file)
+            logger.info("Camera lock file removed")
         logger.info("Camera service stopped")
 
 def main():
