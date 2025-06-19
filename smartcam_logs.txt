@@ -1,0 +1,150 @@
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,682 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,683 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,684 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,684 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,684 - ERROR - Failed to read frame
+Jun 16 23:50:12 raspberrypi python[59608]: 2025-06-16 23:50:12,684 - ERROR - Failed to read frame
+Jun 16 23:50:16 raspberrypi python[59855]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/SmartCam-Soccer/backend/venv/lib/python3.11/site-packages/supabase/client.py", line 45, in __init__
+Jun 16 23:50:16 raspberrypi python[59855]:     raise SupabaseException("supabase_url is required")
+Jun 16 23:50:16 raspberrypi python[59855]: supabase.client.SupabaseException: supabase_url is required
+Jun 16 23:50:16 raspberrypi systemd[1]: smartcam-manager.service: Main process exited, code=exited, status=1/FAILURE
+Jun 16 23:50:16 raspberrypi systemd[1]: smartcam-manager.service: Failed with result 'exit-code'.
+Jun 16 23:50:21 raspberrypi systemd[1]: smartcam-manager.service: Scheduled restart job, restart counter is at 223.
+Jun 16 23:50:21 raspberrypi systemd[1]: Stopped smartcam-manager.service - SmartCam Soccer Camera Manager Service.
+Jun 16 23:50:21 raspberrypi systemd[1]: Started smartcam-manager.service - SmartCam Soccer Camera Manager Service.
+Jun 16 23:50:21 raspberrypi python[59865]: Traceback (most recent call last):
+Jun 16 23:50:21 raspberrypi python[59865]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/manage_cameras.py", line 19, in <module>
+Jun 16 23:50:21 raspberrypi python[59865]:     supabase: Client = create_client(supabase_url, supabase_key)
+Jun 16 23:50:21 raspberrypi python[59865]:                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Jun 16 23:50:21 raspberrypi python[59865]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/SmartCam-Soccer/backend/venv/lib/python3.11/site-packages/supabase/client.py", line 248, in create_client
+Jun 16 23:50:21 raspberrypi python[59865]:     return Client(supabase_url=supabase_url, supabase_key=supabase_key, options=options)
+Jun 16 23:50:21 raspberrypi python[59865]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Jun 16 23:50:21 raspberrypi python[59865]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/SmartCam-Soccer/backend/venv/lib/python3.11/site-packages/supabase/client.py", line 45, in __init__
+Jun 16 23:50:21 raspberrypi python[59865]:     raise SupabaseException("supabase_url is required")
+Jun 16 23:50:21 raspberrypi python[59865]: supabase.client.SupabaseException: supabase_url is required
+Jun 16 23:50:21 raspberrypi systemd[1]: smartcam-manager.service: Main process exited, code=exited, status=1/FAILURE
+Jun 16 23:50:21 raspberrypi systemd[1]: smartcam-manager.service: Failed with result 'exit-code'.
+Jun 16 23:50:27 raspberrypi systemd[1]: smartcam-manager.service: Scheduled restart job, restart counter is at 224.
+Jun 16 23:50:27 raspberrypi systemd[1]: Stopped smartcam-manager.service - SmartCam Soccer Camera Manager Service.
+Jun 16 23:50:27 raspberrypi systemd[1]: Started smartcam-manager.service - SmartCam Soccer Camera Manager Service.
+Jun 16 23:50:27 raspberrypi python[59874]: Traceback (most recent call last):
+Jun 16 23:50:27 raspberrypi python[59874]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/manage_cameras.py", line 19, in <module>
+Jun 16 23:50:27 raspberrypi python[59874]:     supabase: Client = create_client(supabase_url, supabase_key)
+Jun 16 23:50:27 raspberrypi python[59874]:                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Jun 16 23:50:27 raspberrypi python[59874]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/SmartCam-Soccer/backend/venv/lib/python3.11/site-packages/supabase/client.py", line 248, in create_client
+Jun 16 23:50:27 raspberrypi python[59874]:     return Client(supabase_url=supabase_url, supabase_key=supabase_key, options=options)
+Jun 16 23:50:27 raspberrypi python[59874]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Jun 16 23:50:27 raspberrypi python[59874]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/SmartCam-Soccer/backend/venv/lib/python3.11/site-packages/supabase/client.py", line 45, in __init__
+Jun 16 23:50:27 raspberrypi python[59874]:     raise SupabaseException("supabase_url is required")
+Jun 16 23:50:27 raspberrypi python[59874]: supabase.client.SupabaseException: supabase_url is required
+Jun 16 23:50:27 raspberrypi systemd[1]: smartcam-manager.service: Main process exited, code=exited, status=1/FAILURE
+Jun 16 23:50:27 raspberrypi systemd[1]: smartcam-manager.service: Failed with result 'exit-code'.
+Jun 16 23:50:32 raspberrypi systemd[1]: smartcam-manager.service: Scheduled restart job, restart counter is at 225.
+Jun 16 23:50:32 raspberrypi systemd[1]: Stopped smartcam-manager.service - SmartCam Soccer Camera Manager Service.
+Jun 16 23:50:32 raspberrypi systemd[1]: Started smartcam-manager.service - SmartCam Soccer Camera Manager Service.
+Jun 16 23:50:32 raspberrypi python[59882]: Traceback (most recent call last):
+Jun 16 23:50:32 raspberrypi python[59882]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/manage_cameras.py", line 19, in <module>
+Jun 16 23:50:32 raspberrypi python[59882]:     supabase: Client = create_client(supabase_url, supabase_key)
+Jun 16 23:50:32 raspberrypi python[59882]:                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Jun 16 23:50:32 raspberrypi python[59882]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/SmartCam-Soccer/backend/venv/lib/python3.11/site-packages/supabase/client.py", line 248, in create_client
+Jun 16 23:50:32 raspberrypi python[59882]:     return Client(supabase_url=supabase_url, supabase_key=supabase_key, options=options)
+Jun 16 23:50:32 raspberrypi python[59882]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Jun 16 23:50:32 raspberrypi python[59882]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/SmartCam-Soccer/backend/venv/lib/python3.11/site-packages/supabase/client.py", line 45, in __init__
+Jun 16 23:50:32 raspberrypi python[59882]:     raise SupabaseException("supabase_url is required")
+Jun 16 23:50:32 raspberrypi python[59882]: supabase.client.SupabaseException: supabase_url is required
+Jun 16 23:50:32 raspberrypi systemd[1]: smartcam-manager.service: Main process exited, code=exited, status=1/FAILURE
+Jun 16 23:50:32 raspberrypi systemd[1]: smartcam-manager.service: Failed with result 'exit-code'.
+Jun 16 23:50:09 raspberrypi python[59843]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/update_system_status.py", line 2, in <module>
+Jun 16 23:50:09 raspberrypi python[59843]:     import psutil
+Jun 16 23:50:09 raspberrypi python[59843]: ModuleNotFoundError: No module named 'psutil'
+Jun 16 23:50:09 raspberrypi systemd[1]: smartcam-status.service: Main process exited, code=exited, status=1/FAILURE
+Jun 16 23:50:09 raspberrypi systemd[1]: smartcam-status.service: Failed with result 'exit-code'.
+Jun 16 23:50:14 raspberrypi systemd[1]: smartcam-status.service: Scheduled restart job, restart counter is at 230.
+Jun 16 23:50:14 raspberrypi systemd[1]: Stopped smartcam-status.service - SmartCam Soccer System Status Service.
+Jun 16 23:50:14 raspberrypi systemd[1]: Started smartcam-status.service - SmartCam Soccer System Status Service.
+Jun 16 23:50:14 raspberrypi python[59852]: Traceback (most recent call last):
+Jun 16 23:50:14 raspberrypi python[59852]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/update_system_status.py", line 2, in <module>
+Jun 16 23:50:14 raspberrypi python[59852]:     import psutil
+Jun 16 23:50:14 raspberrypi python[59852]: ModuleNotFoundError: No module named 'psutil'
+Jun 16 23:50:14 raspberrypi systemd[1]: smartcam-status.service: Main process exited, code=exited, status=1/FAILURE
+Jun 16 23:50:14 raspberrypi systemd[1]: smartcam-status.service: Failed with result 'exit-code'.
+Jun 16 23:50:19 raspberrypi systemd[1]: smartcam-status.service: Scheduled restart job, restart counter is at 231.
+Jun 16 23:50:19 raspberrypi systemd[1]: Stopped smartcam-status.service - SmartCam Soccer System Status Service.
+Jun 16 23:50:19 raspberrypi systemd[1]: Started smartcam-status.service - SmartCam Soccer System Status Service.
+Jun 16 23:50:19 raspberrypi python[59862]: Traceback (most recent call last):
+Jun 16 23:50:19 raspberrypi python[59862]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/update_system_status.py", line 2, in <module>
+Jun 16 23:50:19 raspberrypi python[59862]:     import psutil
+Jun 16 23:50:19 raspberrypi python[59862]: ModuleNotFoundError: No module named 'psutil'
+Jun 16 23:50:19 raspberrypi systemd[1]: smartcam-status.service: Main process exited, code=exited, status=1/FAILURE
+Jun 16 23:50:19 raspberrypi systemd[1]: smartcam-status.service: Failed with result 'exit-code'.
+Jun 16 23:50:24 raspberrypi systemd[1]: smartcam-status.service: Scheduled restart job, restart counter is at 232.
+Jun 16 23:50:24 raspberrypi systemd[1]: Stopped smartcam-status.service - SmartCam Soccer System Status Service.
+Jun 16 23:50:24 raspberrypi systemd[1]: Started smartcam-status.service - SmartCam Soccer System Status Service.
+Jun 16 23:50:24 raspberrypi python[59870]: Traceback (most recent call last):
+Jun 16 23:50:24 raspberrypi python[59870]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/update_system_status.py", line 2, in <module>
+Jun 16 23:50:24 raspberrypi python[59870]:     import psutil
+Jun 16 23:50:24 raspberrypi python[59870]: ModuleNotFoundError: No module named 'psutil'
+Jun 16 23:50:24 raspberrypi systemd[1]: smartcam-status.service: Main process exited, code=exited, status=1/FAILURE
+Jun 16 23:50:24 raspberrypi systemd[1]: smartcam-status.service: Failed with result 'exit-code'.
+Jun 16 23:50:30 raspberrypi systemd[1]: smartcam-status.service: Scheduled restart job, restart counter is at 233.
+Jun 16 23:50:30 raspberrypi systemd[1]: Stopped smartcam-status.service - SmartCam Soccer System Status Service.
+Jun 16 23:50:30 raspberrypi systemd[1]: Started smartcam-status.service - SmartCam Soccer System Status Service.
+Jun 16 23:50:30 raspberrypi python[59878]: Traceback (most recent call last):
+Jun 16 23:50:30 raspberrypi python[59878]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/update_system_status.py", line 2, in <module>
+Jun 16 23:50:30 raspberrypi python[59878]:     import psutil
+Jun 16 23:50:30 raspberrypi python[59878]: ModuleNotFoundError: No module named 'psutil'
+Jun 16 23:50:30 raspberrypi systemd[1]: smartcam-status.service: Main process exited, code=exited, status=1/FAILURE
+Jun 16 23:50:30 raspberrypi systemd[1]: smartcam-status.service: Failed with result 'exit-code'.
+Jun 16 23:50:35 raspberrypi systemd[1]: smartcam-status.service: Scheduled restart job, restart counter is at 234.
+Jun 16 23:50:35 raspberrypi systemd[1]: Stopped smartcam-status.service - SmartCam Soccer System Status Service.
+Jun 16 23:50:35 raspberrypi systemd[1]: Started smartcam-status.service - SmartCam Soccer System Status Service.
+Jun 16 23:50:35 raspberrypi python[59888]: Traceback (most recent call last):
+Jun 16 23:50:35 raspberrypi python[59888]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/update_system_status.py", line 2, in <module>
+Jun 16 23:50:35 raspberrypi python[59888]:     import psutil
+Jun 16 23:50:35 raspberrypi python[59888]: ModuleNotFoundError: No module named 'psutil'
+Jun 16 23:50:35 raspberrypi systemd[1]: smartcam-status.service: Main process exited, code=exited, status=1/FAILURE
+Jun 16 23:50:35 raspberrypi systemd[1]: smartcam-status.service: Failed with result 'exit-code'.
