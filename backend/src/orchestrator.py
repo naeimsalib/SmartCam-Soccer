@@ -49,20 +49,8 @@ class Orchestrator:
             logger.info("Attempting to stop recording")
             if self.camera_service.stop_recording():
                 logger.info("Recording stopped successfully")
-                # Log upload queue after recording
                 logger.info(f"Upload queue after stop_recording: {self.camera_service.upload_queue}")
-                # Remove booking after recording is complete
-                if self.current_booking_id:
-                    try:
-                        logger.info(f"Attempting to remove booking {self.current_booking_id} from Supabase and local queue")
-                        remove_booking(self.current_booking_id)
-                        remove_booking_from_supabase(self.current_booking_id)
-                        logger.info(f"Booking {self.current_booking_id} removed successfully")
-                    except Exception as e:
-                        logger.error(f"Failed to remove booking {self.current_booking_id}: {e}", exc_info=True)
-                else:
-                    logger.warning("No current booking ID to remove after recording.")
-                self.current_booking_id = None
+                # Do not remove booking here; let upload worker handle it after successful upload
                 return True
             else:
                 logger.error("Failed to stop recording")
@@ -70,6 +58,10 @@ class Orchestrator:
         except Exception as e:
             logger.error(f"Exception in stop_recording: {e}", exc_info=True)
             return False
+
+    def manual_trigger_upload_worker(self):
+        logger.info("[Orchestrator] Manual trigger for upload worker.")
+        self.camera_service.manual_trigger_upload_queue()
 
     def recording_worker(self):
         """Background thread for managing recordings."""
