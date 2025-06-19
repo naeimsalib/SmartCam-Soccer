@@ -5,6 +5,7 @@ import threading
 from datetime import datetime
 from typing import Optional, Tuple
 import subprocess
+import json
 
 import cv2
 from .utils import (
@@ -45,7 +46,9 @@ class CameraService:
         self.upload_worker_running = False
         self.upload_worker_watchdog_thread = None
         self.upload_queue_lock = threading.Lock()
-        self.file_booking_map = {}  # Maps file_path -> booking_id
+        self.upload_queue_file = os.path.join(TEMP_DIR, "upload_queue.json")
+        self.upload_queue = self._load_upload_queue()
+        self.file_booking_map = self._load_file_booking_map()
         self._start_upload_worker()
         self._start_upload_worker_watchdog()
         logger.info("[Upload Worker] Upload worker thread started at service init.")
@@ -213,9 +216,53 @@ class CameraService:
                 logger.debug("[Upload Worker] Watchdog: upload worker is alive.")
             logger.debug(f"[Upload Worker] Watchdog: upload queue state: {self.upload_queue}")
 
+    def _load_upload_queue(self):
+        if os.path.exists(self.upload_queue_file):
+            try:
+                with open(self.upload_queue_file, "r") as f:
+                    queue = json.load(f)
+                logger.info(f"[Upload Worker] Loaded upload queue: {queue}")
+                return queue
+            except Exception as e:
+                logger.error(f"[Upload Worker] Failed to load upload queue: {e}")
+        return []
+
+    def _save_upload_queue(self):
+        try:
+            with open(self.upload_queue_file, "w") as f:
+                json.dump(self.upload_queue, f)
+            logger.info(f"[Upload Worker] Saved upload queue: {self.upload_queue}")
+        except Exception as e:
+            logger.error(f"[Upload Worker] Failed to save upload queue: {e}")
+
+    def _load_file_booking_map(self):
+        map_file = os.path.join(TEMP_DIR, "file_booking_map.json")
+        if os.path.exists(map_file):
+            try:
+                with open(map_file, "r") as f:
+                    mapping = json.load(f)
+                logger.info(f"[Upload Worker] Loaded file-booking map: {mapping}")
+                return mapping
+            except Exception as e:
+                logger.error(f"[Upload Worker] Failed to load file-booking map: {e}")
+        return {}
+
+    def _save_file_booking_map(self):
+        map_file = os.path.join(TEMP_DIR, "file_booking_map.json")
+        try:
+            with open(map_file, "w") as f:
+                json.dump(self.file_booking_map, f)
+            logger.info(f"[Upload Worker] Saved file-booking map: {self.file_booking_map}")
+        except Exception as e:
+            logger.error(f"[Upload Worker] Failed to save file-booking map: {e}")
+
     def add_to_upload_queue(self, file_path, booking_id=None):
         logger.info(f"[Upload Worker] Adding file to upload queue: {file_path} (booking {booking_id})")
         self.upload_queue.append((file_path, booking_id))
+        self._save_upload_queue()
+        if booking_id:
+            self.file_booking_map[file_path] = booking_id
+            self._save_file_booking_map()
         logger.info(f"[Upload Worker] Upload queue state: {self.upload_queue}")
         self._start_upload_worker()
 
@@ -227,6 +274,7 @@ class CameraService:
                     time.sleep(2)
                     continue
                 file_path, booking_id = self.upload_queue.pop(0)
+                self._save_upload_queue()
             logger.info(f"[Upload Worker] Attempting upload for: {file_path} (booking {booking_id})")
             try:
                 if os.path.exists(file_path):
@@ -254,6 +302,7 @@ class CameraService:
                 remove_booking_from_supabase(booking_id)
                 logger.info(f"[Upload Worker] Booking {booking_id} removed from local and Supabase.")
                 self.file_booking_map.pop(file_path, None)
+                self._save_file_booking_map()
             else:
                 logger.warning(f"[Upload Worker] No booking ID found for file: {file_path}")
         except Exception as e:

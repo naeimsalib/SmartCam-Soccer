@@ -65,27 +65,29 @@ class Orchestrator:
 
     def recording_worker(self):
         """Background thread for managing recordings."""
+        last_booking_id = None
         while not self.stop_event.is_set():
             try:
                 booking = load_booking()
+                now = datetime.utcnow()
                 if booking:
                     start_time = datetime.fromisoformat(booking["start_time"])
                     end_time = datetime.fromisoformat(booking["end_time"])
-                    now = datetime.utcnow()
                     logger.debug(f"Booking loaded: {booking}, now: {now}")
                     if start_time <= now <= end_time:
                         if not self.camera_service.is_recording:
-                            logger.info(f"Within booking window, starting recording for {booking['id']}")
+                            logger.info(f"[Orchestrator] Booking window open, starting recording for {booking['id']}")
                             self.start_recording(booking["id"])
+                            last_booking_id = booking["id"]
                     elif now > end_time and self.camera_service.is_recording:
-                        logger.info(f"Booking ended, stopping recording for {booking['id']}")
+                        logger.info(f"[Orchestrator] Booking ended, stopping recording for {booking['id']}")
                         self.stop_recording()
+                        last_booking_id = None
                 elif self.camera_service.is_recording:
-                    logger.info("No booking found but still recording, stopping recording")
+                    logger.info("[Orchestrator] No booking found but still recording, stopping recording")
                     self.stop_recording()
-
-                time.sleep(BOOKING_CHECK_INTERVAL)
-
+                    last_booking_id = None
+                time.sleep(5)
             except Exception as e:
                 logger.error(f"Error in recording worker: {e}", exc_info=True)
                 time.sleep(5)
