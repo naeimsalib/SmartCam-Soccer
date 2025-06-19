@@ -327,7 +327,7 @@ def upload_worker():
             time.sleep(1)
 
 def start_recording():
-    """Start recording with hardware acceleration."""
+    """Start recording with hardware acceleration and robust error handling."""
     try:
         # Use libcamera-vid with hardware encoding
         cmd = [
@@ -341,7 +341,15 @@ def start_recording():
             "--nopreview",
             "-o", "recording.h264"
         ]
-        return subprocess.Popen(cmd)
+        process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        # Wait briefly to see if process fails immediately
+        time.sleep(2)
+        if process.poll() is not None and process.returncode != 0:
+            # Process exited with error, capture stderr
+            _, stderr = process.communicate()
+            log(f"libcamera-vid failed to start. Return code: {process.returncode}. Error: {stderr.decode().strip()}", LogLevel.ERROR)
+            return None
+        return process
     except Exception as e:
         log(f"Failed to start recording: {str(e)}", LogLevel.ERROR)
         return None
