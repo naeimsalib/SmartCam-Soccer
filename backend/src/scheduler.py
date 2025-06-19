@@ -45,4 +45,29 @@ def get_next_booking() -> Optional[Dict[str, Any]]:
         return None
     except Exception as e:
         logger.error(f"Failed to get next booking: {e}")
-        return None 
+        return None
+
+def main():
+    """Main scheduler loop."""
+    logger.info("Scheduler service started")
+    last_booking_id = None
+    
+    while True:
+        try:
+            booking = get_next_booking()
+            
+            if booking and booking["id"] != last_booking_id:
+                logger.info(f"New booking found: {booking}")
+                if save_booking(booking):
+                    last_booking_id = booking["id"]
+                else:
+                    logger.error("Failed to save booking information")
+            
+            time.sleep(BOOKING_CHECK_INTERVAL)
+            
+        except Exception as e:
+            logger.error(f"Error in scheduler loop: {e}")
+            time.sleep(5)  # Wait before retrying
+
+if __name__ == "__main__":
+    main() 

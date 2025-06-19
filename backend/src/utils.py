@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 import logging
-import logging.handlers
 import socket
 import json
 import os
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from supabase import create_client, Client
-from config import (
+
+from .config import (
     SUPABASE_URL,
     SUPABASE_KEY,
     USER_ID,
@@ -223,17 +223,4 @@ def get_storage_used() -> int:
         return total_size
     except Exception as e:
         logger.error(f"Error calculating storage used: {e}")
-        return 0
-
-def remove_booking_from_supabase(booking_id: str) -> bool:
-    """Remove the booking from Supabase database by ID."""
-    try:
-        response = supabase.table("bookings").delete().eq("id", booking_id).execute()
-        if hasattr(response, 'error') and response.error:
-            logger.error(f"Failed to remove booking from Supabase: {response.error}")
-            return False
-        logger.info(f"Booking {booking_id} removed from Supabase.")
-        return True
-    except Exception as e:
-        logger.error(f"Error removing booking from Supabase: {e}")
-        return False 
+        return 0 
