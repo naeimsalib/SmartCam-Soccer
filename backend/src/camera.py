@@ -7,7 +7,7 @@ from typing import Optional, Tuple
 import subprocess
 
 import cv2
-from .utils import (
+from utils import (
     logger,
     supabase,
     queue_upload,
@@ -17,7 +17,7 @@ from .utils import (
     update_system_status,
     get_storage_used
 )
-from .config import (
+from config import (
     CAMERA_ID,
     CAMERA_WIDTH,
     CAMERA_HEIGHT,
