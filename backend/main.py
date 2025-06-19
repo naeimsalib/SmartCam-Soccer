@@ -439,6 +439,8 @@ def main():
     recording_process = None
     last_booking_check = 0
     BOOKING_CHECK_INTERVAL = 300  # 5 minutes
+    status_update_interval = 15  # seconds
+    last_status_update = 0
     
     try:
         while not shutting_down:
@@ -446,38 +448,32 @@ def main():
             if not ret:
                 log("Failed to read frame", LogLevel.ERROR)
                 continue
-                
             # Resize frame for preview
             frame = cv2.resize(frame, (PREVIEW_WIDTH, PREVIEW_HEIGHT))
-            
             # Ball detection (only on preview resolution)
             center, radius = detect_moving_circle(frame, prev_frame)
             prev_frame = frame.copy()
-            
             # Check bookings periodically
             current_time = time.time()
             if current_time - last_booking_check > BOOKING_CHECK_INTERVAL:
                 get_upcoming_bookings()
                 last_booking_check = current_time
-            
-            # Update camera status
-            update_camera_status(camera_on=True, is_recording=recording_process is not None)
-            
+            # Throttle status update
+            if current_time - last_status_update > status_update_interval:
+                update_camera_status(camera_on=True, is_recording=recording_process is not None)
+                last_status_update = current_time
             # Process frame (skip if not needed)
             if center and radius:
                 frame = create_focused_frame(frame, center, radius)
-            
             # Overlay logos (cached)
             settings = get_user_settings()
             for position, logo_path in settings.get("logos", {}).items():
                 frame = overlay_logo(frame, logo_path, position)
-            
             # Show frame (only in debug mode)
             if os.getenv("DEBUG", "false").lower() == "true":
                 cv2.imshow("Preview", frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
-                    
     except Exception as e:
         log(f"Main loop error: {str(e)}", LogLevel.ERROR)
     finally:
