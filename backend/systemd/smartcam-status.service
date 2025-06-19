@@ -9,6 +9,7 @@ User=michomanoly14892
 WorkingDirectory=/home/michomanoly14892/code/SmartCam-Soccer/backend
 Environment=PYTHONUNBUFFERED=1
 EnvironmentFile=/home/michomanoly14892/code/SmartCam-Soccer/backend/.env
+ExecStartPre=/usr/bin/env > /tmp/env_dump.txt
 ExecStart=/home/michomanoly14892/code/SmartCam-Soccer/backend/venv/bin/python update_system_status.py
 Restart=always
 RestartSec=5
