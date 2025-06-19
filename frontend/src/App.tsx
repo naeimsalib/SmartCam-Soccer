@@ -24,6 +24,49 @@ import ContactPage from "./pages/ContactPage";
 import AuthenticatedAboutPage from "./pages/AuthenticatedAboutPage";
 import { Box } from "@mui/material";
 
+// Global error handler for authentication errors
+const setupGlobalAuthErrorHandler = () => {
+  // Handle unhandled promise rejections that might be auth-related
+  window.addEventListener("unhandledrejection", async (event) => {
+    if (
+      event.reason?.message?.includes("Invalid Refresh Token") ||
+      event.reason?.message?.includes("refresh_token") ||
+      event.reason?.message?.includes("AuthApiError")
+    ) {
+      console.warn(
+        "Detected auth error, clearing session:",
+        event.reason.message
+      );
+
+      try {
+        // Clear local storage
+        localStorage.removeItem(
+          `sb-${supabase.supabaseUrl.split("//")[1].split(".")[0]}-auth-token`
+        );
+        localStorage.removeItem("supabase.auth.token");
+        sessionStorage.clear();
+
+        // Sign out locally
+        await supabase.auth.signOut({ scope: "local" });
+
+        // Redirect to login if not already there
+        if (
+          !window.location.pathname.includes("/login") &&
+          !window.location.pathname.includes("/") &&
+          window.location.pathname !== "/"
+        ) {
+          window.location.href = "/login";
+        }
+      } catch (error) {
+        console.error("Error handling auth error:", error);
+      }
+
+      // Prevent the error from being logged to console
+      event.preventDefault();
+    }
+  });
+};
+
 const darkTheme = createTheme({
   palette: {
     mode: "dark",
@@ -65,6 +108,11 @@ const darkTheme = createTheme({
 });
 
 const App: React.FC = () => {
+  // Set up global auth error handler
+  React.useEffect(() => {
+    setupGlobalAuthErrorHandler();
+  }, []);
+
   return (
     <MuiThemeProvider theme={darkTheme}>
       <CssBaseline />

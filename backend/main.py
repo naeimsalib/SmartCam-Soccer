@@ -278,30 +278,78 @@ def create_focused_frame(frame, center, radius, zoom_factor=1.5):
         log(f"Error in create_focused_frame: {str(e)}", LogLevel.ERROR)
         return frame
 
-def get_upcoming_bookings():
+def get_current_active_booking():
+    """Get the currently active booking based on current time."""
     now = datetime.datetime.now()
     today = now.strftime("%Y-%m-%d")
     current_time = now.strftime("%H:%M")
     
     try:
-        # Get today's bookings that haven't ended yet
-        response = supabase.table("bookings").select("*").eq("user_id", USER_ID).eq("date", today).gte("end_time", current_time).order("start_time").execute()
+        # Get today's bookings
+        response = supabase.table("bookings").select("*").eq("user_id", USER_ID).eq("date", today).order("start_time").execute()
         
-        # Get future bookings
-        future_response = supabase.table("bookings").select("*").eq("user_id", USER_ID).gt("date", today).order("date").order("start_time").execute()
-        
-        # Combine and sort all bookings
-        all_bookings = response.data + future_response.data
-        return sorted(all_bookings, key=lambda x: (x['date'], x['start_time']))
+        if not response.data:
+            return None
+            
+        # Find the booking that is currently active
+        for booking in response.data:
+            start_time = datetime.datetime.strptime(f"{booking['date']} {booking['start_time']}", "%Y-%m-%d %H:%M")
+            end_time = datetime.datetime.strptime(f"{booking['date']} {booking['end_time']}", "%Y-%m-%d %H:%M")
+            
+            if start_time <= now <= end_time:
+                log(f"Found active booking: {booking['id']} ({booking['start_time']}-{booking['end_time']})", LogLevel.INFO)
+                return booking
+                
+        return None
     except Exception as e:
-        log(f"Error fetching bookings: {str(e)}", LogLevel.ERROR)
-        return []  # Return empty list on error
+        log(f"Error fetching current booking: {str(e)}", LogLevel.ERROR)
+        return None
+
+def remove_finished_booking(booking_id):
+    """Remove a finished booking from the database."""
+    try:
+        supabase.table("bookings").delete().eq("id", booking_id).execute()
+        log(f"Removed finished booking {booking_id} from database", LogLevel.SUCCESS)
+        return True
+    except Exception as e:
+        log(f"Error removing finished booking {booking_id}: {str(e)}", LogLevel.ERROR)
+        return False
+
+def process_and_upload_video(video_path, booking_id):
+    """Process video and add to upload queue."""
+    try:
+        if not os.path.exists(video_path):
+            log(f"Video file not found: {video_path}", LogLevel.ERROR)
+            return False
+            
+        # Generate filename based on booking info
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"recording_{timestamp}_{booking_id}.mp4"
+        
+        # Add to upload queue with booking_id
+        upload_queue.put((video_path, USER_ID, filename, booking_id))
+        log(f"Added video to upload queue: {filename}", LogLevel.SUCCESS)
+        return True
+        
+    except Exception as e:
+        log(f"Error processing video for upload: {str(e)}", LogLevel.ERROR)
+        return False
 
 def upload_worker():
     """Optimized upload worker with retry logic."""
     while not shutting_down:
         try:
-            local_path, user_id, filename = upload_queue.get(timeout=1)
+            task = upload_queue.get(timeout=1)
+            if task is None or len(task) != 4:
+                continue
+                
+            local_path, user_id, filename, booking_id = task
+            
+            # Check for stop signal
+            if local_path is None and user_id is None:
+                log("Upload worker received stop signal", LogLevel.INFO)
+                break
+                
             if local_path is None:
                 continue
                 
@@ -312,8 +360,9 @@ def upload_worker():
                         storage_path = f"videos/{user_id}/{filename}"
                         supabase.storage.from_("videos").upload(storage_path, f)
                         
-                    insert_video_reference(user_id, filename, storage_path, None)
+                    insert_video_reference(user_id, filename, storage_path, booking_id)
                     cleanup_local_file(local_path)
+                    log(f"Successfully uploaded and processed: {filename}", LogLevel.SUCCESS)
                     break
                 except Exception as e:
                     if attempt == max_retries - 1:
@@ -326,6 +375,8 @@ def upload_worker():
         except Exception as e:
             log(f"Upload worker error: {str(e)}", LogLevel.ERROR)
             time.sleep(1)
+    
+    log("Upload worker shutting down", LogLevel.INFO)
 
 def start_recording():
     """Start recording with hardware acceleration and robust error handling."""
@@ -384,17 +435,23 @@ def get_ip():
 def insert_video_reference(user_id, filename, storage_path, booking_id):
     now = datetime.datetime.now().isoformat()
     try:
-        supabase.table("videos").insert({
+        video_data = {
             "user_id": user_id,
             "filename": filename,
             "storage_path": storage_path,
             "created_at": now
-        }).execute()
-        log(f"Added video reference for {filename}", LogLevel.SUCCESS)
+        }
+        
+        # Add booking_id if provided
+        if booking_id:
+            video_data["booking_id"] = booking_id
+            
+        supabase.table("videos").insert(video_data).execute()
+        log(f"Added video reference for {filename} (booking: {booking_id})", LogLevel.SUCCESS)
         return True
     except Exception as e:
         log(f"Database insert failed: {str(e)}", LogLevel.WARNING)
-        return True
+        return False
 
 def cleanup_local_file(file_path):
     try:
@@ -405,6 +462,16 @@ def cleanup_local_file(file_path):
     except Exception as e:
         log(f"Failed to cleanup local file {file_path}: {str(e)}", LogLevel.ERROR)
     return False
+
+def handle_shutdown(signum, frame):
+    """Handle shutdown signals gracefully."""
+    global shutting_down
+    log("Received shutdown signal, initiating graceful shutdown...", LogLevel.INFO)
+    shutting_down = True
+
+# Register signal handlers
+signal.signal(signal.SIGINT, handle_shutdown)
+signal.signal(signal.SIGTERM, handle_shutdown)
 
 def main():
     """Main function with optimized video processing using CameraInterface."""
@@ -435,11 +502,12 @@ def main():
 
     prev_frame = None
     last_booking_check = 0
-    BOOKING_CHECK_INTERVAL = 60  # check every minute for bookings
-    status_update_interval = 15  # seconds
+    BOOKING_CHECK_INTERVAL = 30  # check every 30 seconds for bookings
+    status_update_interval = 60  # Update status every 60 seconds instead of 15
     last_status_update = 0
-    active_booking = None
+    current_booking = None
     recording = False
+    recording_path = None
 
     try:
         while not shutting_down:
@@ -447,52 +515,102 @@ def main():
             if frame is None:
                 log("Failed to read frame from camera", LogLevel.ERROR)
                 continue
+                
             # Resize frame for preview
             frame = cv2.resize(frame, (PREVIEW_WIDTH, PREVIEW_HEIGHT))
+            
             # Ball detection (only on preview resolution)
             center, radius = detect_moving_circle(frame, prev_frame)
             prev_frame = frame.copy()
+            
             # Check bookings periodically
             current_time = time.time()
-            if current_time - last_booking_check > BOOKING_CHECK_INTERVAL or active_booking is None:
-                active_booking = get_upcoming_bookings()
+            if current_time - last_booking_check > BOOKING_CHECK_INTERVAL:
+                new_booking = get_current_active_booking()
+                
+                # Handle booking changes
+                if new_booking and (not current_booking or new_booking['id'] != current_booking['id']):
+                    # New booking started
+                    if recording and current_booking:
+                        # Stop current recording
+                        log(f"Stopping recording for previous booking: {current_booking['id']}", LogLevel.INFO)
+                        recording_path = camera.stop_recording()
+                        recording = False
+                        
+                        # Process and upload the video
+                        if recording_path:
+                            process_and_upload_video(recording_path, current_booking['id'])
+                        
+                        # Remove the finished booking
+                        remove_finished_booking(current_booking['id'])
+                    
+                    # Start new recording
+                    log(f"Starting recording for new booking: {new_booking['id']}", LogLevel.SUCCESS)
+                    recording_path = camera.start_recording()
+                    recording = True
+                    current_booking = new_booking
+                    # Update heartbeat immediately when recording state changes
+                    send_heartbeat(is_recording=True)
+                    
+                elif not new_booking and recording and current_booking:
+                    # Current booking ended
+                    log(f"Booking {current_booking['id']} ended, stopping recording", LogLevel.INFO)
+                    recording_path = camera.stop_recording()
+                    recording = False
+                    
+                    # Process and upload the video
+                    if recording_path:
+                        process_and_upload_video(recording_path, current_booking['id'])
+                    
+                    # Remove the finished booking
+                    remove_finished_booking(current_booking['id'])
+                    current_booking = None
+                    # Update heartbeat immediately when recording state changes
+                    send_heartbeat(is_recording=False)
+                
                 last_booking_check = current_time
-            # Start/stop recording based on booking
-            if active_booking and not recording:
-                log(f"Starting recording for booking: {active_booking}", LogLevel.SUCCESS)
-                camera.start_recording()
-                recording = True
-                send_heartbeat(is_recording=True)
-            elif not active_booking and recording:
-                log("No active booking, stopping recording.", LogLevel.INFO)
-                camera.stop_recording()
-                recording = False
-                send_heartbeat(is_recording=False)
-            # Throttle status update
+            
+            # Throttle status update - only update every 60 seconds
             if current_time - last_status_update > status_update_interval:
                 update_camera_status(camera_on=True, is_recording=recording)
                 last_status_update = current_time
+                
             # Process frame (skip if not needed)
             if center and radius:
                 frame = create_focused_frame(frame, center, radius)
+            
             # Overlay logos (cached)
             settings = get_user_settings()
             for position, logo_path in settings.get("logos", {}).items():
                 frame = overlay_logo(frame, logo_path, position)
+            
             # Show frame (only in debug mode)
             if os.getenv("DEBUG", "false").lower() == "true":
                 cv2.imshow("Preview", frame)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
+                    
+    except KeyboardInterrupt:
+        log("Received keyboard interrupt", LogLevel.INFO)
     except Exception as e:
         log(f"Main loop error: {str(e)}", LogLevel.ERROR)
     finally:
+        log("Shutting down gracefully...", LogLevel.INFO)
         if recording:
-            camera.stop_recording()
+            log("Stopping recording and processing final video...", LogLevel.INFO)
+            recording_path = camera.stop_recording()
+            if recording_path and current_booking:
+                process_and_upload_video(recording_path, current_booking['id'])
         camera.release()
         cv2.destroyAllWindows()
         update_camera_status(camera_on=False, is_recording=False)
         stop_heartbeat_thread()
+        
+        # Wait for upload queue to finish
+        log("Waiting for upload queue to finish...", LogLevel.INFO)
+        upload_queue.put((None, None, None, None))  # Signal upload worker to stop
+        upload_thread.join(timeout=10)
+        log("Shutdown complete", LogLevel.SUCCESS)
 
 if __name__ == "__main__":
     main()

@@ -35,10 +35,10 @@ const LandingPage = () => {
                             opacity: 0.85,
                             mb: 4,
                             fontFamily: "Montserrat, sans-serif",
-                        }, children: "Powerful and easy-to-use streaming solution" }), _jsx(Stack, { direction: "row", spacing: 3, justifyContent: "center", sx: { mb: 5 }, children: navLinks.map((link) => (_jsx(Button, { onClick: () => navigate(link.to), sx: {
+                        }, children: "Powerful and easy-to-use streaming solution" }), _jsx(Stack, { direction: { xs: "column", sm: "row" }, spacing: { xs: 1, sm: 3 }, justifyContent: "center", alignItems: "center", sx: { mb: 5 }, children: navLinks.map((link) => (_jsx(Button, { onClick: () => navigate(link.to), sx: {
                                 color: "#fff",
                                 fontWeight: 600,
-                                fontSize: "1.1rem",
+                                fontSize: { xs: "1rem", sm: "1.1rem" },
                                 letterSpacing: 1,
                                 borderBottom: "2px solid transparent",
                                 borderRadius: 0,
@@ -52,10 +52,10 @@ const LandingPage = () => {
                                     borderBottom: "2px solid #F44336",
                                     background: "none",
                                 },
-                            }, children: link.label }, link.to))) }), _jsx(Button, { variant: "contained", size: "large", onClick: () => navigate("/contact"), sx: {
-                            px: 6,
-                            py: 2,
-                            fontSize: "1.2rem",
+                            }, children: link.label }, link.to))) }), _jsx(Button, { variant: "contained", size: window.innerWidth < 600 ? "medium" : "large", onClick: () => navigate("/contact"), sx: {
+                            px: { xs: 4, md: 6 },
+                            py: { xs: 1.5, md: 2 },
+                            fontSize: { xs: "1rem", md: "1.2rem" },
                             fontWeight: 700,
                             background: "#F44336",
                             color: "#fff",

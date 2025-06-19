@@ -61,9 +61,10 @@ const LandingPage = () => {
         </Typography>
         {/* Nav Links */}
         <Stack
-          direction="row"
-          spacing={3}
+          direction={{ xs: "column", sm: "row" }}
+          spacing={{ xs: 1, sm: 3 }}
           justifyContent="center"
+          alignItems="center"
           sx={{ mb: 5 }}
         >
           {navLinks.map((link) => (
@@ -73,7 +74,7 @@ const LandingPage = () => {
               sx={{
                 color: "#fff",
                 fontWeight: 600,
-                fontSize: "1.1rem",
+                fontSize: { xs: "1rem", sm: "1.1rem" },
                 letterSpacing: 1,
                 borderBottom: "2px solid transparent",
                 borderRadius: 0,
@@ -95,12 +96,12 @@ const LandingPage = () => {
         </Stack>
         <Button
           variant="contained"
-          size="large"
+          size={window.innerWidth < 600 ? "medium" : "large"}
           onClick={() => navigate("/contact")}
           sx={{
-            px: 6,
-            py: 2,
-            fontSize: "1.2rem",
+            px: { xs: 4, md: 6 },
+            py: { xs: 1.5, md: 2 },
+            fontSize: { xs: "1rem", md: "1.2rem" },
             fontWeight: 700,
             background: "#F44336",
             color: "#fff",

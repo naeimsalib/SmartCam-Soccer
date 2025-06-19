@@ -147,7 +147,10 @@ class CameraInterface:
         try:
             if not self.recording:
                 print("[CameraInterface] Not recording.")
-                return
+                return None
+                
+            recording_path = self.recording_path
+            
             if self.camera_type == 'picamera2':
                 self.picam.stop_recording()
                 self.encoder = None
@@ -156,13 +159,18 @@ class CameraInterface:
                 if self.writer:
                     self.writer.release()
                     self.writer = None
+                    
+            self.recording = False
             self._update_system_status(is_recording=False)
-            print(f"[CameraInterface] Stopped recording: {self.recording_path}")
-            self.recording_path = None
+            print(f"[CameraInterface] Stopped recording: {recording_path}")
+            
+            # Return the path of the recorded file
+            return recording_path
         except Exception as e:
             import traceback
             print(f"[CameraInterface] Exception in stop_recording: {e}")
             traceback.print_exc()
+            return None
 
     def release(self):
         try:

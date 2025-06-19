@@ -119,22 +119,23 @@ def update_system_status(
         supabase.table("cameras").upsert(camera_data).execute()
         logger.info(f"Camera status updated: recording={is_recording}")
         
-        # Update system status
+        # Update system status - use upsert with user_id as the key
         system_data = {
             "user_id": USER_ID,
             "is_recording": is_recording,
             "is_streaming": is_streaming,
-            "storage_used": storage_used or get_storage_used(),  # Ensure we always have a value
+            "storage_used": storage_used or get_storage_used(),
             "last_backup": last_backup,
             "last_seen": now.isoformat(),
+            "last_heartbeat": now.isoformat(),
             "ip_address": get_ip(),
             "memory_usage": mem.percent,
             "cpu_usage": cpu,
             "pi_active": True
         }
         
-        # Update system status
-        supabase.table("system_status").upsert(system_data).execute()
+        # Use upsert to update existing row or create new one based on user_id
+        supabase.table("system_status").upsert(system_data, on_conflict="user_id").execute()
         logger.info(f"System status updated: memory={mem.percent}%, cpu={cpu}%, storage={storage_used}")
         
         return True
@@ -293,21 +294,31 @@ _heartbeat_stop_event = threading.Event()
 
 def send_heartbeat(is_recording=False, is_streaming=False, storage_used=None, last_backup=None):
     """Send a heartbeat update to keep the system marked as active"""
-    data = {
-        "pi_active": True,
-        "last_heartbeat": datetime.utcnow().isoformat(),
-        "is_recording": is_recording,
-        "is_streaming": is_streaming,
-    }
-    if storage_used is not None:
-        data["storage_used"] = storage_used
-    if last_backup is not None:
-        data["last_backup"] = last_backup
     try:
-        supabase.table("system_status").update(data).eq("user_id", USER_ID).execute()
+        now = datetime.utcnow()
+        
+        # Prepare update data
+        data = {
+            "user_id": USER_ID,
+            "pi_active": True,
+            "last_heartbeat": now.isoformat(),
+            "last_seen": now.isoformat(),
+            "is_recording": is_recording,
+            "is_streaming": is_streaming,
+        }
+        
+        if storage_used is not None:
+            data["storage_used"] = storage_used
+        if last_backup is not None:
+            data["last_backup"] = last_backup
+            
+        # Use upsert to avoid creating duplicate rows
+        supabase.table("system_status").upsert(data, on_conflict="user_id").execute()
         print("[Heartbeat] Sent successfully")
+        
     except Exception as e:
         print(f"[Heartbeat] Failed to send: {e}")
+        logger.error(f"Heartbeat failed: {e}", exc_info=True)
 
 def _heartbeat_loop():
     while not _heartbeat_stop_event.is_set():
