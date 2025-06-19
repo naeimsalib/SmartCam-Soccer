@@ -304,7 +304,7 @@ def get_storage_used() -> int:
         logger.error(f"Error calculating storage used: {e}")
         return 0
 
-HEARTBEAT_INTERVAL = 20  # seconds
+HEARTBEAT_INTERVAL = 5  # seconds - reduced from 20 to 5 for faster frontend updates
 
 _heartbeat_thread = None
 _heartbeat_stop_event = threading.Event()

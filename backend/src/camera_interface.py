@@ -105,21 +105,49 @@ class CameraInterface:
                 filename = f"recording_{timestamp}.mp4"
             self.recording_path = os.path.join(self.output_dir, filename)
             print(f"[CameraInterface] Preparing to start recording: {self.recording_path}")
+            
+            # Ensure output directory exists
+            os.makedirs(self.output_dir, exist_ok=True)
+            
             if self.camera_type == 'picamera2':
-                self.encoder = H264Encoder()
-                self.picam.start_recording(self.encoder, self.recording_path)
+                # Use H264 encoder with proper MP4 container
+                self.encoder = H264Encoder(bitrate=10000000)  # 10Mbps for good quality
+                
+                # For Pi Camera, record as H264 first, then convert to MP4
+                h264_path = self.recording_path.replace('.mp4', '.h264')
+                self.h264_path = h264_path  # Store for conversion later
+                
+                # Configure for recording with higher resolution
+                video_config = self.picam.create_video_configuration(
+                    main={"size": (1920, 1080), "format": "YUV420"},  # Higher quality
+                    controls={"FrameRate": 30}
+                )
+                self.picam.configure(video_config)
+                
+                self.picam.start_recording(self.encoder, h264_path)
                 self.recording = True
                 self._update_system_status(is_recording=True)
+                
             elif self.camera_type == 'opencv':
-                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                # Use H264 codec with MP4 container for better compatibility
+                fourcc = cv2.VideoWriter_fourcc(*'H264')
                 self.writer = cv2.VideoWriter(
                     self.recording_path, fourcc, self.fps, (self.width, self.height)
                 )
+                
+                if not self.writer.isOpened():
+                    # Fallback to XVID if H264 not available
+                    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+                    self.writer = cv2.VideoWriter(
+                        self.recording_path, fourcc, self.fps, (self.width, self.height)
+                    )
+                
                 self.recording = True
                 self._recording_thread = threading.Thread(target=self._opencv_record_loop)
                 self._recording_thread.daemon = True
                 self._recording_thread.start()
                 self._update_system_status(is_recording=True)
+                
             print(f"[CameraInterface] Started recording: {self.recording_path}")
             return self.recording_path
         except Exception as e:
@@ -154,6 +182,43 @@ class CameraInterface:
             if self.camera_type == 'picamera2':
                 self.picam.stop_recording()
                 self.encoder = None
+                
+                # Convert H264 to MP4 using ffmpeg for better compatibility
+                if hasattr(self, 'h264_path') and os.path.exists(self.h264_path):
+                    try:
+                        import subprocess
+                        print(f"[CameraInterface] Converting H264 to MP4: {self.h264_path} -> {recording_path}")
+                        
+                        # Use ffmpeg to convert H264 to MP4
+                        cmd = [
+                            'ffmpeg', '-y',  # -y to overwrite output file
+                            '-i', self.h264_path,  # input H264 file
+                            '-c', 'copy',  # copy codec (no re-encoding)
+                            '-movflags', '+faststart',  # optimize for web streaming
+                            recording_path  # output MP4 file
+                        ]
+                        
+                        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+                        
+                        if result.returncode == 0:
+                            print(f"[CameraInterface] Successfully converted to MP4: {recording_path}")
+                            # Remove the temporary H264 file
+                            os.remove(self.h264_path)
+                        else:
+                            print(f"[CameraInterface] FFmpeg conversion failed: {result.stderr}")
+                            # If conversion fails, rename H264 to MP4 as fallback
+                            os.rename(self.h264_path, recording_path)
+                            print(f"[CameraInterface] Renamed H264 to MP4 as fallback: {recording_path}")
+                            
+                    except subprocess.TimeoutExpired:
+                        print("[CameraInterface] FFmpeg conversion timed out, using H264 file")
+                        os.rename(self.h264_path, recording_path)
+                    except Exception as conv_error:
+                        print(f"[CameraInterface] Conversion error: {conv_error}")
+                        # Fallback: rename H264 to MP4
+                        if os.path.exists(self.h264_path):
+                            os.rename(self.h264_path, recording_path)
+                            
             elif self.camera_type == 'opencv':
                 self.recording = False
                 if self.writer:
@@ -163,6 +228,16 @@ class CameraInterface:
             self.recording = False
             self._update_system_status(is_recording=False)
             print(f"[CameraInterface] Stopped recording: {recording_path}")
+            
+            # Verify the file exists and has content
+            if os.path.exists(recording_path):
+                file_size = os.path.getsize(recording_path)
+                print(f"[CameraInterface] Recording file size: {file_size} bytes")
+                if file_size < 1000:  # Less than 1KB is likely empty
+                    print("[CameraInterface] Warning: Recording file is very small, may be corrupted")
+            else:
+                print(f"[CameraInterface] Warning: Recording file not found: {recording_path}")
+                return None
             
             # Return the path of the recorded file
             return recording_path

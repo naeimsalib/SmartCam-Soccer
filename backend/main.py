@@ -407,20 +407,37 @@ def start_recording():
         return None
 
 def update_camera_status(camera_on, is_recording):
-    data = {
-        "id": os.getenv("CAMERA_ID"),
-        "user_id": USER_ID,
-        "name": os.getenv("CAMERA_NAME", "Camera"),
-        "location": os.getenv("CAMERA_LOCATION", ""),
-        "camera_on": camera_on,
-        "is_recording": is_recording,
-        "last_seen": datetime.datetime.utcnow().isoformat(),
-        "ip_address": get_ip(),
-        "pi_active": True,  # Set the new variable to True when script is running
-    }
-    # Commented out to reduce terminal output
-    # print(f"[{datetime.datetime.utcnow().isoformat()}] Upserting camera data: {data}")
-    supabase.table("cameras").upsert(data).execute()
+    try:
+        # Calculate storage usage
+        storage_used = 0
+        try:
+            if os.path.exists("temp"):
+                for filename in os.listdir("temp"):
+                    filepath = os.path.join("temp", filename)
+                    if os.path.isfile(filepath):
+                        storage_used += os.path.getsize(filepath)
+        except Exception as e:
+            log(f"Error calculating storage: {e}", LogLevel.WARNING)
+        
+        data = {
+            "id": os.getenv("CAMERA_ID"),
+            "user_id": USER_ID,
+            "name": os.getenv("CAMERA_NAME", "Camera"),
+            "location": os.getenv("CAMERA_LOCATION", ""),
+            "camera_on": camera_on,
+            "is_recording": is_recording,
+            "last_seen": datetime.datetime.utcnow().isoformat(),
+            "ip_address": get_ip(),
+            "pi_active": True,  # Set the new variable to True when script is running
+            "storage_used": storage_used,  # Add storage information
+        }
+        
+        # Use upsert to ensure the record is updated or created
+        result = supabase.table("cameras").upsert(data).execute()
+        log(f"Camera status updated: recording={is_recording}", LogLevel.INFO)
+        
+    except Exception as e:
+        log(f"Failed to update camera status: {str(e)}", LogLevel.ERROR)
 
 def get_ip():
     try:
@@ -501,8 +518,8 @@ def main():
 
     prev_frame = None
     last_booking_check = 0
-    BOOKING_CHECK_INTERVAL = 30  # check every 30 seconds for bookings
-    status_update_interval = 60  # Update status every 60 seconds instead of 15
+    BOOKING_CHECK_INTERVAL = 5  # check every 5 seconds for bookings - reduced from 30
+    status_update_interval = 5  # Update status every 5 seconds - reduced from 60
     last_status_update = 0
     current_booking = None
     recording = False
@@ -569,7 +586,7 @@ def main():
                 
                 last_booking_check = current_time
             
-            # Throttle status update - only update every 60 seconds
+            # Throttle status update - only update every 5 seconds
             if current_time - last_status_update > status_update_interval:
                 update_camera_status(camera_on=True, is_recording=recording)
                 last_status_update = current_time
