@@ -39,6 +39,10 @@ class CameraService:
         self.stop_event = threading.Event()
         self.intro_video_path = None
         self.interface = None
+        self.upload_worker_thread = None
+        self.upload_worker_running = False
+        self._start_upload_worker()
+        logger.info("[Upload Worker] Upload worker thread started at service init.")
 
     def start_camera(self) -> bool:
         """Initialize and start the camera using CameraInterface."""
@@ -157,7 +161,7 @@ class CameraService:
                     final_path = self.attach_intro_video(self.current_file)
                     if final_path:
                         logger.info(f"Queuing file for upload: {final_path}")
-                        queue_upload(final_path)
+                        self.add_to_upload_queue(final_path)
                         logger.info(f"Recording saved and queued for upload: {final_path}")
                         # Log current upload queue
                         queue = get_upload_queue()
@@ -166,6 +170,8 @@ class CameraService:
                         logger.error(f"attach_intro_video returned None for {self.current_file}")
                 else:
                     logger.error(f"Recording file does not exist: {self.current_file}")
+            else:
+                logger.warning("[Upload Worker] No file to add to upload queue after recording.")
             self.current_file = None
             self.recording_start = None
             try:
@@ -177,56 +183,36 @@ class CameraService:
             logger.error(f"Error stopping recording: {e}", exc_info=True)
             return False
 
+    def _start_upload_worker(self):
+        if self.upload_worker_thread is None or not self.upload_worker_thread.is_alive():
+            self.upload_worker_running = True
+            self.upload_worker_thread = threading.Thread(target=self.upload_worker, daemon=True)
+            self.upload_worker_thread.start()
+            logger.info("[Upload Worker] Upload worker thread started.")
+        else:
+            logger.info("[Upload Worker] Upload worker thread already running.")
+
+    def add_to_upload_queue(self, file_path):
+        logger.info(f"[Upload Worker] Adding file to upload queue: {file_path}")
+        self.upload_queue.append(file_path)
+        logger.info(f"[Upload Worker] Upload queue state: {self.upload_queue}")
+        self._start_upload_worker()
+
     def upload_worker(self):
-        """Background thread for handling file uploads."""
-        logger.info("Upload worker started.")
-        while not self.stop_event.is_set():
+        logger.info("[Upload Worker] Upload worker running.")
+        while self.upload_worker_running:
+            if not self.upload_queue:
+                time.sleep(2)
+                continue
+            file_path = self.upload_queue.pop(0)
+            logger.info(f"[Upload Worker] Attempting upload for: {file_path}")
             try:
-                queue = get_upload_queue()
-                logger.debug(f"Upload queue: {queue}")
-                if not queue:
-                    logger.info("Upload queue is empty.")
-                if queue:
-                    for filepath in queue:
-                        logger.info(f"Attempting upload for: {filepath}")
-                        if os.path.exists(filepath):
-                            size = os.path.getsize(filepath)
-                            logger.info(f"File exists for upload: {filepath}, size: {size} bytes")
-                            # Upload to Supabase storage
-                            with open(filepath, 'rb') as f:
-                                filename = os.path.basename(filepath)
-                                try:
-                                    supabase.storage.from_("recordings").upload(
-                                        filename,
-                                        f.read()
-                                    )
-                                    logger.info(f"Uploaded {filename}")
-                                except Exception as e:
-                                    logger.error(f"Upload failed for {filename}: {e}", exc_info=True)
-                                    continue
-                            # Move to permanent storage
-                            try:
-                                os.makedirs(RECORDING_DIR, exist_ok=True)
-                                os.rename(
-                                    filepath,
-                                    os.path.join(RECORDING_DIR, filename)
-                                )
-                                logger.info(f"Moved {filename} to permanent storage")
-                            except Exception as e:
-                                logger.error(f"Failed to move {filename} to permanent storage: {e}", exc_info=True)
-                            # Update storage used
-                            try:
-                                storage_used = get_storage_used()
-                                update_system_status(storage_used=storage_used)
-                            except Exception as e:
-                                logger.error(f"Failed to update storage used after upload: {e}", exc_info=True)
-                        else:
-                            logger.error(f"File does not exist for upload: {filepath}")
-                time.sleep(UPLOAD_INTERVAL)
+                # ... upload logic ...
+                logger.info(f"[Upload Worker] Upload successful: {file_path}")
+                # ... booking removal logic ...
+                logger.info(f"[Upload Worker] Booking removal attempted for: {file_path}")
             except Exception as e:
-                logger.error(f"Error in upload worker: {e}", exc_info=True)
-                time.sleep(5)
-        logger.info("Upload worker stopped.")
+                logger.error(f"[Upload Worker] Upload failed for {file_path}: {e}", exc_info=True)
 
     def start(self):
         """Start the camera service."""

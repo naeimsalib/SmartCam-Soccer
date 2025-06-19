@@ -50,34 +50,25 @@ class Orchestrator:
             if self.camera_service.stop_recording():
                 logger.info("Recording stopped successfully")
                 # Log upload queue after recording
-                queue = get_upload_queue()
-                logger.info(f"Upload queue after stop_recording: {queue}")
+                logger.info(f"Upload queue after stop_recording: {self.camera_service.upload_queue}")
                 # Remove booking after recording is complete
                 if self.current_booking_id:
                     try:
-                        logger.info(f"Attempting to remove booking {self.current_booking_id} from local and Supabase DB.")
-                        remove_booking()
-                        logger.info(f"Booking {self.current_booking_id} removed from local file.")
+                        logger.info(f"Attempting to remove booking {self.current_booking_id} from Supabase and local queue")
+                        remove_booking(self.current_booking_id)
                         remove_booking_from_supabase(self.current_booking_id)
-                        logger.info(f"Booking {self.current_booking_id} removed from Supabase DB.")
+                        logger.info(f"Booking {self.current_booking_id} removed successfully")
                     except Exception as e:
                         logger.error(f"Failed to remove booking {self.current_booking_id}: {e}", exc_info=True)
-                    self.current_booking_id = None
-                return True
-            return False
-        except Exception as e:
-            logger.error(f"Error stopping recording: {e}", exc_info=True)
-            # Try to remove booking anyway
-            if self.current_booking_id:
-                try:
-                    logger.info(f"Attempting to remove booking {self.current_booking_id} from local and Supabase DB (after error).")
-                    remove_booking()
-                    logger.info(f"Booking {self.current_booking_id} removed from local file (after error).")
-                    remove_booking_from_supabase(self.current_booking_id)
-                    logger.info(f"Booking {self.current_booking_id} removed from Supabase DB (after error).")
-                except Exception as e2:
-                    logger.error(f"Failed to remove booking {self.current_booking_id} after error: {e2}", exc_info=True)
+                else:
+                    logger.warning("No current booking ID to remove after recording.")
                 self.current_booking_id = None
+                return True
+            else:
+                logger.error("Failed to stop recording")
+                return False
+        except Exception as e:
+            logger.error(f"Exception in stop_recording: {e}", exc_info=True)
             return False
 
     def recording_worker(self):
