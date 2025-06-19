@@ -364,6 +364,7 @@ def update_camera_status(camera_on, is_recording):
         "is_recording": is_recording,
         "last_seen": datetime.datetime.utcnow().isoformat(),
         "ip_address": get_ip(),
+        "pi_active": True,  # Set the new variable to True when script is running
     }
     # Commented out to reduce terminal output
     # print(f"[{datetime.datetime.utcnow().isoformat()}] Upserting camera data: {data}")
@@ -421,6 +422,8 @@ def main():
             output_dir="temp"
         )
         log(f"Camera initialized and opened with CameraInterface ({camera.camera_type})", LogLevel.SUCCESS)
+        # Set pi_active to True at startup
+        update_camera_status(camera_on=True, is_recording=False)
     except Exception as e:
         log(f"Failed to initialize CameraInterface: {e}", LogLevel.ERROR)
         return
