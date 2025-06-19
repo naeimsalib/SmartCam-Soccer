@@ -25,6 +25,7 @@ from logging.handlers import RotatingFileHandler
 from src.config import (
     CAMERA_DEVICE, PREVIEW_WIDTH, PREVIEW_HEIGHT, RECORD_WIDTH, RECORD_HEIGHT, PREVIEW_FPS, RECORD_FPS, HARDWARE_ENCODER, auto_detect_camera
 )
+from picamera2 import Picamera2
 
 # Configure logging
 logging.basicConfig(
@@ -403,40 +404,22 @@ def main():
     upload_thread = threading.Thread(target=upload_worker, daemon=True)
     upload_thread.start()
     
-    # Camera initialization
-    device_to_try = CAMERA_DEVICE
-    cap = None
-    if device_to_try:
-        log(f"Trying to open camera device from .env: {device_to_try}")
-        cap = cv2.VideoCapture(device_to_try)
-        cap.set(cv2.CAP_PROP_FRAME_WIDTH, PREVIEW_WIDTH)
-        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, PREVIEW_HEIGHT)
-        cap.set(cv2.CAP_PROP_FPS, PREVIEW_FPS)
-        cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-        if not cap.isOpened():
-            log(f"Failed to open camera device {device_to_try}. Check if another process is using it, permissions, or if the device exists.", LogLevel.ERROR)
-            log(f"Current user: {os.getlogin()}, groups: {os.getgroups()}", LogLevel.ERROR)
-            log(f"Listing /dev/video* devices:", LogLevel.ERROR)
-            os.system('ls -l /dev/video*')
-            cap.release()
-            cap = None
-    if cap is None:
-        detected = auto_detect_camera()
-        if detected:
-            log(f"Auto-detected working camera device: {detected}", LogLevel.SUCCESS)
-            cap = cv2.VideoCapture(detected)
-            cap.set(cv2.CAP_PROP_FRAME_WIDTH, PREVIEW_WIDTH)
-            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, PREVIEW_HEIGHT)
-            cap.set(cv2.CAP_PROP_FPS, PREVIEW_FPS)
-            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-        else:
-            log("No working camera device found!", LogLevel.ERROR)
-            return
-    
-    if not cap.isOpened():
-        log("Failed to open camera after auto-detection", LogLevel.ERROR)
+    # Camera initialization with Picamera2
+    try:
+        picam = Picamera2()
+        video_config = picam.create_video_configuration(
+            main={
+                "size": (PREVIEW_WIDTH, PREVIEW_HEIGHT),
+                "format": "RGB888"
+            },
+            controls={"FrameRate": PREVIEW_FPS}
+        )
+        picam.configure(video_config)
+        picam.start()
+        log("Camera initialized and opened with Picamera2", LogLevel.SUCCESS)
+    except Exception as e:
+        log(f"Failed to initialize Picamera2: {e}", LogLevel.ERROR)
         return
-    log(f"Camera initialized and opened: {device_to_try if device_to_try else detected}", LogLevel.SUCCESS)
     
     prev_frame = None
     recording_process = None
@@ -448,12 +431,15 @@ def main():
     
     try:
         while not shutting_down:
-            ret, frame = cap.read()
-            if not ret:
-                log("Failed to read frame", LogLevel.ERROR)
+            frame = picam.capture_array()
+            if frame is None:
+                log("Failed to read frame from Picamera2", LogLevel.ERROR)
                 continue
+            # Convert RGB to BGR for OpenCV compatibility
+            frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
             # Resize frame for preview
-            frame = cv2.resize(frame, (PREVIEW_WIDTH, PREVIEW_HEIGHT))
+            frame_bgr = cv2.resize(frame_bgr, (PREVIEW_WIDTH, PREVIEW_HEIGHT))
+            frame = frame_bgr
             # Ball detection (only on preview resolution)
             center, radius = detect_moving_circle(frame, prev_frame)
             prev_frame = frame.copy()
@@ -504,7 +490,7 @@ def main():
     finally:
         if recording_process:
             recording_process.terminate()
-        cap.release()
+        picam.stop()
         cv2.destroyAllWindows()
         update_camera_status(camera_on=False, is_recording=False)
 
