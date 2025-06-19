@@ -4,9 +4,9 @@ After=network.target
 
 [Service]
 Type=simple
-User=naeim
-WorkingDirectory=/home/naeim/Desktop/code/SmartCam-Soccer
-ExecStart=/usr/bin/python3 /home/naeim/Desktop/code/SmartCam-Soccer/backend/src/orchestrator.py
+User=michomanoly14892
+WorkingDirectory=/home/michomanoly14892/code/SmartCam-Soccer
+ExecStart=/home/michomanoly14892/code/SmartCam-Soccer/backend/venv/bin/python /home/michomanoly14892/code/SmartCam-Soccer/backend/src/orchestrator.py
 Restart=always
 RestartSec=5
 
