@@ -419,27 +419,43 @@ def update_camera_status(camera_on, is_recording):
         except Exception as e:
             log(f"Error calculating storage: {e}", LogLevel.WARNING)
         
-        data = {
-            "id": os.getenv("CAMERA_ID"),
+        # Get system info
+        import psutil
+        mem = psutil.virtual_memory()
+        cpu_percent = psutil.cpu_percent(interval=0.5)
+        
+        # Update system_status table with correct column names
+        system_data = {
             "user_id": USER_ID,
-            "name": os.getenv("CAMERA_NAME", "Camera"),
-            "location": os.getenv("CAMERA_LOCATION", ""),
-            "camera_on": camera_on,
             "is_recording": is_recording,
-            "last_seen": datetime.datetime.utcnow().isoformat(),
-            "ip_address": get_ip(),
-            "pi_active": True,  # Set the new variable to True when script is running
-            "storage_used": storage_used,  # Add storage information
+            "is_streaming": False,  # Not streaming for now
+            "storage_used": storage_used,
+            "cpu_usage": cpu_percent,
+            "memory_usage": mem.percent,
+            "storage_usage": (mem.total - mem.available) / mem.total * 100,
+            "pi_active": camera_on,
+            "ip_address": get_ip_address(),
+            "last_seen": datetime.datetime.now().isoformat(),
+            "updated_at": datetime.datetime.now().isoformat()
         }
         
-        # Use upsert to ensure the record is updated or created
-        result = supabase.table("cameras").upsert(data).execute()
-        log(f"Camera status updated: recording={is_recording}", LogLevel.INFO)
+        # Try to update existing record first
+        response = supabase.table("system_status").update(system_data).eq("user_id", USER_ID).execute()
+        
+        if not response.data:
+            # If no existing record, insert new one
+            system_data["created_at"] = datetime.datetime.now().isoformat()
+            response = supabase.table("system_status").insert(system_data).execute()
+        
+        log(f"System status updated successfully", LogLevel.INFO)
+        return True
         
     except Exception as e:
-        log(f"Failed to update camera status: {str(e)}", LogLevel.ERROR)
+        log(f"Failed to update system status: {str(e)}", LogLevel.ERROR)
+        return False
 
-def get_ip():
+def get_ip_address():
+    """Get the local IP address."""
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
@@ -447,7 +463,7 @@ def get_ip():
         s.close()
         return ip
     except Exception:
-        return None
+        return "127.0.0.1"
 
 def insert_video_reference(user_id, filename, storage_path, booking_id):
     now = datetime.datetime.now().isoformat()
