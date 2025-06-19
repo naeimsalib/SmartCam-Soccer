@@ -21,6 +21,7 @@ USER_ID = os.getenv("USER_ID")
 CAMERA_ID = os.getenv("CAMERA_ID")
 CAMERA_NAME = os.getenv("CAMERA_NAME", "Camera")
 CAMERA_LOCATION = os.getenv("CAMERA_LOCATION", "")
+CAMERA_DEVICE = os.getenv("CAMERA_DEVICE", "/dev/video0")
 
 # Camera settings
 CAMERA_INDEX = 0
