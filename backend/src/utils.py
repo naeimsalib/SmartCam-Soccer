@@ -6,8 +6,7 @@ import os
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from supabase import create_client, Client
-
-from .config import (
+from config import (
     SUPABASE_URL,
     SUPABASE_KEY,
     USER_ID,
