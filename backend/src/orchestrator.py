@@ -71,20 +71,29 @@ class Orchestrator:
                 booking = load_booking()
                 now = datetime.utcnow()
                 if booking:
-                    start_time = datetime.fromisoformat(booking["start_time"])
-                    end_time = datetime.fromisoformat(booking["end_time"])
-                    logger.debug(f"Booking loaded: {booking}, now: {now}")
-                    if start_time <= now <= end_time:
+                    # Parse the time correctly
+                    today = now.date()
+                    booking_date = datetime.strptime(booking["date"], "%Y-%m-%d").date()
+                    start_time = datetime.strptime(booking["start_time"], "%H:%M").time()
+                    end_time = datetime.strptime(booking["end_time"], "%H:%M").time()
+                    
+                    # Combine date and time
+                    start_datetime = datetime.combine(booking_date, start_time)
+                    end_datetime = datetime.combine(booking_date, end_time)
+                    
+                    logger.info(f"Current time: {now}, Start: {start_datetime}, End: {end_datetime}")
+                    
+                    if start_datetime <= now <= end_datetime:
                         if not self.camera_service.is_recording:
-                            logger.info(f"[Orchestrator] Booking window open, starting recording for {booking['id']}")
+                            logger.info(f"Starting recording for booking {booking['id']}")
                             self.start_recording(booking["id"])
                             last_booking_id = booking["id"]
-                    elif now > end_time and self.camera_service.is_recording:
-                        logger.info(f"[Orchestrator] Booking ended, stopping recording for {booking['id']}")
+                    elif now > end_datetime and self.camera_service.is_recording:
+                        logger.info(f"Stopping recording for booking {booking['id']} as end time reached")
                         self.stop_recording()
                         last_booking_id = None
                 elif self.camera_service.is_recording:
-                    logger.info("[Orchestrator] No booking found but still recording, stopping recording")
+                    logger.info("No booking found but still recording, stopping recording")
                     self.stop_recording()
                     last_booking_id = None
                 time.sleep(5)

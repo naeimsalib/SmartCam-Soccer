@@ -160,9 +160,11 @@ class CameraService:
             logger.warning("stop_recording called but not recording")
             return False
         try:
+            logger.info("Beginning recording stop process")
             self.is_recording = False
             self.interface.stop_recording()
             logger.info("[Recording Sign] Would turn OFF recording indicator here.")
+            
             if self.current_file:
                 logger.info(f"Checking file after stop_recording: {self.current_file}")
                 if os.path.exists(self.current_file):
@@ -182,12 +184,16 @@ class CameraService:
                     logger.error(f"Recording file does not exist: {self.current_file}")
             else:
                 logger.warning("[Upload Worker] No file to add to upload queue after recording.")
+                
             self.current_file = None
             self.recording_start = None
+            
             try:
                 update_system_status(is_recording=False)
+                logger.info("System status updated to not recording")
             except Exception as e:
                 logger.error(f"Error updating system status after stop_recording: {e}", exc_info=True)
+                
             return True
         except Exception as e:
             logger.error(f"Error stopping recording: {e}", exc_info=True)
