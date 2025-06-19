@@ -1,6 +1,8 @@
 import os
 from dotenv import load_dotenv
 from pathlib import Path
+import glob
+import cv2
 
 # Load environment variables
 load_dotenv()
@@ -43,4 +45,19 @@ BOOKING_CHECK_INTERVAL = 60  # seconds
 
 # File paths
 NEXT_BOOKING_FILE = TEMP_DIR / "next_booking.json"
-UPLOAD_QUEUE_FILE = TEMP_DIR / "to_upload.txt" 
+UPLOAD_QUEUE_FILE = TEMP_DIR / "to_upload.txt"
+
+def auto_detect_camera():
+    """Auto-detect the first working camera device."""
+    video_devices = sorted(glob.glob('/dev/video*'))
+    for device in video_devices:
+        try:
+            cap = cv2.VideoCapture(device)
+            if cap.isOpened():
+                ret, frame = cap.read()
+                cap.release()
+                if ret:
+                    return device
+        except Exception:
+            continue
+    return None 
