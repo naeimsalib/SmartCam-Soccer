@@ -31,7 +31,7 @@ class Orchestrator:
                 logger.error(f"Invalid booking ID: {booking_id}")
                 return False
 
-            if not self.camera_service.start_recording():
+            if not self.camera_service.start_recording(booking_id=booking_id):
                 logger.error("Failed to start recording")
                 return False
 

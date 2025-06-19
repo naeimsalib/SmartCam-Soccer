@@ -45,6 +45,7 @@ class CameraService:
         self.upload_worker_running = False
         self.upload_worker_watchdog_thread = None
         self.upload_queue_lock = threading.Lock()
+        self.file_booking_map = {}  # Maps file_path -> booking_id
         self._start_upload_worker()
         self._start_upload_worker_watchdog()
         logger.info("[Upload Worker] Upload worker thread started at service init.")
@@ -127,17 +128,19 @@ class CameraService:
             logger.error(f"Error attaching intro video: {e}")
             return recording_path
 
-    def start_recording(self) -> bool:
+    def start_recording(self, booking_id=None) -> bool:
         """Start recording video using CameraInterface."""
         if self.is_recording:
             logger.warning("Already recording")
             return False
         try:
-            # Placeholder for recording sign/LED ON
             logger.info("[Recording Sign] Would turn ON recording indicator here.")
             self.current_file = self.interface.start_recording()
             self.is_recording = True
             self.recording_start = time.time()
+            if booking_id:
+                self.file_booking_map[self.current_file] = booking_id
+                logger.info(f"[Booking Map] Associated {self.current_file} with booking {booking_id}")
             try:
                 update_system_status(is_recording=True)
             except Exception as e:
@@ -156,7 +159,6 @@ class CameraService:
         try:
             self.is_recording = False
             self.interface.stop_recording()
-            # Placeholder for recording sign/LED OFF
             logger.info("[Recording Sign] Would turn OFF recording indicator here.")
             if self.current_file:
                 logger.info(f"Checking file after stop_recording: {self.current_file}")
@@ -166,9 +168,9 @@ class CameraService:
                     final_path = self.attach_intro_video(self.current_file)
                     if final_path:
                         logger.info(f"Queuing file for upload: {final_path}")
-                        self.add_to_upload_queue(final_path)
-                        logger.info(f"Recording saved and queued for upload: {final_path}")
-                        # Log current upload queue
+                        booking_id = self.file_booking_map.get(self.current_file)
+                        self.add_to_upload_queue(final_path, booking_id)
+                        logger.info(f"Recording saved and queued for upload: {final_path} (booking {booking_id})")
                         queue = get_upload_queue()
                         logger.info(f"Upload queue after recording: {queue}")
                     else:
@@ -211,9 +213,9 @@ class CameraService:
                 logger.debug("[Upload Worker] Watchdog: upload worker is alive.")
             logger.debug(f"[Upload Worker] Watchdog: upload queue state: {self.upload_queue}")
 
-    def add_to_upload_queue(self, file_path):
-        logger.info(f"[Upload Worker] Adding file to upload queue: {file_path}")
-        self.upload_queue.append(file_path)
+    def add_to_upload_queue(self, file_path, booking_id=None):
+        logger.info(f"[Upload Worker] Adding file to upload queue: {file_path} (booking {booking_id})")
+        self.upload_queue.append((file_path, booking_id))
         logger.info(f"[Upload Worker] Upload queue state: {self.upload_queue}")
         self._start_upload_worker()
 
@@ -224,8 +226,8 @@ class CameraService:
                 if not self.upload_queue:
                     time.sleep(2)
                     continue
-                file_path = self.upload_queue.pop(0)
-            logger.info(f"[Upload Worker] Attempting upload for: {file_path}")
+                file_path, booking_id = self.upload_queue.pop(0)
+            logger.info(f"[Upload Worker] Attempting upload for: {file_path} (booking {booking_id})")
             try:
                 if os.path.exists(file_path):
                     filename = os.path.basename(file_path)
@@ -233,22 +235,27 @@ class CameraService:
                         try:
                             supabase.storage.from_("recordings").upload(filename, f)
                             logger.info(f"[Upload Worker] Upload successful: {file_path}")
-                            # Remove booking after successful upload
-                            self.remove_booking_for_file(file_path)
+                            self.remove_booking_for_file(file_path, booking_id)
                         except Exception as e:
                             logger.error(f"[Upload Worker] Upload failed for {file_path}: {e}", exc_info=True)
-                            # Optionally requeue or handle failed upload
                 else:
                     logger.error(f"[Upload Worker] File does not exist: {file_path}")
             except Exception as e:
                 logger.error(f"[Upload Worker] Exception in upload_worker: {e}", exc_info=True)
             time.sleep(1)
 
-    def remove_booking_for_file(self, file_path):
+    def remove_booking_for_file(self, file_path, booking_id=None):
         try:
-            # Implement logic to map file_path to booking and remove from Supabase/local
-            logger.info(f"[Upload Worker] Removing booking for file: {file_path}")
-            # ... booking removal logic ...
+            if not booking_id:
+                booking_id = self.file_booking_map.get(file_path)
+            if booking_id:
+                logger.info(f"[Upload Worker] Removing booking {booking_id} for file: {file_path}")
+                remove_booking(booking_id)
+                remove_booking_from_supabase(booking_id)
+                logger.info(f"[Upload Worker] Booking {booking_id} removed from local and Supabase.")
+                self.file_booking_map.pop(file_path, None)
+            else:
+                logger.warning(f"[Upload Worker] No booking ID found for file: {file_path}")
         except Exception as e:
             logger.error(f"[Upload Worker] Failed to remove booking for {file_path}: {e}", exc_info=True)
 
