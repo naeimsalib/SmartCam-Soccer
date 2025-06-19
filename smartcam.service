@@ -6,7 +6,7 @@ After=network.target
 Type=simple
 User=michomanoly14892
 WorkingDirectory=/home/michomanoly14892/code/SmartCam-Soccer
-ExecStart=/home/michomanoly14892/code/SmartCam-Soccer/venv/bin/python /home/michomanoly14892/code/SmartCam-Soccer/backend/src/orchestrator.py
+ExecStart=/home/michomanoly14892/code/SmartCam-Soccer/backend/venv/bin/python /home/michomanoly14892/code/SmartCam-Soccer/backend/src/orchestrator.py
 Restart=always
 RestartSec=5
 
