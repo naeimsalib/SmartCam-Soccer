@@ -1,0 +1,14 @@
+[Unit]
+Description=SmartCam Soccer Backend Service
+After=network.target
+
+[Service]
+Type=simple
+User=naeim
+WorkingDirectory=/home/naeim/Desktop/code/SmartCam-Soccer
+ExecStart=/usr/bin/python3 /home/naeim/Desktop/code/SmartCam-Soccer/backend/src/orchestrator.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target 
