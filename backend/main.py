@@ -442,12 +442,11 @@ def insert_video_reference(user_id, filename, storage_path, booking_id):
             "created_at": now
         }
         
-        # Add booking_id if provided
-        if booking_id:
-            video_data["booking_id"] = booking_id
-            
+        # Note: booking_id column doesn't exist in database yet, so we don't include it
+        # This can be added later when the database schema is updated
+        
         supabase.table("videos").insert(video_data).execute()
-        log(f"Added video reference for {filename} (booking: {booking_id})", LogLevel.SUCCESS)
+        log(f"Added video reference for {filename} (associated with booking: {booking_id})", LogLevel.SUCCESS)
         return True
     except Exception as e:
         log(f"Database insert failed: {str(e)}", LogLevel.WARNING)

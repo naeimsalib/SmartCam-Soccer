@@ -119,7 +119,7 @@ def update_system_status(
         supabase.table("cameras").upsert(camera_data).execute()
         logger.info(f"Camera status updated: recording={is_recording}")
         
-        # Update system status - use upsert with user_id as the key
+        # Update system status - try update first, then insert if not found
         system_data = {
             "user_id": USER_ID,
             "is_recording": is_recording,
@@ -134,11 +134,28 @@ def update_system_status(
             "pi_active": True
         }
         
-        # Use upsert to update existing row or create new one based on user_id
-        supabase.table("system_status").upsert(system_data, on_conflict="user_id").execute()
-        logger.info(f"System status updated: memory={mem.percent}%, cpu={cpu}%, storage={storage_used}")
+        # Try to update existing record first
+        try:
+            result = supabase.table("system_status").update(system_data).eq("user_id", USER_ID).execute()
+            if not result.data:
+                # No existing record found, insert new one
+                supabase.table("system_status").insert(system_data).execute()
+                logger.info("Created new system_status record")
+            else:
+                logger.info("Updated existing system_status record")
+        except Exception as e:
+            # If update fails, try insert
+            logger.warning(f"Update failed, trying insert: {e}")
+            try:
+                supabase.table("system_status").insert(system_data).execute()
+                logger.info("Inserted new system_status record")
+            except Exception as insert_error:
+                logger.error(f"Both update and insert failed: {insert_error}")
+                return False
         
+        logger.info(f"System status updated: memory={mem.percent}%, cpu={cpu}%, storage={storage_used}")
         return True
+        
     except Exception as e:
         logger.error(f"Error updating system status: {e}", exc_info=True)
         return False
@@ -299,7 +316,6 @@ def send_heartbeat(is_recording=False, is_streaming=False, storage_used=None, la
         
         # Prepare update data
         data = {
-            "user_id": USER_ID,
             "pi_active": True,
             "last_heartbeat": now.isoformat(),
             "last_seen": now.isoformat(),
@@ -312,9 +328,23 @@ def send_heartbeat(is_recording=False, is_streaming=False, storage_used=None, la
         if last_backup is not None:
             data["last_backup"] = last_backup
             
-        # Use upsert to avoid creating duplicate rows
-        supabase.table("system_status").upsert(data, on_conflict="user_id").execute()
-        print("[Heartbeat] Sent successfully")
+        # Try to update existing record first
+        try:
+            result = supabase.table("system_status").update(data).eq("user_id", USER_ID).execute()
+            if not result.data:
+                # No existing record found, insert new one with user_id
+                data["user_id"] = USER_ID
+                supabase.table("system_status").insert(data).execute()
+            print("[Heartbeat] Sent successfully")
+        except Exception as e:
+            # If update fails, try insert with user_id
+            try:
+                data["user_id"] = USER_ID
+                supabase.table("system_status").insert(data).execute()
+                print("[Heartbeat] Sent successfully (inserted)")
+            except Exception as insert_error:
+                print(f"[Heartbeat] Failed to send: {insert_error}")
+                logger.error(f"Heartbeat failed: {insert_error}", exc_info=True)
         
     except Exception as e:
         print(f"[Heartbeat] Failed to send: {e}")
