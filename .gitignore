@@ -1,3 +1,6 @@
+# Frontend is now in a separate repository: https://github.com/naeimsalib/EZREC-FrontEnd.git
+# This repository contains only the backend and system services
+
 # Python
 __pycache__/
 *.py[cod]

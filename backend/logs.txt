@@ -1,649 +1,78 @@
-michomanoly14892@raspberrypi:~/code/SmartCam-Soccer/backend $ sudo journalctl -u smartcam.service -f --no-pager
-Jun 19 19:30:58 raspberrypi smartcam[212866]: 2025-06-19 19:30:58 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:30:58 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:30:58 raspberrypi smartcam[212866]: 2025-06-19 19:30:58 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:30:58 raspberrypi smartcam[212866]: 2025-06-19 19:30:58 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:30:58 raspberrypi smartcam[212866]: 2025-06-19 19:30:58 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:31:03 raspberrypi smartcam[212866]: 2025-06-19 19:31:03 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:31:03 raspberrypi smartcam[212866]: 2025-06-19 19:31:03 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:31:03 raspberrypi smartcam[212866]: 2025-06-19 19:31:03 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:31:03 raspberrypi smartcam[212866]: 2025-06-19 19:31:03 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:31:03 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:31:08 raspberrypi smartcam[212866]: 2025-06-19 19:31:08 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:31:08 raspberrypi smartcam[212866]: 2025-06-19 19:31:08 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:31:08 raspberrypi smartcam[212866]: 2025-06-19 19:31:08 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:31:08 raspberrypi smartcam[212866]: 2025-06-19 19:31:08 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:31:08 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:31:13 raspberrypi smartcam[212866]: 2025-06-19 19:31:13 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:31:13 raspberrypi smartcam[212866]: 2025-06-19 19:31:13 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:31:13 raspberrypi smartcam[212866]: 2025-06-19 19:31:13 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:31:14 raspberrypi smartcam[212866]: 2025-06-19 19:31:14 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:31:14 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:31:18 raspberrypi smartcam[212866]: 2025-06-19 19:31:18 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:31:18 raspberrypi smartcam[212866]: 2025-06-19 19:31:18 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:31:18 raspberrypi smartcam[212866]: 2025-06-19 19:31:18 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:31:19 raspberrypi smartcam[212866]: 2025-06-19 19:31:19 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:31:19 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:31:23 raspberrypi smartcam[212866]: 2025-06-19 19:31:23 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:31:23 raspberrypi smartcam[212866]: 2025-06-19 19:31:23 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:31:23 raspberrypi smartcam[212866]: 2025-06-19 19:31:23 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:31:24 raspberrypi smartcam[212866]: 2025-06-19 19:31:24 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:31:24 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:31:28 raspberrypi smartcam[212866]: 2025-06-19 19:31:28 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:31:28 raspberrypi smartcam[212866]: 2025-06-19 19:31:28 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:31:28 raspberrypi smartcam[212866]: 2025-06-19 19:31:28 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:31:29 raspberrypi smartcam[212866]: 2025-06-19 19:31:29 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:31:29 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:31:33 raspberrypi smartcam[212866]: 2025-06-19 19:31:33 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:31:33 raspberrypi smartcam[212866]: 2025-06-19 19:31:33 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:31:33 raspberrypi smartcam[212866]: 2025-06-19 19:31:33 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:31:35 raspberrypi smartcam[212866]: 2025-06-19 19:31:35 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:31:35 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:31:38 raspberrypi smartcam[212866]: 2025-06-19 19:31:38 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:31:38 raspberrypi smartcam[212866]: 2025-06-19 19:31:38 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:31:38 raspberrypi smartcam[212866]: 2025-06-19 19:31:38 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:31:40 raspberrypi smartcam[212866]: 2025-06-19 19:31:40 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:31:40 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:31:43 raspberrypi smartcam[212866]: 2025-06-19 19:31:43 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:31:43 raspberrypi smartcam[212866]: 2025-06-19 19:31:43 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:31:43 raspberrypi smartcam[212866]: 2025-06-19 19:31:43 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:31:45 raspberrypi smartcam[212866]: 2025-06-19 19:31:45 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:31:45 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:31:48 raspberrypi smartcam[212866]: 2025-06-19 19:31:48 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:31:49 raspberrypi smartcam[212866]: 2025-06-19 19:31:49 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:31:49 raspberrypi smartcam[212866]: 2025-06-19 19:31:49 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:31:50 raspberrypi smartcam[212866]: 2025-06-19 19:31:50 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:31:50 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:31:53 raspberrypi smartcam[212866]: 2025-06-19 19:31:53 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:31:54 raspberrypi smartcam[212866]: 2025-06-19 19:31:54 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:31:54 raspberrypi smartcam[212866]: 2025-06-19 19:31:54 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:31:56 raspberrypi smartcam[212866]: 2025-06-19 19:31:56 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:31:56 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:31:59 raspberrypi smartcam[212866]: 2025-06-19 19:31:59 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:31:59 raspberrypi smartcam[212866]: 2025-06-19 19:31:59 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:31:59 raspberrypi smartcam[212866]: 2025-06-19 19:31:59 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:32:01 raspberrypi smartcam[212866]: 2025-06-19 19:32:01 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:32:01 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:32:04 raspberrypi smartcam[212866]: 2025-06-19 19:32:04 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:32:04 raspberrypi smartcam[212866]: 2025-06-19 19:32:04 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:32:04 raspberrypi smartcam[212866]: 2025-06-19 19:32:04 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:32:06 raspberrypi smartcam[212866]: 2025-06-19 19:32:06 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:32:06 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:32:10 raspberrypi smartcam[212866]: 2025-06-19 19:32:09 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:32:10 raspberrypi smartcam[212866]: 2025-06-19 19:32:09 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:32:10 raspberrypi smartcam[212866]: 2025-06-19 19:32:09 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:32:12 raspberrypi smartcam[212866]: 2025-06-19 19:32:12 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:32:12 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:32:14 raspberrypi smartcam[212866]: 2025-06-19 19:32:14 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:32:14 raspberrypi smartcam[212866]: 2025-06-19 19:32:14 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:32:14 raspberrypi smartcam[212866]: 2025-06-19 19:32:14 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:32:17 raspberrypi smartcam[212866]: 2025-06-19 19:32:17 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:32:17 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:32:19 raspberrypi smartcam[212866]: 2025-06-19 19:32:19 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:32:19 raspberrypi smartcam[212866]: 2025-06-19 19:32:19 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:32:19 raspberrypi smartcam[212866]: 2025-06-19 19:32:19 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:32:22 raspberrypi smartcam[212866]: 2025-06-19 19:32:22 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:32:22 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:32:24 raspberrypi smartcam[212866]: 2025-06-19 19:32:24 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:32:24 raspberrypi smartcam[212866]: 2025-06-19 19:32:24 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:32:24 raspberrypi smartcam[212866]: 2025-06-19 19:32:24 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:32:27 raspberrypi smartcam[212866]: 2025-06-19 19:32:27 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:32:27 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:32:29 raspberrypi smartcam[212866]: 2025-06-19 19:32:29 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:32:29 raspberrypi smartcam[212866]: 2025-06-19 19:32:29 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:32:29 raspberrypi smartcam[212866]: 2025-06-19 19:32:29 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:32:33 raspberrypi smartcam[212866]: 2025-06-19 19:32:33 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:32:33 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:32:34 raspberrypi smartcam[212866]: 2025-06-19 19:32:34 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:32:34 raspberrypi smartcam[212866]: 2025-06-19 19:32:34 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:32:34 raspberrypi smartcam[212866]: 2025-06-19 19:32:34 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:32:38 raspberrypi smartcam[212866]: 2025-06-19 19:32:38 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:32:38 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:32:39 raspberrypi smartcam[212866]: 2025-06-19 19:32:39 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:32:39 raspberrypi smartcam[212866]: 2025-06-19 19:32:39 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:32:39 raspberrypi smartcam[212866]: 2025-06-19 19:32:39 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:32:43 raspberrypi smartcam[212866]: 2025-06-19 19:32:43 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:32:43 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:32:44 raspberrypi smartcam[212866]: 2025-06-19 19:32:44 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:32:44 raspberrypi smartcam[212866]: 2025-06-19 19:32:44 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:32:44 raspberrypi smartcam[212866]: 2025-06-19 19:32:44 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:32:48 raspberrypi smartcam[212866]: 2025-06-19 19:32:48 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:32:48 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:32:49 raspberrypi smartcam[212866]: 2025-06-19 19:32:49 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:32:49 raspberrypi smartcam[212866]: 2025-06-19 19:32:49 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:32:49 raspberrypi smartcam[212866]: 2025-06-19 19:32:49 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:32:53 raspberrypi smartcam[212866]: 2025-06-19 19:32:53 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:32:53 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:32:54 raspberrypi smartcam[212866]: 2025-06-19 19:32:54 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:32:54 raspberrypi smartcam[212866]: 2025-06-19 19:32:54 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:32:54 raspberrypi smartcam[212866]: 2025-06-19 19:32:54 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:32:59 raspberrypi smartcam[212866]: 2025-06-19 19:32:59 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:32:59 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:32:59 raspberrypi smartcam[212866]: 2025-06-19 19:32:59 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:32:59 raspberrypi smartcam[212866]: 2025-06-19 19:32:59 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:32:59 raspberrypi smartcam[212866]: 2025-06-19 19:32:59 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:33:04 raspberrypi smartcam[212866]: 2025-06-19 19:33:04 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:33:04 raspberrypi smartcam[212866]: [Heartbeat] Sent successfully
-Jun 19 19:33:04 raspberrypi smartcam[212866]: 2025-06-19 19:33:04 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:33:04 raspberrypi smartcam[212866]: 2025-06-19 19:33:04 -0400 - INFO - Found active booking: f2e0dcfc-d141-40bc-96b2-17ad4c40e665 (19:33-19:34)
-Jun 19 19:33:04 raspberrypi smartcam[212866]: 2025-06-19 19:33:04 -0400 - INFO - SUCCESS: Starting recording for new booking: f2e0dcfc-d141-40bc-96b2-17ad4c40e665
-Jun 19 19:33:04 raspberrypi smartcam[212866]: [CameraInterface] Preparing to start recording: temp/recording_20250619_193304.mp4
-Jun 19 19:33:04 raspberrypi smartcam[212866]: [CameraInterface] Exception in start_recording: Camera must be stopped before configuring
-Jun 19 19:33:04 raspberrypi smartcam[212866]: Traceback (most recent call last):
-Jun 19 19:33:04 raspberrypi smartcam[212866]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/src/camera_interface.py", line 125, in start_recording
-Jun 19 19:33:04 raspberrypi smartcam[212866]:     self.picam.configure(video_config)
-Jun 19 19:33:04 raspberrypi smartcam[212866]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 1161, in configure
-Jun 19 19:33:04 raspberrypi smartcam[212866]:     self.configure_("preview" if camera_config is None else camera_config)
-Jun 19 19:33:04 raspberrypi smartcam[212866]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 1045, in configure_
-Jun 19 19:33:04 raspberrypi smartcam[212866]:     raise RuntimeError("Camera must be stopped before configuring")
-Jun 19 19:33:04 raspberrypi smartcam[212866]: RuntimeError: Camera must be stopped before configuring
-Jun 19 19:33:04 raspberrypi smartcam[212866]: 2025-06-19 19:33:04 -0400 - ERROR - Main loop error: Camera must be stopped before configuring
-Jun 19 19:33:04 raspberrypi smartcam[212866]: 2025-06-19 19:33:04 -0400 - INFO - Shutting down gracefully...
-Jun 19 19:33:04 raspberrypi smartcam[212866]: 2025-06-19 19:33:04 -0400 - INFO - Camera stopped
-Jun 19 19:33:04 raspberrypi smartcam[212866]: [CameraInterface] Camera released.
-Jun 19 19:33:04 raspberrypi smartcam[212866]: 2025-06-19 19:33:04 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:33:04 raspberrypi smartcam[212866]: 2025-06-19 19:33:04 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:33:04 raspberrypi smartcam[212866]: 2025-06-19 19:33:04 -0400 - INFO - Waiting for upload queue to finish...
-Jun 19 19:33:04 raspberrypi smartcam[212866]: 2025-06-19 19:33:04 -0400 - INFO - Upload worker received stop signal
-Jun 19 19:33:04 raspberrypi smartcam[212866]: 2025-06-19 19:33:04 -0400 - INFO - Upload worker shutting down
-Jun 19 19:33:04 raspberrypi smartcam[212866]: 2025-06-19 19:33:04 -0400 - INFO - SUCCESS: Shutdown complete
-Jun 19 19:33:04 raspberrypi smartcam[212866]: 2025-06-19 19:33:04 -0400 - INFO - Camera closed successfully.
-Jun 19 19:33:05 raspberrypi systemd[1]: smartcam.service: Deactivated successfully.
-Jun 19 19:33:05 raspberrypi systemd[1]: smartcam.service: Consumed 25.134s CPU time.
-Jun 19 19:33:10 raspberrypi systemd[1]: smartcam.service: Scheduled restart job, restart counter is at 1.
-Jun 19 19:33:10 raspberrypi systemd[1]: Stopped smartcam.service - SmartCam Soccer Main Service.
-Jun 19 19:33:10 raspberrypi systemd[1]: smartcam.service: Consumed 25.134s CPU time.
-Jun 19 19:33:10 raspberrypi systemd[1]: Started smartcam.service - SmartCam Soccer Main Service.
-Jun 19 19:33:10 raspberrypi smartcam[214409]: [DEBUG] Picamera2 import succeeded
-Jun 19 19:33:10 raspberrypi smartcam[214409]: [DEBUG] Attempting to initialize Picamera2...
-Jun 19 19:33:10 raspberrypi smartcam[214409]: [5:21:16.861259536] [214409]  INFO Camera camera_manager.cpp:326 libcamera v0.5.0+59-d83ff0a4
-Jun 19 19:33:10 raspberrypi smartcam[214409]: [5:21:16.871433252] [214426]  INFO RPI pisp.cpp:720 libpisp version v1.2.1 981977ff21f3 29-04-2025 (14:13:50)
-Jun 19 19:33:10 raspberrypi smartcam[214409]: [5:21:16.884878256] [214426]  INFO RPI pisp.cpp:1179 Registered camera /base/axi/pcie@1000120000/rp1/i2c@80000/imx477@1a to CFE device /dev/media0 and ISP device /dev/media1 using PiSP variant BCM2712_D0
-Jun 19 19:33:10 raspberrypi smartcam[214409]: 2025-06-19 19:33:10 -0400 - INFO - Initialization successful.
-Jun 19 19:33:10 raspberrypi smartcam[214409]: 2025-06-19 19:33:10 -0400 - INFO - Camera now open.
-Jun 19 19:33:10 raspberrypi smartcam[214409]: 2025-06-19 19:33:10 -0400 - INFO - Camera configuration has been adjusted!
-Jun 19 19:33:10 raspberrypi smartcam[214409]: [5:21:16.889793364] [214409]  INFO Camera camera.cpp:1205 configuring streams: (0) 640x480-RGB888 (1) 2028x1520-BGGR_PISP_COMP1
-Jun 19 19:33:10 raspberrypi smartcam[214409]: [5:21:16.889957513] [214426]  INFO RPI pisp.cpp:1483 Sensor: /base/axi/pcie@1000120000/rp1/i2c@80000/imx477@1a - Selected sensor format: 2028x1520-SBGGR12_1X12 - Selected CFE format: 2028x1520-PC1B
-Jun 19 19:33:10 raspberrypi smartcam[214409]: 2025-06-19 19:33:10 -0400 - INFO - Configuration successful!
-Jun 19 19:33:11 raspberrypi smartcam[214409]: 2025-06-19 19:33:11 -0400 - INFO - Camera started
-Jun 19 19:33:11 raspberrypi smartcam[214409]: [CameraInterface] Using Pi Camera (Picamera2)
-Jun 19 19:33:11 raspberrypi smartcam[214409]: 2025-06-19 19:33:11 -0400 - INFO - SUCCESS: Camera initialized and opened with CameraInterface (picamera2)
-Jun 19 19:33:11 raspberrypi smartcam[214409]: 2025-06-19 19:33:11 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:33:11 raspberrypi smartcam[214409]: [Heartbeat] Sent successfully
-Jun 19 19:33:11 raspberrypi smartcam[214409]: 2025-06-19 19:33:11 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:33:11 raspberrypi smartcam[214409]: 2025-06-19 19:33:11 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:33:11 raspberrypi smartcam[214409]: 2025-06-19 19:33:11 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:33:11 raspberrypi smartcam[214409]: [Heartbeat] Sent successfully
-Jun 19 19:33:11 raspberrypi smartcam[214409]: 2025-06-19 19:33:11 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:33:11 raspberrypi smartcam[214409]: 2025-06-19 19:33:11 -0400 - INFO - Found active booking: f2e0dcfc-d141-40bc-96b2-17ad4c40e665 (19:33-19:34)
-Jun 19 19:33:11 raspberrypi smartcam[214409]: 2025-06-19 19:33:11 -0400 - INFO - SUCCESS: Starting recording for new booking: f2e0dcfc-d141-40bc-96b2-17ad4c40e665
-Jun 19 19:33:11 raspberrypi smartcam[214409]: [CameraInterface] Preparing to start recording: temp/recording_20250619_193311.mp4
-Jun 19 19:33:11 raspberrypi smartcam[214409]: [CameraInterface] Exception in start_recording: Camera must be stopped before configuring
-Jun 19 19:33:11 raspberrypi smartcam[214409]: Traceback (most recent call last):
-Jun 19 19:33:11 raspberrypi smartcam[214409]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/src/camera_interface.py", line 125, in start_recording
-Jun 19 19:33:11 raspberrypi smartcam[214409]:     self.picam.configure(video_config)
-Jun 19 19:33:11 raspberrypi smartcam[214409]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 1161, in configure
-Jun 19 19:33:11 raspberrypi smartcam[214409]:     self.configure_("preview" if camera_config is None else camera_config)
-Jun 19 19:33:11 raspberrypi smartcam[214409]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 1045, in configure_
-Jun 19 19:33:11 raspberrypi smartcam[214409]:     raise RuntimeError("Camera must be stopped before configuring")
-Jun 19 19:33:11 raspberrypi smartcam[214409]: RuntimeError: Camera must be stopped before configuring
-Jun 19 19:33:11 raspberrypi smartcam[214409]: 2025-06-19 19:33:11 -0400 - ERROR - Main loop error: Camera must be stopped before configuring
-Jun 19 19:33:11 raspberrypi smartcam[214409]: 2025-06-19 19:33:11 -0400 - INFO - Shutting down gracefully...
-Jun 19 19:33:11 raspberrypi smartcam[214409]: 2025-06-19 19:33:11 -0400 - INFO - Camera stopped
-Jun 19 19:33:11 raspberrypi smartcam[214409]: [CameraInterface] Camera released.
-Jun 19 19:33:12 raspberrypi smartcam[214409]: 2025-06-19 19:33:12 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:33:12 raspberrypi smartcam[214409]: 2025-06-19 19:33:12 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:33:12 raspberrypi smartcam[214409]: 2025-06-19 19:33:12 -0400 - INFO - Waiting for upload queue to finish...
-Jun 19 19:33:12 raspberrypi smartcam[214409]: 2025-06-19 19:33:12 -0400 - INFO - Upload worker received stop signal
-Jun 19 19:33:12 raspberrypi smartcam[214409]: 2025-06-19 19:33:12 -0400 - INFO - Upload worker shutting down
-Jun 19 19:33:12 raspberrypi smartcam[214409]: 2025-06-19 19:33:12 -0400 - INFO - SUCCESS: Shutdown complete
-Jun 19 19:33:12 raspberrypi smartcam[214409]: 2025-06-19 19:33:12 -0400 - INFO - Camera closed successfully.
-Jun 19 19:33:12 raspberrypi systemd[1]: smartcam.service: Deactivated successfully.
-Jun 19 19:33:12 raspberrypi systemd[1]: smartcam.service: Consumed 1.240s CPU time.
-Jun 19 19:33:18 raspberrypi systemd[1]: smartcam.service: Scheduled restart job, restart counter is at 2.
-Jun 19 19:33:18 raspberrypi systemd[1]: Stopped smartcam.service - SmartCam Soccer Main Service.
-Jun 19 19:33:18 raspberrypi systemd[1]: smartcam.service: Consumed 1.240s CPU time.
-Jun 19 19:33:18 raspberrypi systemd[1]: Started smartcam.service - SmartCam Soccer Main Service.
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [DEBUG] Picamera2 import succeeded
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [DEBUG] Attempting to initialize Picamera2...
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [5:21:25.096130647] [214506]  INFO Camera camera_manager.cpp:326 libcamera v0.5.0+59-d83ff0a4
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [5:21:25.103406558] [214537]  INFO RPI pisp.cpp:720 libpisp version v1.2.1 981977ff21f3 29-04-2025 (14:13:50)
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [5:21:25.429046074] [214537] ERROR V4L2 v4l2_device.cpp:390 'imx477 11-001a': Unable to set controls: Device or resource busy
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [5:21:25.438167602] [214537]  INFO RPI pisp.cpp:1179 Registered camera /base/axi/pcie@1000120000/rp1/i2c@80000/imx477@1a to CFE device /dev/media0 and ISP device /dev/media1 using PiSP variant BCM2712_D0
-Jun 19 19:33:19 raspberrypi smartcam[214506]: 2025-06-19 19:33:19 -0400 - INFO - Initialization successful.
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [5:21:25.445363735] [214506]  INFO Camera camera.cpp:1011 Pipeline handler in use by another process
-Jun 19 19:33:19 raspberrypi smartcam[214506]: 2025-06-19 19:33:19 -0400 - ERROR - Camera __init__ sequence did not complete.
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [CameraInterface] Picamera2 not available or failed: Camera __init__ sequence did not complete.
-Jun 19 19:33:19 raspberrypi smartcam[214506]: Traceback (most recent call last):
-Jun 19 19:33:19 raspberrypi smartcam[214506]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 293, in __init__
-Jun 19 19:33:19 raspberrypi smartcam[214506]:     self._open_camera()
-Jun 19 19:33:19 raspberrypi smartcam[214506]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 505, in _open_camera
-Jun 19 19:33:19 raspberrypi smartcam[214506]:     self.camera.acquire()
-Jun 19 19:33:19 raspberrypi smartcam[214506]: RuntimeError: Failed to acquire camera: Device or resource busy
-Jun 19 19:33:19 raspberrypi smartcam[214506]: During handling of the above exception, another exception occurred:
-Jun 19 19:33:19 raspberrypi smartcam[214506]: Traceback (most recent call last):
-Jun 19 19:33:19 raspberrypi smartcam[214506]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/src/camera_interface.py", line 38, in _detect_camera
-Jun 19 19:33:19 raspberrypi smartcam[214506]:     self.picam = Picamera2()
-Jun 19 19:33:19 raspberrypi smartcam[214506]:                  ^^^^^^^^^^^
-Jun 19 19:33:19 raspberrypi smartcam[214506]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 305, in __init__
-Jun 19 19:33:19 raspberrypi smartcam[214506]:     raise RuntimeError("Camera __init__ sequence did not complete.")
-Jun 19 19:33:19 raspberrypi smartcam[214506]: RuntimeError: Camera __init__ sequence did not complete.
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.160] global cap_v4l.cpp:982 open VIDEOIO(V4L2:/dev/video1): can't open camera by index
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.160] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.160] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.160] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.160] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.161] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.161] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ERROR:0@1.162] global obsensor_uvc_stream_channel.cpp:156 getStreamChannelGroup Camera index out of range
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.165] global cap_v4l.cpp:982 open VIDEOIO(V4L2:/dev/video4): can't open camera by index
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.166] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.166] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.166] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.166] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.166] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.166] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ERROR:0@1.167] global obsensor_uvc_stream_channel.cpp:156 getStreamChannelGroup Camera index out of range
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.168] global cap_v4l.cpp:982 open VIDEOIO(V4L2:/dev/video6): can't open camera by index
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.168] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.168] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.168] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.168] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.168] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.168] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ERROR:0@1.169] global obsensor_uvc_stream_channel.cpp:156 getStreamChannelGroup Camera index out of range
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.169] global cap_v4l.cpp:982 open VIDEOIO(V4L2:/dev/video7): can't open camera by index
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.170] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.170] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.170] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.170] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.170] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ WARN:0@1.170] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:19 raspberrypi smartcam[214506]: [ERROR:0@1.171] global obsensor_uvc_stream_channel.cpp:156 getStreamChannelGroup Camera index out of range
-Jun 19 19:33:19 raspberrypi smartcam[214506]: 2025-06-19 19:33:19 -0400 - ERROR - Failed to initialize CameraInterface: No working camera found (neither Pi Camera nor USB camera)
-Jun 19 19:33:19 raspberrypi systemd[1]: smartcam.service: Deactivated successfully.
-Jun 19 19:33:19 raspberrypi systemd[1]: smartcam.service: Consumed 1.261s CPU time.
-Jun 19 19:33:24 raspberrypi systemd[1]: smartcam.service: Scheduled restart job, restart counter is at 3.
-Jun 19 19:33:24 raspberrypi systemd[1]: Stopped smartcam.service - SmartCam Soccer Main Service.
-Jun 19 19:33:24 raspberrypi systemd[1]: smartcam.service: Consumed 1.261s CPU time.
-Jun 19 19:33:24 raspberrypi systemd[1]: Started smartcam.service - SmartCam Soccer Main Service.
-Jun 19 19:33:25 raspberrypi smartcam[214592]: [DEBUG] Picamera2 import succeeded
-Jun 19 19:33:25 raspberrypi smartcam[214592]: [DEBUG] Attempting to initialize Picamera2...
-Jun 19 19:33:25 raspberrypi smartcam[214592]: [5:21:31.747830513] [214592]  INFO Camera camera_manager.cpp:326 libcamera v0.5.0+59-d83ff0a4
-Jun 19 19:33:25 raspberrypi smartcam[214592]: [5:21:31.754963424] [214623]  INFO RPI pisp.cpp:720 libpisp version v1.2.1 981977ff21f3 29-04-2025 (14:13:50)
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [5:21:32.215925242] [214623] ERROR V4L2 v4l2_device.cpp:390 'imx477 11-001a': Unable to set controls: Device or resource busy
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [5:21:32.225123159] [214623]  INFO RPI pisp.cpp:1179 Registered camera /base/axi/pcie@1000120000/rp1/i2c@80000/imx477@1a to CFE device /dev/media0 and ISP device /dev/media1 using PiSP variant BCM2712_D0
-Jun 19 19:33:26 raspberrypi smartcam[214592]: 2025-06-19 19:33:26 -0400 - INFO - Initialization successful.
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [5:21:32.232322793] [214592]  INFO Camera camera.cpp:1011 Pipeline handler in use by another process
-Jun 19 19:33:26 raspberrypi smartcam[214592]: 2025-06-19 19:33:26 -0400 - ERROR - Camera __init__ sequence did not complete.
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [CameraInterface] Picamera2 not available or failed: Camera __init__ sequence did not complete.
-Jun 19 19:33:26 raspberrypi smartcam[214592]: Traceback (most recent call last):
-Jun 19 19:33:26 raspberrypi smartcam[214592]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 293, in __init__
-Jun 19 19:33:26 raspberrypi smartcam[214592]:     self._open_camera()
-Jun 19 19:33:26 raspberrypi smartcam[214592]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 505, in _open_camera
-Jun 19 19:33:26 raspberrypi smartcam[214592]:     self.camera.acquire()
-Jun 19 19:33:26 raspberrypi smartcam[214592]: RuntimeError: Failed to acquire camera: Device or resource busy
-Jun 19 19:33:26 raspberrypi smartcam[214592]: During handling of the above exception, another exception occurred:
-Jun 19 19:33:26 raspberrypi smartcam[214592]: Traceback (most recent call last):
-Jun 19 19:33:26 raspberrypi smartcam[214592]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/src/camera_interface.py", line 38, in _detect_camera
-Jun 19 19:33:26 raspberrypi smartcam[214592]:     self.picam = Picamera2()
-Jun 19 19:33:26 raspberrypi smartcam[214592]:                  ^^^^^^^^^^^
-Jun 19 19:33:26 raspberrypi smartcam[214592]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 305, in __init__
-Jun 19 19:33:26 raspberrypi smartcam[214592]:     raise RuntimeError("Camera __init__ sequence did not complete.")
-Jun 19 19:33:26 raspberrypi smartcam[214592]: RuntimeError: Camera __init__ sequence did not complete.
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.245] global cap_v4l.cpp:982 open VIDEOIO(V4L2:/dev/video1): can't open camera by index
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.245] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.245] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.245] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.245] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.246] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.246] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ERROR:0@1.247] global obsensor_uvc_stream_channel.cpp:156 getStreamChannelGroup Camera index out of range
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.249] global cap_v4l.cpp:982 open VIDEOIO(V4L2:/dev/video4): can't open camera by index
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.250] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.250] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.250] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.250] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.250] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.250] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ERROR:0@1.251] global obsensor_uvc_stream_channel.cpp:156 getStreamChannelGroup Camera index out of range
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.252] global cap_v4l.cpp:982 open VIDEOIO(V4L2:/dev/video6): can't open camera by index
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.252] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.252] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.252] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.252] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.252] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.252] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ERROR:0@1.253] global obsensor_uvc_stream_channel.cpp:156 getStreamChannelGroup Camera index out of range
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.253] global cap_v4l.cpp:982 open VIDEOIO(V4L2:/dev/video7): can't open camera by index
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.253] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.253] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.253] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.253] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.253] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ WARN:0@1.253] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:26 raspberrypi smartcam[214592]: [ERROR:0@1.254] global obsensor_uvc_stream_channel.cpp:156 getStreamChannelGroup Camera index out of range
-Jun 19 19:33:26 raspberrypi smartcam[214592]: 2025-06-19 19:33:26 -0400 - ERROR - Failed to initialize CameraInterface: No working camera found (neither Pi Camera nor USB camera)
-Jun 19 19:33:26 raspberrypi systemd[1]: smartcam.service: Deactivated successfully.
-Jun 19 19:33:26 raspberrypi systemd[1]: smartcam.service: Consumed 1.219s CPU time.
-Jun 19 19:33:31 raspberrypi systemd[1]: smartcam.service: Scheduled restart job, restart counter is at 4.
-Jun 19 19:33:31 raspberrypi systemd[1]: Stopped smartcam.service - SmartCam Soccer Main Service.
-Jun 19 19:33:31 raspberrypi systemd[1]: smartcam.service: Consumed 1.219s CPU time.
-Jun 19 19:33:31 raspberrypi systemd[1]: Started smartcam.service - SmartCam Soccer Main Service.
-Jun 19 19:33:32 raspberrypi smartcam[214681]: [DEBUG] Picamera2 import succeeded
-Jun 19 19:33:32 raspberrypi smartcam[214681]: [DEBUG] Attempting to initialize Picamera2...
-Jun 19 19:33:32 raspberrypi smartcam[214681]: [5:21:38.473368118] [214681]  INFO Camera camera_manager.cpp:326 libcamera v0.5.0+59-d83ff0a4
-Jun 19 19:33:32 raspberrypi smartcam[214681]: [5:21:38.483399056] [214706]  INFO RPI pisp.cpp:720 libpisp version v1.2.1 981977ff21f3 29-04-2025 (14:13:50)
-Jun 19 19:33:32 raspberrypi smartcam[214681]: [5:21:38.493702384] [214706]  INFO RPI pisp.cpp:1179 Registered camera /base/axi/pcie@1000120000/rp1/i2c@80000/imx477@1a to CFE device /dev/media0 and ISP device /dev/media1 using PiSP variant BCM2712_D0
-Jun 19 19:33:32 raspberrypi smartcam[214681]: 2025-06-19 19:33:32 -0400 - INFO - Initialization successful.
-Jun 19 19:33:32 raspberrypi smartcam[214681]: 2025-06-19 19:33:32 -0400 - INFO - Camera now open.
-Jun 19 19:33:32 raspberrypi smartcam[214681]: 2025-06-19 19:33:32 -0400 - INFO - Camera configuration has been adjusted!
-Jun 19 19:33:32 raspberrypi smartcam[214681]: [5:21:38.500596979] [214681]  INFO Camera camera.cpp:1205 configuring streams: (0) 640x480-RGB888 (1) 2028x1520-BGGR_PISP_COMP1
-Jun 19 19:33:32 raspberrypi smartcam[214681]: [5:21:38.500716572] [214706]  INFO RPI pisp.cpp:1483 Sensor: /base/axi/pcie@1000120000/rp1/i2c@80000/imx477@1a - Selected sensor format: 2028x1520-SBGGR12_1X12 - Selected CFE format: 2028x1520-PC1B
-Jun 19 19:33:32 raspberrypi smartcam[214681]: 2025-06-19 19:33:32 -0400 - INFO - Configuration successful!
-Jun 19 19:33:33 raspberrypi smartcam[214681]: 2025-06-19 19:33:33 -0400 - INFO - Camera started
-Jun 19 19:33:33 raspberrypi smartcam[214681]: [CameraInterface] Using Pi Camera (Picamera2)
-Jun 19 19:33:33 raspberrypi smartcam[214681]: 2025-06-19 19:33:33 -0400 - INFO - SUCCESS: Camera initialized and opened with CameraInterface (picamera2)
-Jun 19 19:33:33 raspberrypi smartcam[214681]: 2025-06-19 19:33:33 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:33:33 raspberrypi smartcam[214681]: [Heartbeat] Sent successfully
-Jun 19 19:33:33 raspberrypi smartcam[214681]: 2025-06-19 19:33:33 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:33:33 raspberrypi smartcam[214681]: 2025-06-19 19:33:33 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:33:33 raspberrypi smartcam[214681]: 2025-06-19 19:33:33 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:33:33 raspberrypi smartcam[214681]: [Heartbeat] Sent successfully
-Jun 19 19:33:33 raspberrypi smartcam[214681]: 2025-06-19 19:33:33 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:33:33 raspberrypi smartcam[214681]: 2025-06-19 19:33:33 -0400 - INFO - Found active booking: f2e0dcfc-d141-40bc-96b2-17ad4c40e665 (19:33-19:34)
-Jun 19 19:33:33 raspberrypi smartcam[214681]: 2025-06-19 19:33:33 -0400 - INFO - SUCCESS: Starting recording for new booking: f2e0dcfc-d141-40bc-96b2-17ad4c40e665
-Jun 19 19:33:33 raspberrypi smartcam[214681]: [CameraInterface] Preparing to start recording: temp/recording_20250619_193333.mp4
-Jun 19 19:33:33 raspberrypi smartcam[214681]: [CameraInterface] Exception in start_recording: Camera must be stopped before configuring
-Jun 19 19:33:33 raspberrypi smartcam[214681]: Traceback (most recent call last):
-Jun 19 19:33:33 raspberrypi smartcam[214681]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/src/camera_interface.py", line 125, in start_recording
-Jun 19 19:33:33 raspberrypi smartcam[214681]:     self.picam.configure(video_config)
-Jun 19 19:33:33 raspberrypi smartcam[214681]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 1161, in configure
-Jun 19 19:33:33 raspberrypi smartcam[214681]:     self.configure_("preview" if camera_config is None else camera_config)
-Jun 19 19:33:33 raspberrypi smartcam[214681]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 1045, in configure_
-Jun 19 19:33:33 raspberrypi smartcam[214681]:     raise RuntimeError("Camera must be stopped before configuring")
-Jun 19 19:33:33 raspberrypi smartcam[214681]: RuntimeError: Camera must be stopped before configuring
-Jun 19 19:33:33 raspberrypi smartcam[214681]: 2025-06-19 19:33:33 -0400 - ERROR - Main loop error: Camera must be stopped before configuring
-Jun 19 19:33:33 raspberrypi smartcam[214681]: 2025-06-19 19:33:33 -0400 - INFO - Shutting down gracefully...
-Jun 19 19:33:33 raspberrypi smartcam[214681]: 2025-06-19 19:33:33 -0400 - INFO - Camera stopped
-Jun 19 19:33:33 raspberrypi smartcam[214681]: [CameraInterface] Camera released.
-Jun 19 19:33:33 raspberrypi smartcam[214681]: 2025-06-19 19:33:33 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:33:33 raspberrypi smartcam[214681]: 2025-06-19 19:33:33 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:33:33 raspberrypi smartcam[214681]: 2025-06-19 19:33:33 -0400 - INFO - Waiting for upload queue to finish...
-Jun 19 19:33:33 raspberrypi smartcam[214681]: 2025-06-19 19:33:33 -0400 - INFO - Upload worker received stop signal
-Jun 19 19:33:33 raspberrypi smartcam[214681]: 2025-06-19 19:33:33 -0400 - INFO - Upload worker shutting down
-Jun 19 19:33:33 raspberrypi smartcam[214681]: 2025-06-19 19:33:33 -0400 - INFO - SUCCESS: Shutdown complete
-Jun 19 19:33:34 raspberrypi smartcam[214681]: 2025-06-19 19:33:34 -0400 - INFO - Camera closed successfully.
-Jun 19 19:33:34 raspberrypi systemd[1]: smartcam.service: Deactivated successfully.
-Jun 19 19:33:34 raspberrypi systemd[1]: smartcam.service: Consumed 1.322s CPU time.
-Jun 19 19:33:39 raspberrypi systemd[1]: smartcam.service: Scheduled restart job, restart counter is at 5.
-Jun 19 19:33:39 raspberrypi systemd[1]: Stopped smartcam.service - SmartCam Soccer Main Service.
-Jun 19 19:33:39 raspberrypi systemd[1]: smartcam.service: Consumed 1.322s CPU time.
-Jun 19 19:33:39 raspberrypi systemd[1]: Started smartcam.service - SmartCam Soccer Main Service.
-Jun 19 19:33:40 raspberrypi smartcam[214800]: [DEBUG] Picamera2 import succeeded
-Jun 19 19:33:40 raspberrypi smartcam[214800]: [DEBUG] Attempting to initialize Picamera2...
-Jun 19 19:33:40 raspberrypi smartcam[214800]: [5:21:46.282743255] [214800]  INFO Camera camera_manager.cpp:326 libcamera v0.5.0+59-d83ff0a4
-Jun 19 19:33:40 raspberrypi smartcam[214800]: [5:21:46.289649072] [214815]  INFO RPI pisp.cpp:720 libpisp version v1.2.1 981977ff21f3 29-04-2025 (14:13:50)
-Jun 19 19:33:40 raspberrypi smartcam[214800]: [5:21:46.298682970] [214815]  INFO RPI pisp.cpp:1179 Registered camera /base/axi/pcie@1000120000/rp1/i2c@80000/imx477@1a to CFE device /dev/media0 and ISP device /dev/media1 using PiSP variant BCM2712_D0
-Jun 19 19:33:40 raspberrypi smartcam[214800]: 2025-06-19 19:33:40 -0400 - INFO - Initialization successful.
-Jun 19 19:33:40 raspberrypi smartcam[214800]: 2025-06-19 19:33:40 -0400 - INFO - Camera now open.
-Jun 19 19:33:40 raspberrypi smartcam[214800]: 2025-06-19 19:33:40 -0400 - INFO - Camera configuration has been adjusted!
-Jun 19 19:33:40 raspberrypi smartcam[214800]: [5:21:46.303537985] [214800]  INFO Camera camera.cpp:1205 configuring streams: (0) 640x480-RGB888 (1) 2028x1520-BGGR_PISP_COMP1
-Jun 19 19:33:40 raspberrypi smartcam[214800]: [5:21:46.303692411] [214815]  INFO RPI pisp.cpp:1483 Sensor: /base/axi/pcie@1000120000/rp1/i2c@80000/imx477@1a - Selected sensor format: 2028x1520-SBGGR12_1X12 - Selected CFE format: 2028x1520-PC1B
-Jun 19 19:33:40 raspberrypi smartcam[214800]: 2025-06-19 19:33:40 -0400 - INFO - Configuration successful!
-Jun 19 19:33:40 raspberrypi smartcam[214800]: 2025-06-19 19:33:40 -0400 - INFO - Camera started
-Jun 19 19:33:40 raspberrypi smartcam[214800]: [CameraInterface] Using Pi Camera (Picamera2)
-Jun 19 19:33:40 raspberrypi smartcam[214800]: 2025-06-19 19:33:40 -0400 - INFO - SUCCESS: Camera initialized and opened with CameraInterface (picamera2)
-Jun 19 19:33:41 raspberrypi smartcam[214800]: 2025-06-19 19:33:41 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:33:41 raspberrypi smartcam[214800]: [Heartbeat] Sent successfully
-Jun 19 19:33:41 raspberrypi smartcam[214800]: 2025-06-19 19:33:41 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:33:41 raspberrypi smartcam[214800]: 2025-06-19 19:33:41 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:33:41 raspberrypi smartcam[214800]: 2025-06-19 19:33:41 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:33:41 raspberrypi smartcam[214800]: [Heartbeat] Sent successfully
-Jun 19 19:33:41 raspberrypi smartcam[214800]: 2025-06-19 19:33:41 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:33:41 raspberrypi smartcam[214800]: 2025-06-19 19:33:41 -0400 - INFO - Found active booking: f2e0dcfc-d141-40bc-96b2-17ad4c40e665 (19:33-19:34)
-Jun 19 19:33:41 raspberrypi smartcam[214800]: 2025-06-19 19:33:41 -0400 - INFO - SUCCESS: Starting recording for new booking: f2e0dcfc-d141-40bc-96b2-17ad4c40e665
-Jun 19 19:33:41 raspberrypi smartcam[214800]: [CameraInterface] Preparing to start recording: temp/recording_20250619_193341.mp4
-Jun 19 19:33:41 raspberrypi smartcam[214800]: [CameraInterface] Exception in start_recording: Camera must be stopped before configuring
-Jun 19 19:33:41 raspberrypi smartcam[214800]: Traceback (most recent call last):
-Jun 19 19:33:41 raspberrypi smartcam[214800]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/src/camera_interface.py", line 125, in start_recording
-Jun 19 19:33:41 raspberrypi smartcam[214800]:     self.picam.configure(video_config)
-Jun 19 19:33:41 raspberrypi smartcam[214800]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 1161, in configure
-Jun 19 19:33:41 raspberrypi smartcam[214800]:     self.configure_("preview" if camera_config is None else camera_config)
-Jun 19 19:33:41 raspberrypi smartcam[214800]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 1045, in configure_
-Jun 19 19:33:41 raspberrypi smartcam[214800]:     raise RuntimeError("Camera must be stopped before configuring")
-Jun 19 19:33:41 raspberrypi smartcam[214800]: RuntimeError: Camera must be stopped before configuring
-Jun 19 19:33:41 raspberrypi smartcam[214800]: 2025-06-19 19:33:41 -0400 - ERROR - Main loop error: Camera must be stopped before configuring
-Jun 19 19:33:41 raspberrypi smartcam[214800]: 2025-06-19 19:33:41 -0400 - INFO - Shutting down gracefully...
-Jun 19 19:33:41 raspberrypi smartcam[214800]: 2025-06-19 19:33:41 -0400 - INFO - Camera stopped
-Jun 19 19:33:41 raspberrypi smartcam[214800]: [CameraInterface] Camera released.
-Jun 19 19:33:41 raspberrypi smartcam[214800]: 2025-06-19 19:33:41 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:33:41 raspberrypi smartcam[214800]: 2025-06-19 19:33:41 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:33:41 raspberrypi smartcam[214800]: 2025-06-19 19:33:41 -0400 - INFO - Waiting for upload queue to finish...
-Jun 19 19:33:41 raspberrypi smartcam[214800]: 2025-06-19 19:33:41 -0400 - INFO - Upload worker received stop signal
-Jun 19 19:33:41 raspberrypi smartcam[214800]: 2025-06-19 19:33:41 -0400 - INFO - Upload worker shutting down
-Jun 19 19:33:41 raspberrypi smartcam[214800]: 2025-06-19 19:33:41 -0400 - INFO - SUCCESS: Shutdown complete
-Jun 19 19:33:41 raspberrypi smartcam[214800]: 2025-06-19 19:33:41 -0400 - INFO - Camera closed successfully.
-Jun 19 19:33:41 raspberrypi systemd[1]: smartcam.service: Deactivated successfully.
-Jun 19 19:33:41 raspberrypi systemd[1]: smartcam.service: Consumed 1.194s CPU time.
-Jun 19 19:33:47 raspberrypi systemd[1]: smartcam.service: Scheduled restart job, restart counter is at 6.
-Jun 19 19:33:47 raspberrypi systemd[1]: Stopped smartcam.service - SmartCam Soccer Main Service.
-Jun 19 19:33:47 raspberrypi systemd[1]: smartcam.service: Consumed 1.194s CPU time.
-Jun 19 19:33:47 raspberrypi systemd[1]: Started smartcam.service - SmartCam Soccer Main Service.
-Jun 19 19:33:47 raspberrypi smartcam[214894]: [DEBUG] Picamera2 import succeeded
-Jun 19 19:33:47 raspberrypi smartcam[214894]: [DEBUG] Attempting to initialize Picamera2...
-Jun 19 19:33:47 raspberrypi smartcam[214894]: [5:21:53.922539291] [214894]  INFO Camera camera_manager.cpp:326 libcamera v0.5.0+59-d83ff0a4
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [5:21:53.929445034] [214921]  INFO RPI pisp.cpp:720 libpisp version v1.2.1 981977ff21f3 29-04-2025 (14:13:50)
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [5:21:53.929975999] [214921] ERROR V4L2 v4l2_device.cpp:390 'imx477 11-001a': Unable to set controls: Device or resource busy
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [5:21:53.938452692] [214921]  INFO RPI pisp.cpp:1179 Registered camera /base/axi/pcie@1000120000/rp1/i2c@80000/imx477@1a to CFE device /dev/media0 and ISP device /dev/media1 using PiSP variant BCM2712_D0
-Jun 19 19:33:48 raspberrypi smartcam[214894]: 2025-06-19 19:33:48 -0400 - INFO - Initialization successful.
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [5:21:53.945098582] [214894]  INFO Camera camera.cpp:1011 Pipeline handler in use by another process
-Jun 19 19:33:48 raspberrypi smartcam[214894]: 2025-06-19 19:33:48 -0400 - ERROR - Camera __init__ sequence did not complete.
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [CameraInterface] Picamera2 not available or failed: Camera __init__ sequence did not complete.
-Jun 19 19:33:48 raspberrypi smartcam[214894]: Traceback (most recent call last):
-Jun 19 19:33:48 raspberrypi smartcam[214894]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 293, in __init__
-Jun 19 19:33:48 raspberrypi smartcam[214894]:     self._open_camera()
-Jun 19 19:33:48 raspberrypi smartcam[214894]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 505, in _open_camera
-Jun 19 19:33:48 raspberrypi smartcam[214894]:     self.camera.acquire()
-Jun 19 19:33:48 raspberrypi smartcam[214894]: RuntimeError: Failed to acquire camera: Device or resource busy
-Jun 19 19:33:48 raspberrypi smartcam[214894]: During handling of the above exception, another exception occurred:
-Jun 19 19:33:48 raspberrypi smartcam[214894]: Traceback (most recent call last):
-Jun 19 19:33:48 raspberrypi smartcam[214894]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/src/camera_interface.py", line 38, in _detect_camera
-Jun 19 19:33:48 raspberrypi smartcam[214894]:     self.picam = Picamera2()
-Jun 19 19:33:48 raspberrypi smartcam[214894]:                  ^^^^^^^^^^^
-Jun 19 19:33:48 raspberrypi smartcam[214894]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 305, in __init__
-Jun 19 19:33:48 raspberrypi smartcam[214894]:     raise RuntimeError("Camera __init__ sequence did not complete.")
-Jun 19 19:33:48 raspberrypi smartcam[214894]: RuntimeError: Camera __init__ sequence did not complete.
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.648] global cap_v4l.cpp:982 open VIDEOIO(V4L2:/dev/video1): can't open camera by index
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.649] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.649] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.649] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.649] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.649] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.649] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ERROR:0@0.650] global obsensor_uvc_stream_channel.cpp:156 getStreamChannelGroup Camera index out of range
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.652] global cap_v4l.cpp:982 open VIDEOIO(V4L2:/dev/video4): can't open camera by index
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.652] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.652] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.652] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.652] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.652] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.652] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ERROR:0@0.653] global obsensor_uvc_stream_channel.cpp:156 getStreamChannelGroup Camera index out of range
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.654] global cap_v4l.cpp:982 open VIDEOIO(V4L2:/dev/video6): can't open camera by index
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.654] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.654] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.654] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.654] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.654] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.654] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ERROR:0@0.655] global obsensor_uvc_stream_channel.cpp:156 getStreamChannelGroup Camera index out of range
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.655] global cap_v4l.cpp:982 open VIDEOIO(V4L2:/dev/video7): can't open camera by index
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.655] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.655] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.655] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.655] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.655] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=33, req=-2140645888
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ WARN:0@0.655] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
-Jun 19 19:33:48 raspberrypi smartcam[214894]: [ERROR:0@0.656] global obsensor_uvc_stream_channel.cpp:156 getStreamChannelGroup Camera index out of range
-Jun 19 19:33:48 raspberrypi smartcam[214894]: 2025-06-19 19:33:48 -0400 - ERROR - Failed to initialize CameraInterface: No working camera found (neither Pi Camera nor USB camera)
-Jun 19 19:33:48 raspberrypi systemd[1]: smartcam.service: Deactivated successfully.
-Jun 19 19:33:48 raspberrypi systemd[1]: smartcam.service: Consumed 1.066s CPU time.
-Jun 19 19:33:53 raspberrypi systemd[1]: smartcam.service: Scheduled restart job, restart counter is at 7.
-Jun 19 19:33:53 raspberrypi systemd[1]: Stopped smartcam.service - SmartCam Soccer Main Service.
-Jun 19 19:33:53 raspberrypi systemd[1]: smartcam.service: Consumed 1.066s CPU time.
-Jun 19 19:33:53 raspberrypi systemd[1]: Started smartcam.service - SmartCam Soccer Main Service.
-Jun 19 19:33:53 raspberrypi smartcam[215001]: [DEBUG] Picamera2 import succeeded
-Jun 19 19:33:54 raspberrypi smartcam[215001]: [DEBUG] Attempting to initialize Picamera2...
-Jun 19 19:33:54 raspberrypi smartcam[215001]: [5:21:59.954878312] [215001]  INFO Camera camera_manager.cpp:326 libcamera v0.5.0+59-d83ff0a4
-Jun 19 19:33:54 raspberrypi smartcam[215001]: [5:21:59.961775519] [215016]  INFO RPI pisp.cpp:720 libpisp version v1.2.1 981977ff21f3 29-04-2025 (14:13:50)
-Jun 19 19:33:54 raspberrypi smartcam[215001]: [5:21:59.970842120] [215016]  INFO RPI pisp.cpp:1179 Registered camera /base/axi/pcie@1000120000/rp1/i2c@80000/imx477@1a to CFE device /dev/media0 and ISP device /dev/media1 using PiSP variant BCM2712_D0
-Jun 19 19:33:54 raspberrypi smartcam[215001]: 2025-06-19 19:33:54 -0400 - INFO - Initialization successful.
-Jun 19 19:33:54 raspberrypi smartcam[215001]: 2025-06-19 19:33:54 -0400 - INFO - Camera now open.
-Jun 19 19:33:54 raspberrypi smartcam[215001]: 2025-06-19 19:33:54 -0400 - INFO - Camera configuration has been adjusted!
-Jun 19 19:33:54 raspberrypi smartcam[215001]: [5:21:59.974661576] [215001]  INFO Camera camera.cpp:1205 configuring streams: (0) 640x480-RGB888 (1) 2028x1520-BGGR_PISP_COMP1
-Jun 19 19:33:54 raspberrypi smartcam[215001]: [5:21:59.974756910] [215016]  INFO RPI pisp.cpp:1483 Sensor: /base/axi/pcie@1000120000/rp1/i2c@80000/imx477@1a - Selected sensor format: 2028x1520-SBGGR12_1X12 - Selected CFE format: 2028x1520-PC1B
-Jun 19 19:33:54 raspberrypi smartcam[215001]: 2025-06-19 19:33:54 -0400 - INFO - Configuration successful!
-Jun 19 19:33:54 raspberrypi smartcam[215001]: 2025-06-19 19:33:54 -0400 - INFO - Camera started
-Jun 19 19:33:54 raspberrypi smartcam[215001]: [CameraInterface] Using Pi Camera (Picamera2)
-Jun 19 19:33:54 raspberrypi smartcam[215001]: 2025-06-19 19:33:54 -0400 - INFO - SUCCESS: Camera initialized and opened with CameraInterface (picamera2)
-Jun 19 19:33:54 raspberrypi smartcam[215001]: 2025-06-19 19:33:54 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:33:54 raspberrypi smartcam[215001]: [Heartbeat] Sent successfully
-Jun 19 19:33:54 raspberrypi smartcam[215001]: 2025-06-19 19:33:54 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:33:54 raspberrypi smartcam[215001]: 2025-06-19 19:33:54 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:33:54 raspberrypi smartcam[215001]: 2025-06-19 19:33:54 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:33:54 raspberrypi smartcam[215001]: [Heartbeat] Sent successfully
-Jun 19 19:33:55 raspberrypi smartcam[215001]: 2025-06-19 19:33:55 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:33:55 raspberrypi smartcam[215001]: 2025-06-19 19:33:55 -0400 - INFO - Found active booking: f2e0dcfc-d141-40bc-96b2-17ad4c40e665 (19:33-19:34)
-Jun 19 19:33:55 raspberrypi smartcam[215001]: 2025-06-19 19:33:55 -0400 - INFO - SUCCESS: Starting recording for new booking: f2e0dcfc-d141-40bc-96b2-17ad4c40e665
-Jun 19 19:33:55 raspberrypi smartcam[215001]: [CameraInterface] Preparing to start recording: temp/recording_20250619_193355.mp4
-Jun 19 19:33:55 raspberrypi smartcam[215001]: [CameraInterface] Exception in start_recording: Camera must be stopped before configuring
-Jun 19 19:33:55 raspberrypi smartcam[215001]: Traceback (most recent call last):
-Jun 19 19:33:55 raspberrypi smartcam[215001]:   File "/home/michomanoly14892/code/SmartCam-Soccer/backend/src/camera_interface.py", line 125, in start_recording
-Jun 19 19:33:55 raspberrypi smartcam[215001]:     self.picam.configure(video_config)
-Jun 19 19:33:55 raspberrypi smartcam[215001]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 1161, in configure
-Jun 19 19:33:55 raspberrypi smartcam[215001]:     self.configure_("preview" if camera_config is None else camera_config)
-Jun 19 19:33:55 raspberrypi smartcam[215001]:   File "/usr/lib/python3/dist-packages/picamera2/picamera2.py", line 1045, in configure_
-Jun 19 19:33:55 raspberrypi smartcam[215001]:     raise RuntimeError("Camera must be stopped before configuring")
-Jun 19 19:33:55 raspberrypi smartcam[215001]: RuntimeError: Camera must be stopped before configuring
-Jun 19 19:33:55 raspberrypi smartcam[215001]: 2025-06-19 19:33:55 -0400 - ERROR - Main loop error: Camera must be stopped before configuring
-Jun 19 19:33:55 raspberrypi smartcam[215001]: 2025-06-19 19:33:55 -0400 - INFO - Shutting down gracefully...
-Jun 19 19:33:55 raspberrypi smartcam[215001]: 2025-06-19 19:33:55 -0400 - INFO - Camera stopped
-Jun 19 19:33:55 raspberrypi smartcam[215001]: [CameraInterface] Camera released.
-Jun 19 19:33:55 raspberrypi smartcam[215001]: 2025-06-19 19:33:55 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:33:55 raspberrypi smartcam[215001]: 2025-06-19 19:33:55 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:33:55 raspberrypi smartcam[215001]: 2025-06-19 19:33:55 -0400 - INFO - Waiting for upload queue to finish...
-Jun 19 19:33:55 raspberrypi smartcam[215001]: 2025-06-19 19:33:55 -0400 - INFO - Upload worker received stop signal
-Jun 19 19:33:55 raspberrypi smartcam[215001]: 2025-06-19 19:33:55 -0400 - INFO - Upload worker shutting down
-Jun 19 19:33:55 raspberrypi smartcam[215001]: 2025-06-19 19:33:55 -0400 - INFO - SUCCESS: Shutdown complete
-Jun 19 19:33:55 raspberrypi smartcam[215001]: 2025-06-19 19:33:55 -0400 - INFO - Camera closed successfully.
-Jun 19 19:33:55 raspberrypi systemd[1]: smartcam.service: Deactivated successfully.
-Jun 19 19:33:55 raspberrypi systemd[1]: smartcam.service: Consumed 1.245s CPU time.
-Jun 19 19:34:00 raspberrypi systemd[1]: smartcam.service: Scheduled restart job, restart counter is at 8.
-Jun 19 19:34:00 raspberrypi systemd[1]: Stopped smartcam.service - SmartCam Soccer Main Service.
-Jun 19 19:34:00 raspberrypi systemd[1]: smartcam.service: Consumed 1.245s CPU time.
-Jun 19 19:34:00 raspberrypi systemd[1]: Started smartcam.service - SmartCam Soccer Main Service.
-Jun 19 19:34:01 raspberrypi smartcam[215093]: [DEBUG] Picamera2 import succeeded
-Jun 19 19:34:01 raspberrypi smartcam[215093]: [DEBUG] Attempting to initialize Picamera2...
-Jun 19 19:34:01 raspberrypi smartcam[215093]: [5:22:07.579001065] [215093]  INFO Camera camera_manager.cpp:326 libcamera v0.5.0+59-d83ff0a4
-Jun 19 19:34:01 raspberrypi smartcam[215093]: [5:22:07.585896697] [215108]  INFO RPI pisp.cpp:720 libpisp version v1.2.1 981977ff21f3 29-04-2025 (14:13:50)
-Jun 19 19:34:01 raspberrypi smartcam[215093]: [5:22:07.594948558] [215108]  INFO RPI pisp.cpp:1179 Registered camera /base/axi/pcie@1000120000/rp1/i2c@80000/imx477@1a to CFE device /dev/media0 and ISP device /dev/media1 using PiSP variant BCM2712_D0
-Jun 19 19:34:01 raspberrypi smartcam[215093]: 2025-06-19 19:34:01 -0400 - INFO - Initialization successful.
-Jun 19 19:34:01 raspberrypi smartcam[215093]: 2025-06-19 19:34:01 -0400 - INFO - Camera now open.
-Jun 19 19:34:01 raspberrypi smartcam[215093]: 2025-06-19 19:34:01 -0400 - INFO - Camera configuration has been adjusted!
-Jun 19 19:34:01 raspberrypi smartcam[215093]: [5:22:07.599665035] [215093]  INFO Camera camera.cpp:1205 configuring streams: (0) 640x480-RGB888 (1) 2028x1520-BGGR_PISP_COMP1
-Jun 19 19:34:01 raspberrypi smartcam[215093]: [5:22:07.599822962] [215108]  INFO RPI pisp.cpp:1483 Sensor: /base/axi/pcie@1000120000/rp1/i2c@80000/imx477@1a - Selected sensor format: 2028x1520-SBGGR12_1X12 - Selected CFE format: 2028x1520-PC1B
-Jun 19 19:34:01 raspberrypi smartcam[215093]: 2025-06-19 19:34:01 -0400 - INFO - Configuration successful!
-Jun 19 19:34:02 raspberrypi smartcam[215093]: 2025-06-19 19:34:02 -0400 - INFO - Camera started
-Jun 19 19:34:02 raspberrypi smartcam[215093]: [CameraInterface] Using Pi Camera (Picamera2)
-Jun 19 19:34:02 raspberrypi smartcam[215093]: 2025-06-19 19:34:02 -0400 - INFO - SUCCESS: Camera initialized and opened with CameraInterface (picamera2)
-Jun 19 19:34:02 raspberrypi smartcam[215093]: 2025-06-19 19:34:02 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:34:02 raspberrypi smartcam[215093]: [Heartbeat] Sent successfully
-Jun 19 19:34:02 raspberrypi smartcam[215093]: 2025-06-19 19:34:02 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:34:02 raspberrypi smartcam[215093]: 2025-06-19 19:34:02 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:34:02 raspberrypi smartcam[215093]: 2025-06-19 19:34:02 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:34:02 raspberrypi smartcam[215093]: [Heartbeat] Sent successfully
-Jun 19 19:34:02 raspberrypi smartcam[215093]: 2025-06-19 19:34:02 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:34:02 raspberrypi smartcam[215093]: 2025-06-19 19:34:02 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:34:02 raspberrypi smartcam[215093]: 2025-06-19 19:34:02 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:34:02 raspberrypi smartcam[215093]: 2025-06-19 19:34:02 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/user_settings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:34:07 raspberrypi smartcam[215093]: 2025-06-19 19:34:07 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:34:07 raspberrypi smartcam[215093]: [Heartbeat] Sent successfully
-Jun 19 19:34:07 raspberrypi smartcam[215093]: 2025-06-19 19:34:07 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:34:07 raspberrypi smartcam[215093]: 2025-06-19 19:34:07 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:34:07 raspberrypi smartcam[215093]: 2025-06-19 19:34:07 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:34:12 raspberrypi smartcam[215093]: 2025-06-19 19:34:12 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:34:12 raspberrypi smartcam[215093]: 2025-06-19 19:34:12 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:34:12 raspberrypi smartcam[215093]: [Heartbeat] Sent successfully
-Jun 19 19:34:12 raspberrypi smartcam[215093]: 2025-06-19 19:34:12 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:34:12 raspberrypi smartcam[215093]: 2025-06-19 19:34:12 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:34:17 raspberrypi smartcam[215093]: 2025-06-19 19:34:17 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:34:17 raspberrypi smartcam[215093]: 2025-06-19 19:34:17 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:34:17 raspberrypi smartcam[215093]: 2025-06-19 19:34:17 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:34:18 raspberrypi smartcam[215093]: 2025-06-19 19:34:18 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:34:18 raspberrypi smartcam[215093]: [Heartbeat] Sent successfully
-Jun 19 19:34:22 raspberrypi smartcam[215093]: 2025-06-19 19:34:22 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:34:22 raspberrypi smartcam[215093]: 2025-06-19 19:34:22 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:34:22 raspberrypi smartcam[215093]: 2025-06-19 19:34:22 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:34:23 raspberrypi smartcam[215093]: 2025-06-19 19:34:23 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:34:23 raspberrypi smartcam[215093]: [Heartbeat] Sent successfully
-Jun 19 19:34:27 raspberrypi smartcam[215093]: 2025-06-19 19:34:27 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:34:27 raspberrypi smartcam[215093]: 2025-06-19 19:34:27 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:34:27 raspberrypi smartcam[215093]: 2025-06-19 19:34:27 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:34:28 raspberrypi smartcam[215093]: 2025-06-19 19:34:28 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:34:28 raspberrypi smartcam[215093]: [Heartbeat] Sent successfully
-Jun 19 19:34:32 raspberrypi smartcam[215093]: 2025-06-19 19:34:32 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:34:32 raspberrypi smartcam[215093]: 2025-06-19 19:34:32 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:34:32 raspberrypi smartcam[215093]: 2025-06-19 19:34:32 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:34:33 raspberrypi smartcam[215093]: 2025-06-19 19:34:33 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:34:33 raspberrypi smartcam[215093]: [Heartbeat] Sent successfully
-Jun 19 19:34:37 raspberrypi smartcam[215093]: 2025-06-19 19:34:37 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:34:37 raspberrypi smartcam[215093]: 2025-06-19 19:34:37 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:34:37 raspberrypi smartcam[215093]: 2025-06-19 19:34:37 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:34:38 raspberrypi smartcam[215093]: 2025-06-19 19:34:38 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:34:38 raspberrypi smartcam[215093]: [Heartbeat] Sent successfully
-Jun 19 19:34:42 raspberrypi smartcam[215093]: 2025-06-19 19:34:42 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:34:42 raspberrypi smartcam[215093]: 2025-06-19 19:34:42 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:34:43 raspberrypi smartcam[215093]: 2025-06-19 19:34:42 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:34:44 raspberrypi smartcam[215093]: 2025-06-19 19:34:44 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:34:44 raspberrypi smartcam[215093]: [Heartbeat] Sent successfully
-Jun 19 19:34:47 raspberrypi smartcam[215093]: 2025-06-19 19:34:47 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:34:48 raspberrypi smartcam[215093]: 2025-06-19 19:34:48 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:34:48 raspberrypi smartcam[215093]: 2025-06-19 19:34:48 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:34:49 raspberrypi smartcam[215093]: 2025-06-19 19:34:49 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:34:49 raspberrypi smartcam[215093]: [Heartbeat] Sent successfully
-Jun 19 19:34:52 raspberrypi smartcam[215093]: 2025-06-19 19:34:52 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:34:53 raspberrypi smartcam[215093]: 2025-06-19 19:34:53 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:34:53 raspberrypi smartcam[215093]: 2025-06-19 19:34:53 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:34:54 raspberrypi smartcam[215093]: 2025-06-19 19:34:54 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:34:54 raspberrypi smartcam[215093]: [Heartbeat] Sent successfully
-Jun 19 19:34:57 raspberrypi smartcam[215093]: 2025-06-19 19:34:57 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:34:58 raspberrypi smartcam[215093]: 2025-06-19 19:34:58 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:34:58 raspberrypi smartcam[215093]: 2025-06-19 19:34:58 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:34:59 raspberrypi smartcam[215093]: 2025-06-19 19:34:59 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:34:59 raspberrypi smartcam[215093]: [Heartbeat] Sent successfully
-Jun 19 19:35:02 raspberrypi smartcam[215093]: 2025-06-19 19:35:02 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:35:03 raspberrypi smartcam[215093]: 2025-06-19 19:35:03 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:35:03 raspberrypi smartcam[215093]: 2025-06-19 19:35:03 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:35:05 raspberrypi smartcam[215093]: 2025-06-19 19:35:05 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:35:05 raspberrypi smartcam[215093]: [Heartbeat] Sent successfully
-Jun 19 19:35:08 raspberrypi smartcam[215093]: 2025-06-19 19:35:08 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:35:08 raspberrypi smartcam[215093]: 2025-06-19 19:35:08 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:35:08 raspberrypi smartcam[215093]: 2025-06-19 19:35:08 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:35:10 raspberrypi smartcam[215093]: 2025-06-19 19:35:10 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:35:10 raspberrypi smartcam[215093]: [Heartbeat] Sent successfully
-Jun 19 19:35:13 raspberrypi smartcam[215093]: 2025-06-19 19:35:13 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:35:13 raspberrypi smartcam[215093]: 2025-06-19 19:35:13 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:35:13 raspberrypi smartcam[215093]: 2025-06-19 19:35:13 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:35:15 raspberrypi smartcam[215093]: 2025-06-19 19:35:15 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:35:15 raspberrypi smartcam[215093]: [Heartbeat] Sent successfully
-Jun 19 19:35:18 raspberrypi smartcam[215093]: 2025-06-19 19:35:18 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:35:18 raspberrypi smartcam[215093]: 2025-06-19 19:35:18 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:35:18 raspberrypi smartcam[215093]: 2025-06-19 19:35:18 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:35:20 raspberrypi smartcam[215093]: 2025-06-19 19:35:20 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:35:20 raspberrypi smartcam[215093]: [Heartbeat] Sent successfully
-Jun 19 19:35:23 raspberrypi smartcam[215093]: 2025-06-19 19:35:23 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&order=start_time "HTTP/1.1 200 OK"
-Jun 19 19:35:23 raspberrypi smartcam[215093]: 2025-06-19 19:35:23 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 400 Bad Request"
-Jun 19 19:35:23 raspberrypi smartcam[215093]: 2025-06-19 19:35:23 -0400 - ERROR - Failed to update camera status: {'code': 'PGRST204', 'details': None, 'hint': None, 'message': "Could not find the 'storage_used' column of 'cameras' in the schema cache"}
-Jun 19 19:35:25 raspberrypi smartcam[215093]: 2025-06-19 19:35:25 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
-Jun 19 19:35:25 raspberrypi smartcam[215093]: [Heartbeat] Sent successfully
+michomanoly14892@raspberrypi:~/code/SmartCam-Soccer $ sudo journalctl -u smartcam.service -f
+Jun 19 18:32:41 raspberrypi smartcam[173457]: [ WARN:0@0.761] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
+Jun 19 18:32:41 raspberrypi smartcam[173457]: [ WARN:0@0.761] global obsensor_stream_channel_v4l2.cpp:82 xioctl ioctl: fd=118, req=-2140645888
+Jun 19 18:32:41 raspberrypi smartcam[173457]: [ WARN:0@0.761] global obsensor_stream_channel_v4l2.cpp:138 queryUvcDeviceInfoList ioctl error return: 25
+Jun 19 18:32:41 raspberrypi smartcam[173457]: [ERROR:0@0.762] global obsensor_uvc_stream_channel.cpp:156 getStreamChannelGroup Camera index out of range
+Jun 19 18:32:41 raspberrypi smartcam[173457]: 2025-06-19 18:32:41 -0400 - ERROR - Failed to initialize CameraInterface: No working camera found (neither Pi Camera nor USB camera)
+Jun 19 18:32:42 raspberrypi smartcam[173457]: 2025-06-19 18:32:42 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
+Jun 19 18:32:42 raspberrypi smartcam[173457]: [Heartbeat] Sent successfully
+Jun 19 18:32:42 raspberrypi smartcam[173457]: 2025-06-19 18:32:42 -0400 - INFO - Camera closed successfully.
+Jun 19 18:32:42 raspberrypi systemd[1]: smartcam.service: Deactivated successfully.
+Jun 19 18:32:42 raspberrypi systemd[1]: smartcam.service: Consumed 1.217s CPU time.
+Jun 19 18:32:47 raspberrypi systemd[1]: smartcam.service: Scheduled restart job, restart counter is at 2.
+Jun 19 18:32:47 raspberrypi systemd[1]: Stopped smartcam.service - SmartCam Soccer Main Service.
+Jun 19 18:32:47 raspberrypi systemd[1]: smartcam.service: Consumed 1.217s CPU time.
+Jun 19 18:32:47 raspberrypi systemd[1]: Started smartcam.service - SmartCam Soccer Main Service.
+Jun 19 18:32:48 raspberrypi smartcam[173570]: [DEBUG] Picamera2 import succeeded
+Jun 19 18:32:48 raspberrypi smartcam[173570]: [DEBUG] Attempting to initialize Picamera2...
+Jun 19 18:32:48 raspberrypi smartcam[173570]: [4:20:54.554080145] [173570]  INFO Camera camera_manager.cpp:326 libcamera v0.5.0+59-d83ff0a4
+Jun 19 18:32:48 raspberrypi smartcam[173570]: [4:20:54.560932089] [173587]  INFO RPI pisp.cpp:720 libpisp version v1.2.1 981977ff21f3 29-04-2025 (14:13:50)
+Jun 19 18:32:48 raspberrypi smartcam[173570]: [4:20:54.570062724] [173587]  INFO RPI pisp.cpp:1179 Registered camera /base/axi/pcie@1000120000/rp1/i2c@80000/imx477@1a to CFE device /dev/media0 and ISP device /dev/media1 using PiSP variant BCM2712_D0
+Jun 19 18:32:48 raspberrypi smartcam[173570]: 2025-06-19 18:32:48 -0400 - INFO - Initialization successful.
+Jun 19 18:32:48 raspberrypi smartcam[173570]: 2025-06-19 18:32:48 -0400 - INFO - Camera now open.
+Jun 19 18:32:48 raspberrypi smartcam[173570]: 2025-06-19 18:32:48 -0400 - INFO - Camera configuration has been adjusted!
+Jun 19 18:32:48 raspberrypi smartcam[173570]: [4:20:54.579355730] [173570]  INFO Camera camera.cpp:1205 configuring streams: (0) 640x480-RGB888 (1) 2028x1520-BGGR_PISP_COMP1
+Jun 19 18:32:48 raspberrypi smartcam[173570]: [4:20:54.579457952] [173587]  INFO RPI pisp.cpp:1483 Sensor: /base/axi/pcie@1000120000/rp1/i2c@80000/imx477@1a - Selected sensor format: 2028x1520-SBGGR12_1X12 - Selected CFE format: 2028x1520-PC1B
+Jun 19 18:32:48 raspberrypi smartcam[173570]: 2025-06-19 18:32:48 -0400 - INFO - Configuration successful!
+Jun 19 18:32:49 raspberrypi smartcam[173570]: 2025-06-19 18:32:49 -0400 - INFO - Camera started
+Jun 19 18:32:49 raspberrypi smartcam[173570]: [CameraInterface] Using Pi Camera (Picamera2)
+Jun 19 18:32:49 raspberrypi smartcam[173570]: 2025-06-19 18:32:49 -0400 - INFO - SUCCESS: Camera initialized and opened with CameraInterface (picamera2)
+Jun 19 18:32:49 raspberrypi smartcam[173570]: 2025-06-19 18:32:49 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
+Jun 19 18:32:49 raspberrypi smartcam[173570]: [Heartbeat] Sent successfully
+Jun 19 18:32:49 raspberrypi smartcam[173570]: 2025-06-19 18:32:49 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 200 OK"
+Jun 19 18:32:49 raspberrypi smartcam[173570]: 2025-06-19 18:32:49 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
+Jun 19 18:32:49 raspberrypi smartcam[173570]: [Heartbeat] Sent successfully
+Jun 19 18:32:49 raspberrypi smartcam[173570]: 2025-06-19 18:32:49 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&end_time=gte.18%3A32&order=start_time "HTTP/1.1 200 OK"
+Jun 19 18:32:49 raspberrypi smartcam[173570]: 2025-06-19 18:32:49 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=gt.2025-06-19&order=date&order=start_time "HTTP/1.1 200 OK"
+Jun 19 18:32:49 raspberrypi smartcam[173570]: 2025-06-19 18:32:49 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 200 OK"
+Jun 19 18:32:49 raspberrypi smartcam[173570]: 2025-06-19 18:32:49 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/user_settings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
+Jun 19 18:33:04 raspberrypi smartcam[173570]: 2025-06-19 18:33:04 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 200 OK"
+Jun 19 18:33:09 raspberrypi smartcam[173570]: 2025-06-19 18:33:09 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
+Jun 19 18:33:09 raspberrypi smartcam[173570]: [Heartbeat] Sent successfully
+Jun 19 18:33:19 raspberrypi smartcam[173570]: 2025-06-19 18:33:19 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 200 OK"
+Jun 19 18:33:29 raspberrypi smartcam[173570]: 2025-06-19 18:33:29 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
+Jun 19 18:33:29 raspberrypi smartcam[173570]: [Heartbeat] Sent successfully
+Jun 19 18:33:34 raspberrypi smartcam[173570]: 2025-06-19 18:33:34 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 200 OK"
+Jun 19 18:33:49 raspberrypi smartcam[173570]: 2025-06-19 18:33:49 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&end_time=gte.18%3A33&order=start_time "HTTP/1.1 200 OK"
+Jun 19 18:33:49 raspberrypi smartcam[173570]: 2025-06-19 18:33:49 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=gt.2025-06-19&order=date&order=start_time "HTTP/1.1 200 OK"
+Jun 19 18:33:49 raspberrypi smartcam[173570]: 2025-06-19 18:33:49 -0400 - INFO - SUCCESS: Starting recording for booking: [{'id': '8e37b5ab-48c4-463b-bce0-d0afd7f68a76', 'date': '2025-06-19', 'start_time': '18:34', 'end_time': '18:35', 'created_at': '2025-06-19T22:33:07.049348+00:00', 'user_id': '65aa2e2a-e463-424d-b88f-0724bb0bea3a'}]
+Jun 19 18:33:49 raspberrypi smartcam[173570]: [CameraInterface] Preparing to start recording: temp/recording_20250619_183349.mp4
+Jun 19 18:33:50 raspberrypi smartcam[173570]: 2025-06-19 18:33:50 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
+Jun 19 18:33:50 raspberrypi smartcam[173570]: [Heartbeat] Sent successfully
+Jun 19 18:33:50 raspberrypi smartcam[173570]: 2025-06-19 18:33:50 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 200 OK"
+Jun 19 18:33:50 raspberrypi smartcam[173570]: 2025-06-19 18:33:50 -0400 - INFO - Camera status updated: recording=True
+Jun 19 18:33:50 raspberrypi smartcam[173570]: 2025-06-19 18:33:50 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status "HTTP/1.1 201 Created"
+Jun 19 18:33:50 raspberrypi smartcam[173570]: 2025-06-19 18:33:50 -0400 - INFO - System status updated: memory=7.1%, cpu=7.4%, storage=0
+Jun 19 18:33:50 raspberrypi smartcam[173570]: [CameraInterface] Started recording: temp/recording_20250619_183349.mp4
+Jun 19 18:33:50 raspberrypi smartcam[173570]: 2025-06-19 18:33:50 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
+Jun 19 18:33:50 raspberrypi smartcam[173570]: [Heartbeat] Sent successfully
+Jun 19 18:33:50 raspberrypi smartcam[173570]: 2025-06-19 18:33:50 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 200 OK"
+Jun 19 18:34:05 raspberrypi smartcam[173570]: 2025-06-19 18:34:05 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 200 OK"
+Jun 19 18:34:10 raspberrypi smartcam[173570]: 2025-06-19 18:34:10 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
+Jun 19 18:34:10 raspberrypi smartcam[173570]: [Heartbeat] Sent successfully
+Jun 19 18:34:20 raspberrypi smartcam[173570]: 2025-06-19 18:34:20 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 200 OK"
+Jun 19 18:34:30 raspberrypi smartcam[173570]: 2025-06-19 18:34:30 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
+Jun 19 18:34:30 raspberrypi smartcam[173570]: [Heartbeat] Sent successfully
+Jun 19 18:34:36 raspberrypi smartcam[173570]: 2025-06-19 18:34:35 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 200 OK"
+Jun 19 18:34:49 raspberrypi smartcam[173570]: 2025-06-19 18:34:49 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=eq.2025-06-19&end_time=gte.18%3A34&order=start_time "HTTP/1.1 200 OK"
+Jun 19 18:34:49 raspberrypi smartcam[173570]: 2025-06-19 18:34:49 -0400 - INFO - HTTP Request: GET https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/bookings?select=%2A&user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a&date=gt.2025-06-19&order=date&order=start_time "HTTP/1.1 200 OK"
+Jun 19 18:34:50 raspberrypi smartcam[173570]: 2025-06-19 18:34:50 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
+Jun 19 18:34:50 raspberrypi smartcam[173570]: [Heartbeat] Sent successfully
+Jun 19 18:34:50 raspberrypi smartcam[173570]: 2025-06-19 18:34:50 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 200 OK"
+Jun 19 18:35:06 raspberrypi smartcam[173570]: 2025-06-19 18:35:06 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 200 OK"
+Jun 19 18:35:11 raspberrypi smartcam[173570]: 2025-06-19 18:35:11 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
+Jun 19 18:35:11 raspberrypi smartcam[173570]: [Heartbeat] Sent successfully
+Jun 19 18:35:21 raspberrypi smartcam[173570]: 2025-06-19 18:35:21 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 200 OK"
+Jun 19 18:35:31 raspberrypi smartcam[173570]: 2025-06-19 18:35:31 -0400 - INFO - HTTP Request: PATCH https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/system_status?user_id=eq.65aa2e2a-e463-424d-b88f-0724bb0bea3a "HTTP/1.1 200 OK"
+Jun 19 18:35:31 raspberrypi smartcam[173570]: [Heartbeat] Sent successfully
+Jun 19 18:35:36 raspberrypi smartcam[173570]: 2025-06-19 18:35:36 -0400 - INFO - HTTP Request: POST https://iszmsaayxpdrovealrrp.supabase.co/rest/v1/cameras "HTTP/1.1 200 OK"
